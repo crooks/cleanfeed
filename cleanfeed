@@ -1,0 +1,1630 @@
+# vim: set tabstop=4 shiftwidth=4 autoindent smartindent smarttab syntax=perl:
+#
+# Copyright 1999 Jeremy Nixon <jeremy@exit109.com>
+# Copyright 2001 Marco d'Itri <md@linux.it>
+#
+# This software is distributed under the terms of the Artistic License.
+# Please see the LICENSE file in the distribution.
+#
+
+# CHANGE THE BELOW SETTING!
+# Directory where cleanfeed.local and the other configuration files live.
+# Set this to undef to not use any external file.
+
+$config_dir = '/usr/local/news/cleanfeed/etc';
+
+##############################################################################
+# Server configuration
+#
+# Set $MODE according to what you're running.
+# Acceptable values: inn, highwind.
+# If you are running a highwind-like server then the value set here is ignored
+# and the default from highwind.pl is used.
+
+$MODE ||= 'inn';
+
+##############################################################################
+# WARNING: NO USER SERVICEABLE PARTS BELOW THIS LINE
+# IF YOU WANT TO CHANGE SOMETHING, PLEASE USE cleanfeed.local
+##############################################################################
+
+# default configuration
+sub get_config {
+	%config = (
+	verbose => 1,			# verbose rejection reasons in news.notice/logfile?
+	aggressive => 1,			# set to 0 if your lawyers are paranoid
+	maxgroups => 14,			# maximum number of groups in a crosspost
+	block_binaries => 1,		# block misplaced binaries
+	block_late_cancels => 0,	# block cancels of rejected articles
+	block_user_spamcancels => 1,# reject spam cancels with X-Trace or N-P-H
+	block_user_cancels => 0,	# accept only spam cancels
+	block_extra_reposts => 1,	# block reposts for articles not cancelled
+
+	do_md5 => 1,				# do the md5 checks?
+	do_phl => 1,				# do the posting-host/lines EMP check?
+	do_fsl => 1,				# do the from/subject/lines EMP check?
+	do_scoring_filter => 1,		# use the scoring filter?
+
+	do_emp_dump => 1,			# dump EMP histories to a file for persistence?
+	emp_dump_file => '',		# file to dump EMP histories to
+
+	MD5RateCutoff => 5,			# reject if this many copies are in the history
+	MD5RateCeiling => 85,		# only count this high
+	MD5RateBaseInterval => 7200,# How long to wait before decrementing the count
+	PHLRateCutoff => 20,
+	PHLRateCeiling => 80,
+	PHLRateBaseInterval => 3600,
+	FSLRateCutoff => 20,
+	FSLRateCeiling => 40,
+	FSLRateBaseInterval => 1000,
+
+	fuzzy_md5 => 1,				# screw around with the body before md5ing?
+	fuzzy_max_length => 700,	# don't screw with bodies over this many lines
+	md5_max_length => 2000,		# don't md5 articles over this many lines
+	trim_interval => 900,		# trim hashes every N seconds
+	stats_interval => 3600,		# write status file every N seconds
+	MIDmaxlife => 4,			# time to keep rejected message-ids, in hours
+	md5_skips_followups => 1,	# avoid MD5 check on articles with References?
+	do_mid_filter => 1,			# use the message-id CHECK filter? (INN only)
+	do_supersedes_filter => 1,	# do the excessive supersedes filter?
+	drop_useless_controls => 1,	# drop sendsys, senduuname, version control msg
+	drop_ihave_sendme => 1,		# drop ihave, sendme control messages
+
+	low_xpost_maxgroups => 6,	# max xposts in low_xpost_groups
+	meow_ext_maxgroups => 2,	# max xposts from meow_groups to other groups
+
+	binaries_in_mod_groups => 0,	# allow binaries in moderated groups?
+	max_encoded_lines => 15,	# number of encoded binary lines to allow
+
+	block_mime_html => 1,		# block MIME encapsulated HTML (attached files)
+								#  (NOT straight or multipart/alternative)
+	block_html => 1,			# block text/html but not multipart/alternative
+	block_multi_alt => 0,		# block multipart/alternative articles
+
+	active_file => '',	# active file to determine which groups are moderated
+
+	# Logging and pid_file don't work for INN (uses news.notice)
+	log_directory => '',
+	log_name => '',
+	log_accepts => 0,				# include accepted articles in the log?
+	max_log_size => 0,
+	rotate_file => '',				# rotate log if this file exists
+	keep_old_logs => 7,				# how many old logfiles to keep
+
+	pid_file => '',
+
+	# crude stats on what the filter is doing
+	statfile => '',
+	html_statfile => '',
+	inn_syslog_status => 0,			# status to syslog (late-model INN only)
+
+	timer_info => 1,		# timing information (arts/second) in status report?
+
+	debug_batch_directory => '',	# directory for debugging batches
+	debug_batch_size => 0,			# max size of batch files before rotation
+
+	### binaries allowed if groups match
+	bin_allowed => '^\w+\.binae?r|^alt\.sex\.pictures|^fur\.artwork'.
+		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
+		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
+		'|^fido\.|^linux\.|^unidata\.',
+
+	### no binaries allowed even if bin_allowed matches
+	bad_bin => '\.d$|^alt\.chello',
+
+	### md5 EMP check not done if groups match
+	md5exclude => '\.test(?:$|\.)|^es\.pruebas$',
+
+	### reject all articles crossposted to groups matching this
+	poison_groups => '^alt\.(?:binaires|bainaries)|sexzilla|^newsmon$'.
+		'|h[i\d]pcl[o\d]ne|h\.i\.p\.c\.r\.i\.m\.e'.
+		($] >= 5.005 ? '|(?<!free\.)h[i\d]pcr[i\d]m[e\d]'
+					: '|^alt\.hipcrime|^us\.hipcrime|^hipcrime|h\dpcr\dme'),
+
+	### no checks done if groups match
+	allexclude => '^clari\.|^biz\.clarinet\.',
+
+	### HTML allowed here (if block_html or block_multi_alt is turned on)
+	html_allowed => '^microsoft\.',
+
+	### groups where we restrict crossposts even more than normal
+	low_xpost_groups => 'test|jobs|forsale',
+
+	### groups where we restrict crossposts whith other groups
+	meow_groups => '|^alt\.fan\.karl-malden\.nose|^alt\.flame|^alt\.troll'.
+		'|^alt\.alien\.vampire\.flonk\.flonk\.flonk|^alt\.romath'.
+		'|^alt\.snuh|^alt\.fan\.natasha',
+
+	### cancel in these groups are not honored
+	no_cancel_groups => '^alt\.religion\.scientology|^news\.admin\.net-abuse|^alt\.config$',
+
+	### domains starting/ending in "xxx" are never good news
+	### (checked against .com, .net, and .nu tld's only)
+# FIXME currently disabled
+#	baddomainpat => '[\w\-]+xxx|xxx[\w\-]+',
+
+	### exempt these hosts from the NNTP-Posting-Host filter
+	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
+		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
+
+	### posting hosts exempt from excessive supersedes filter
+	supersedes_exempt => '^localhost$|^penguin-lust\.mit\.edu$',
+
+	### refuse articles with these in the message-id (INN only)
+	refuse_messageids => 'HeadHunter\.NET>|none\d+\.yet>',
+
+	### groups expected to contain bodies and/or subject lines from spam
+	spam_report_groups => '^(?:news|de)\.admin\.net-abuse'.
+		'|^news\.lists\.filters|^alt\.nocem\.misc'.
+		'|^fr\.usenet\.abus\.rapports|^nl\.internet\.misbruik\.rapport$',
+
+	adult_groups => 'personals|sex|nud[ei]|erot|xxx|lolita'.
+	'|neojapan|bondage|fetish|lesbian|porn|tasteless|voyeur|^it\.sesso'.
+	'|^alt\.(?:mag[\.a]|redh|stories'.
+	 '|fan\.(?:air|asp|pret|televisionx|pst|snuf))'.
+	'|^alt\.binaries\.(?:aimee|adole|ass\b|great|images\.(?:sun|under)|full'.
+	 '|linger|pent|pin-?up|nospam|scanm|pictures\.(?:aspa|bc|blon|blueb|bru'.
+	  '|centerf|coc|girlfr|horny|hussy|strip)|multimedia\.(?:boy|natur))',
+
+	not_adult_groups => 'sexual\.abuse|^soc.sex|^fr\.soc\.homosexualite'.
+		'|^alt\.(?:support|teens|answers)',
+
+	faq_groups => '\.answers$|^news\.announce\.newgroups$',
+
+	# used to form domain names for filtering - depreciated!
+	badguys => 'ilovefreesex|moneyvue|backdoor|portlandplace|cure-impotency'.
+	'|freezone|\w+\.quim|holowww|\w+\.holowww'.
+	'|answerme|emi|latexfetish|nymphette|bondage|6t9|nudesights'.
+	'|porngodess|phatt|rawxxxfun|porn-?king|dreamlands|youwish|uwish'.
+	'|ilovecelebs|dirtysecrets|harddicks|\w+\.mnet1|pictureview|postagent'.
+	'|malebytes|southcorp|ucla\.dorms|bmc-engineering|orchidvideos'.
+	'|sexplosion|members\.sexzilla|studio\d\d\.sexzilla|netzilla|jalapeno'.
+	'|forbiddenphotos|spck|simplecom|mallpage|yes-pheromones|4jon'.
+	'|headhunter|conline|adultserv|theadultstore',
+	);
+
+	### List of group patterns that don't allow outside crossposts.
+	### Key is "friendly" name, value is the pattern.
+	%Restricted_Groups = (
+		cl		=> '^cl\.',
+		net		=> '^net\.',
+		bofh	=> '^bofh\.',
+		'de.alt.dateien' => '^de\.alt\.dateien',
+	);
+
+	# Load up the external config file
+	my $local_file = "$config_dir/cleanfeed.local";
+	$Local_Conf_Err = 0;
+	if ($config_dir and -e $local_file) {
+		undef %config_local;
+		undef %config_append;
+		if (open(CF, $local_file)) {
+			my $cf = join('', <CF>);
+			close CF;
+			eval $cf;
+			if ($@)	{
+				slog('E', "Cannot load $local_file: $@");
+				$Local_Conf_Err = 1;
+			} else {
+				local_config() if defined &local_config;
+			}
+		} else {
+			slog('E', "Cannot open $local_file: $!");
+			$Local_Conf_Err = 1;
+		}
+
+		# config_local overrides the config settings
+		if (%config_local) {
+			$config{$_} = $config_local{$_} foreach keys %config_local;
+			undef %config_local;
+		}
+		# config_append adds to the config regexps
+		if (%config_append) {
+			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
+					allexclude html_allowed low_xpost_groups no_cancel_groups
+					baddomainpat phl_exempt supersedes_exempt
+					refuse_messageids net_abuse_groups spam_report_groups
+					adult_groups not_adult_groups faq_groups badguys)) {
+				if (defined $config_append{$_}) {
+					$config{$_} .= "|$config_append{$_}";
+					$config{$_} =~ s/\|\|/\|/g;
+				}
+			}
+			undef %config_append;
+		}
+	}
+
+	@Restricted_List = keys %Restricted_Groups;
+
+	# Create the logfile path. Will be undefined if logging is broken
+	if ($config{log_directory} and $config{log_name}) {
+		$Log_File = "$config{log_directory}/$config{log_name}";
+	} else {
+		undef $Log_File;
+	}
+
+	# parse the active file if we've been given one.
+	if ($config{active_file}) {
+		%Moderated = ();
+		if (open(ACTIVE, $config{active_file})) {
+			while (<ACTIVE>) {
+				chomp;
+				my ($group, undef, undef, $flag) = split(/ /);
+				$Moderated{$group} = 1 if $flag eq 'm';
+			}
+			close ACTIVE;
+		} else {
+			slog('E', "Cannot open $config{active_file}: $!");
+		}
+	}
+
+} # end of get_config()
+
+# Regexps for matching URLs
+$TLDs = '(?:[Cc][Oo][Mm]|[Nn][Ee][Tt]|[Oo][Rr][Gg]|[Ee][Dd][Uu]' .
+	'|[Cc][Oo]\.[Uu][Kk]|[Ff][Rr]' .
+	'|[Cc][Oo][Mm]\.[Aa][Uu]|[Nn][Ll]|[Dd][Ee]|[Nn][Oo]|[Dd][Kk]|[Cc][Hh]' .
+	'|[Ss][Ee]|[Nn][Uu]|[Tt][Oo]|[Rr][Uu]|[Uu][Aa]|[Cc][Aa]|[Cc][Xx])';
+$IP = '\d\d\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?\b';
+$StealthIP = '(?:\d{10}|0[0-7]+\.0[0-7]+\.0[0-7]+\.0[0-7]+)';
+# Make $WebHost only match if there's nothing before it (requires 5.005).
+$WebHost = ($] >= 5.005 ? '(?<![\w.])' : '' ) .
+	'(?:[Ww][Ww][Ww]\d?|[Ww][Ee][Bb]\d?|[Mm][Ee][Mm][Bb][Ee][Rr][Ss]' .
+	'|[Uu][Ss][Ee][Rr][Ss]?|[Hh][Oo][Mm][Ee])';
+# http:// plus optional username/password.
+$HTTP = '[Hh][Tt][Tt][Pp][Ss]?:\/\/?(?:\w+(?::\w+)?@)?';
+$HOST = '[\w\-.]+'; # characters for the hostname
+$PORT = '(?::\d+)?'; # always optional
+
+$url = $HTTP.$HOST.'|'.$WebHost . $HOST .'\.'. "$TLDs|$HTTP(?:$IP|$StealthIP)";
+# requires the http:// part but accepts any hostname or tld, or IP-based url.
+$url2 = "$HTTP(?:$HOST|$IP|$StealthIP)";
+# http:// is optional if $WebHost matches, any tld accepted.
+$url3 = "(?:$HTTP|$WebHost)$HOST";
+$stealthURL = "$HTTP(?:$IP|$StealthIP)";
+# match the whole URL including path (used by body_urls() )
+$fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
+	"|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
+
+# Regexps for matching MIME headers
+$ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
+$ci_cte = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Rr][Aa][Nn][Ss][Ff][Ee][Rr]-'.
+	'[Ee][Nn][Cc][Oo][Dd][Ii][Nn][Gg]';
+
+# for the scoring filter
+$sex = 'sex|xxx|fuck';
+$free = 'free(?!dom|bsd|ppp)';
+$pics = 'pi(?:c|x)';
+$desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
+$site_desc = "$desc1|password";
+
+$servPre = "(?:$free|cheap|unlimited|nationwide|$site_desc)";
+$servPost = '(?:$free|minute|samples|800|900|no.?charge)';
+$servStr = "(?:phone.{0,15}(?:$sex|fun)|(?:adult|r.?a.?p.?e|$sex).{0,10}(?:chat|site)".
+	"|(?:$sex).{0,15}(?:show|call|connection|vid(?:eo|s))".
+	'|hard.?core.(?:vid(?:eo|s)|amateur)|900.dateline|(?:mass|bulk).e?-?mail)';
+$services = "(?:$servPre.{0,30}?$servStr)|(?:$servStr.{0,30}?$servPost)";
+
+$free_stuff = "$free.{0,20}(?:password|membership|$pics|chat)".
+	"|(?:100\%|total|complete|absolut|all).{0,15}$free".
+	'|no.{0,6}(a(?:ge|dult).(?:verification|check)|avs)';
+
+$sex_adjs = "$desc1|$sex|erotic|gay|amateur|lesbian|blow.?job|fetish".
+	'|pre.?teen|nude|celeb|school.?girl|bondage|rape|torture';
+$porn = "(?:$sex_adjs).{0,25}(?:$pics|video|image|porn|photo|mpeg)";
+
+$one_point_words = "teen|hot|sex|$free|credit|amateur|lolita|horne?y".
+	'|dildo|anal(?!yst)|oral|school.?girl|bondage|breast|vid(?:eo|s)|orgy|erotic|porn'.
+	'|fetish|whore|nympho|sucking|password|membership|make.money|fast.cash'.
+	'|barely.?(?:18|legal)|orgasm';
+$two_point_words = 'fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
+	'|le[sz]b(?:ian|o)|tit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
+	'|pam(?:ela)?.anderson|twat|cunt|hard-?core|[^x]xxx|facial|gangbang'.
+	'|(?:live|real|innocent).girl';
+
+# assorted spamware names found in X-Newreader/X-Mailer/etc headers
+$Xbot = '^2\.\d\.(?:\d\d? [a-z]|\d\d?)$|newsgroup bulk mailer'
+	. '|calvacade *98|atomicpost|uncle *spam'
+	. '|metanews \d|metapost|ng post|girlsdeluxe|usenet replayer'
+	. '|express news poster|^superpost auto marketer';
+
+##############################################################################
+
+get_config();
+setup_stuff();
+
+# is this a reload?
+if (defined $Start_Time) {
+	writestats(1) if $MODE eq 'inn';		# write the stats file
+} else {
+	restore_emp() if $config{do_emp_dump};	# load the saved state
+	$Start_Time = time;
+}
+
+$Last_Trim = time unless defined $Last_Trim;
+$Last_Stats = time unless defined $Last_Stats;
+$Do_Log = 0;
+
+##############################################################################
+# end of the initialization code
+##############################################################################
+
+# Set things up after we've got our configuration.
+sub setup_stuff {
+	# Try to load up MD5 module (use Digest::MD5, but old MD5 still works).
+	if ($config{do_md5}) {
+		eval { require Digest::MD5; import Digest::MD5 qw(md5_hex); };
+		if ($@) {
+			undef $config{do_md5};
+			slog('E', 'Cannot load MD5: ' . $@);
+		}
+	} else {
+		undef $config{do_md5};
+	}
+
+	# Try to load up Data::Dumper if we want to save the EMP histories.
+	if ($config{do_emp_dump}) {
+		eval { require Data::Dumper; };
+		if ($@) {
+			undef $config{do_emp_dump};
+			slog('E', 'Cannot load Data::Dumper: ' . $@);
+		}
+	}
+
+	# Load up IO::File if we want logging.
+	if ($Log_File) {
+		eval { require IO::File; };
+		if ($@) {
+			undef $Log_File;
+			slog('E', 'Cannot load IO::File: ' . $@);
+		}
+	}
+
+	read_hash('bad_paths', \%Bad_Path);
+	read_hash('bad_cancel_paths', \%Bad_Cancel_Path);
+	read_hash('bad_adult_paths', \%Bad_Adult_Path);
+	read_hash('bad_hosts', \%Bad_Hosts);
+
+	# initialise the rate filters
+	if ($config{do_md5}) {
+		$MD5history = new Cleanfeed::RateLimit;
+		$MD5history->init($config{MD5RateCutoff}, $config{MD5RateCeiling},
+			$config{MD5RateBaseInterval});
+	} else {
+		undef $MD5history;
+	}
+	if ($config{do_phl}) {
+		$PHLhistory = new Cleanfeed::RateLimit;
+		$PHLhistory->init($config{PHLRateCutoff}, $config{PHLRateCeiling},
+			$config{PHLRateBaseInterval});
+	} else {
+		undef $PHLhistory;
+	}
+	if ($config{do_fsl}) {
+		$FSLhistory = new Cleanfeed::RateLimit;
+		$FSLhistory->init($config{FSLRateCutoff}, $config{FSLRateCeiling},
+			$config{FSLRateBaseInterval});
+	} else {
+		undef $FSLhistory;
+	}
+	if ($config{do_supersedes_filter}) {
+		$Suphistory = new Cleanfeed::RateLimit;
+		$Suphistory->init(0, 50, 900);
+	}
+
+	$MIDhistory = new Cleanfeed::Queue;
+	$MIDhistory->maxlife($config{MIDmaxlife} * 3600) if $config{MIDmaxlife};
+
+	$timer{time} = time if $config{timer_info} and not $timer{time};
+}
+
+sub filter_art {
+	$now = time;
+	undef $body;
+	undef $Cache_Is_Binary;
+	undef $XReader;
+
+	$status{articles}++;
+	$timer{articles}++ if $config{timer_info};
+
+	# break out newsgroups into an array
+	@groups = split(/[,\s]+/, $hdr{Newsgroups});
+	if ($hdr{'Followup-To'}) {
+		@followups = split(/[,\s]+/, $hdr{'Followup-To'});
+	} else {
+		@followups = @groups;
+	}
+
+	trimhashes() if $now - $Last_Trim >= $config{trim_interval};
+	writestats() if $now - $Last_Stats >= $config{stats_interval};
+
+	# check out the newsgroups the article is posted to ######################
+	%gr = ();
+	for (@groups) {
+		foreach my $item (@Restricted_List) {
+			$gr{'rg_'.$item}++ if /$Restricted_Groups{$item}/;
+		}
+		$gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
+		$gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
+		$gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
+		$gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
+		$gr{html}++ if $config{html_allowed} and /$config{html_allowed}/o;
+		$gr{poison}++ if $config{poison_groups}
+			and /$config{poison_groups}/o;
+		$gr{reports}++ if $config{spam_report_groups}
+			and /$config{spam_report_groups}/o;
+		$gr{low_xpost}++ if $config{low_xpost_groups}
+			and /$config{low_xpost_groups}/o;
+		$gr{meow}++ if $config{meow_ext_maxgroups}
+			and /$config{meow_groups}/o;
+		$gr{no_cancel}++ if $config{no_cancel_groups}
+			and /$config{no_cancel_groups}/o;
+		$gr{test}++ if /\.test\b/;
+		$gr{adult}++ if /$config{adult_groups}/o
+			and not /$config{not_adult_groups}/o;
+		$gr{faq}++ if /$config{faq_groups}/o;
+			if ($config{active_file}) {
+			$gr{mod}++ if $Moderated{$_};
+		} elsif (defined &INN::newsgroup) {
+			$gr{mod}++ if INN::newsgroup($_) eq 'm';
+		}
+	}
+
+	# these only count if all groups match
+	$gr{skip} = ($gr{skip} == scalar @groups);
+	$gr{md5skip} = ($gr{md5skip} == scalar @groups);
+	$gr{binary} = ($gr{binary} == scalar @groups);
+	$gr{binary} = 0 if $gr{bad_bin};
+	$gr{html} = ($gr{html} == scalar @groups);
+	$gr{allmod} = ($gr{mod} == scalar @groups);
+
+	# If all newsgroups are excluded from filtering, bail now
+	return '' if $gr{skip};
+
+	foreach (@Restricted_List) {
+		$gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == scalar @groups);
+	}
+
+	# checks common to all article types #####################################
+	foreach (split(/\s+/, $hdr{'NNTP-Posting-Host'})) {
+		return reject("Bad host ($hdr{'NNTP-Posting-Host'})", 'Bad site')
+			if exists $Bad_Hosts{$_};
+	}
+
+	@Path_Entries = split(/!/, $hdr{Path});
+	foreach (@Path_Entries) {
+		return reject("Bad path ($_)", 'Bad site') if exists $Bad_Path{$_};
+	}
+
+	# check for the most simple newsagent variations
+	if ($hdr{'Message-ID'} =~
+			/^<
+				(?:cancel\.)*
+				[0-9A-F]{8,15}\.[a-z]{4,11}
+				\@[a-z]{4,11}\.(?:net|mil|gov|org|edu|com)
+			>$/x) {
+		if ($hdr{'X-Cancelled-By'}) {
+			return reject('Cancel for rejected article');
+		} else {
+			return reject('NewsAgent', 'Bot signature');
+		}
+	}
+	return reject('NewsAgent (Path)')
+		if $hdr{Path} =~ /\.(?:posted|mismatch)$/;
+
+	# regular articles #######################################################
+	if (not $hdr{Control}) {
+		# count the lines in the article - late-model INN does this for us.
+		if (defined $hdr{__LINES__}) {
+			$lines = $hdr{__LINES__};
+		} else {
+			$lines = ($hdr{__BODY__} =~ tr/\n//);
+		}
+
+		# lowercase some headers for later
+		undef %lch;
+		$lch{from}			= lc $hdr{From}
+			|| return reject('Malformed article');
+		$lch{subject}		= lc $hdr{Subject}
+			|| return reject('Malformed article');
+		$lch{'message-id'}	= lc $hdr{'Message-ID'}
+			|| return reject('Malformed article');
+		$lch{sender}		= lc $hdr{Sender} || '';
+		$lch{organization}	= lc $hdr{Organization} || '';
+		$lch{'content-type'}= lc $hdr{'Content-Type'} || '';
+
+		if (defined &local_filter_first) {
+			my @result = local_filter_first();
+			return reject(@result) if $result[0];
+		}
+
+		# first thing, handle reposts ########################################
+		if ($config{block_extra_reposts} and $hdr{Subject} =~ /^REPOST: /
+				and $hdr{Path} =~ /!resurrector!/) {
+			my ($canid, $canpath);
+
+			$canid = $1 if $hdr{__BODY__} =~
+				/\n========= WAS CANCELLED BY =======:.*\nMessage-ID: (.*?)\n/s;
+			return reject('Redundant REPOST (cache)')
+				if $canid and $MIDhistory->check($canid);
+			return reject('Redundant REPOST (ID)')
+				if $canid =~ /^<(?:[a-z]{16,17}|[0-9]{10}|[0-9]{10})\@/
+					or $canid =~ /^<(?:cancel\.)*[0-9A-F]{8,15}\.[a-z]{4,11}\@[a-z]{4,11}\.(?:net|mil|gov|org|edu|com)>$/;
+		}
+
+		# basic checks on headers ############################################
+		if ($gr{adult}) {
+			foreach (@Path_Entries) {
+				return reject("Bad path ($_)", 'Bad site')
+					if exists $Bad_Adult_Path{$_};
+			}
+		}
+
+		return reject('U2 violation - invalid distribution', 'U2 violation')
+			if $gr{rg_net} and $hdr{Distribution} !~ /^[ \t]*4[Gg][Hh][ \t]*$/;
+
+		return reject('U2 violation - excessive crossposting', 'U2 violation')
+			if $gr{rg_net} and scalar @followups > 3;
+
+		return reject('bofh violation - excessive crossposting','U2 violation')
+			if $gr{rg_bofh} and scalar @followups > 3;
+
+		return reject('bofh violation - invalid distribution', 'U2 violation')
+			if $gr{rg_bofh}
+				and $hdr{Distribution} !~ /^[ \t]*[Bb][Oo][Ff][Hh][ \t]*$/;
+
+		return reject('Too many newsgroups')
+			if scalar @followups > $config{maxgroups};
+
+		return reject('Too many newsgroups (low_xpost)', 'Too many newsgroups')
+			if $gr{low_xpost}
+				and scalar @followups > $config{low_xpost_maxgroups};
+
+		return reject('Too many newsgroups (meow)', 'Too many newsgroups')
+			if $gr{meow} and $gr{meow} != scalar @groups
+				and scalar @followups > $config{meow_ext_maxgroups};
+
+		return reject('Too many test groups in crosspost',
+			'Too many newsgroups') if $gr{test} > 2;
+
+		return reject('Excessively crossposted test article',
+			'Too many newsgroups') if $gr{test} and scalar @followups > 4;
+
+		return reject('Adult group ECP', 'Too many newsgroups')
+			if scalar @followups > 6 and $gr{adult} > scalar @groups / 2;
+
+		return reject('Poison newsgroup') if $gr{poison};
+
+		foreach (@Restricted_List) {
+			return reject("hierarchy violation - crosspost outside $_")
+				if $gr{'rg_'.$_} and not $gr{'rg_'.$_.'_only'};
+		}
+
+		# binaries and MIME checks ###########################################
+# XXX this protects the binary filters, but should not be needed anymore
+# with (?>...). If your server seems to hang try uncommenting this
+		# killer article?
+#		return '' if $lines > 8000 and length $hdr{__BODY__} < $lines * 4;
+
+		# short uuencoded html, text, exe, url files
+		return reject("UUencoded $1")
+			if $lines > 3 and $lines < 2000
+				and $hdr{__BODY__} =~ /
+					^[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
+					\S?.{0,45}?\S*			# file name
+					\.(						# file extensions
+						[Tt][Ee]?[Xx][Tt]|
+						[Hh][Tt][Mm][Ll]?|
+						[Ee][Xx][Ee]|
+						[Uu][Rr][Ll]
+					)
+					\s+						# end of line
+					(?:
+						^[ \t|>]*			# skip quoting marks, if any
+						(?>					# disable backtracking
+						M[\x20-\x60]{60,61}	# uuencoded line
+						)
+						\s*\n				# trailing spaces and end of line
+					){2,}?					# 0 or > 2 lines
+				/mx;
+
+		# binaries in non-binary newsgroups
+		if ($config{block_binaries}) {
+			unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
+				return reject('Binary in non-binary group')
+					if $lines > $config{max_encoded_lines}
+						and not $gr{binary} and is_binary();
+			}
+		}
+
+		# mime-encapsulated HTML (attached *.html file)
+		return reject('Attached HTML file')
+			if $config{block_mime_html}
+				and $hdr{'Content-Disposition'} =~ /filename.*\.html?/
+				or $hdr{'Content-Base'} =~ /file:.*\.html?/
+				or ($lch{'content-type'} =~ m#multipart/(?:mixed|related)#
+					and $hdr{__BODY__} =~ /^$ci_ctype:[\t ]+text\/html/mo
+					and $hdr{__BODY__}=~/^$ci_cte:[\t ][Bb][Aa][Ss][Ee]64/mo);
+
+		# HTML
+		return reject('HTML post')
+			if $config{block_html} and not $gr{html}
+				and $lch{'content-type'} =~ m#text/html#
+				 or $lch{'content-type'} =~ m#multipart/(?:mixed|related)#
+				and $hdr{__BODY__} =~
+					/^$ci_ctype:[\t ][Tt][Ee][Xx][Tt]\/[Hh][Tt][Mm][Ll]/mo;
+
+		return reject('HTML post')
+			if $config{block_multi_alt} and not $gr{html}
+				and $lch{'content-type'} =~ m#multipart/alternative#;
+
+		# bot checks #########################################################
+		return reject('MID-Bot', 'Bot signature')
+			if $lch{'message-id'} =~
+				/(?:
+					^<\d{12}\@[a-z]{10}>$|
+					\@\d+>$|
+					msgidabcxyz\.com>$|
+					no(?:ne|where)\d+\.yet>$|
+					strip_path>$|
+					^<[^ \t\.]+\@\d+G\d+O\d+O\d+F\d+.com>$
+				)/x;
+
+		if ($hdr{'User-Agent'}) {
+		} elsif ($hdr{'X-Mailer'}) {
+			return reject('Message-ID/X-Mailer bot', 'Bot signature')
+				if $hdr{'Message-ID'} =~ /^<(.*)@/
+					and $hdr{'X-Mailer'} eq $1;
+		} elsif ($hdr{'X-Newsreader'}) {
+			return reject('Smart Post Pro', 'Bot signature')
+				if $hdr{'X-Newsreader'} =~ /^[a-z]{7,11}$/
+					and $hdr{From} =~ /^[a-z]{7,13}\@[a-z]{7,12}\.com$/;
+		} else {
+			my $pathtail = '';
+			my $fromhost = '';
+			$hdr{Path} =~ /.*!(.*)$/ and $pathtail = $1;
+			$hdr{From} =~ /@(.*?)>?$/ and $fromhost = $1;
+
+			# Path/Newsgroups bot, contains just one MIME part
+			return reject('PN bot', 'Bot signature')
+				if $pathtail eq $hdr{Newsgroups}
+					and $hdr{From} !~ /\Q$pathtail\E\@/
+					and $hdr{'Content-Type'}
+						=~ /^multipart; boundary="_NextPart_/;
+
+			# Path/From/Message-ID bot
+			if ($hdr{'Message-ID'} =~ /^<\d{8}\.?\d{4}\@\Q$fromhost\E>$/) {
+				return reject('PFM bot path') if $pathtail eq $fromhost;
+				return reject('PFM bot misc', 'Bot signature')
+					if $hdr{Subject} !~ / \d+ bytes \(\d+\/\d+\)$/;
+			}
+		} # no X-Mailer/X-Newsreader/User-Agent header
+
+		$XReader = x_reader();
+		return reject("X-Bot ($XReader)", 'Bot signature')
+			if $XReader =~ /$Xbot/;
+
+		return reject('Email Platinum', 'Bot signature')
+			if $lch{organization} =~ /email platinum/;
+
+		if (not $gr{reports} and not $hdr{References}) {
+			return reject('Bot - Newsgroup autoposter', 'Bot signature')
+				if $hdr{__BODY__}
+					=~ /\n---[\r\n]+[A-Z][a-z \t]{120,}\.?[\r\n]+/;
+			return reject('Angle-bracket bot', 'Bot signature')
+				if $hdr{__BODY__} =~ /[\r<=>]+\r[\r<=>]+$/m;
+		}
+
+		if (defined &local_filter_bot) {
+			my @result = local_filter_bot();
+			return reject(@result) if $result[0];
+		}
+
+		# EMP checks #########################################################
+		# create MD5 body checksum hash.
+		if ($config{do_md5} and not $gr{md5skip}
+				and not ($hdr{References} and $config{md5_skips_followups})
+				and (($config{md5_max_length}
+						and $lines < $config{md5_max_length})
+					or not $config{md5_max_length})
+				and $lines > 0 and ($lines > 2
+					or ($lines < 3 and $hdr{__BODY__} !~ /^\s{0,8}$/))) {
+			my $mbody;
+			if ($config{fuzzy_md5}
+					and (($config{fuzzy_max_length}
+							and $lines < $config{fuzzy_max_length})
+						or not $config{fuzzy_max_length})
+					and not is_binary()) {
+				$mbody = lc $hdr{__BODY__};
+				$mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
+				$mbody =~ s/\r{3}.*$//mg;
+				$mbody =~ s/\s+$//;
+				$mbody =~ s/^[^\n]*\Z//m if $lines > 5;
+				$mbody =~ tr/a-z0-9//cd;
+			}
+			return reject('EMP (md5)', 'EMP')
+				if $MD5history->add(md5_hex($mbody || $hdr{__BODY__}));
+		}
+
+		if (not $gr{reports}) {
+			# create posting-host/lines hash
+			if ($config{do_phl} and not $gr{allmod}
+				and $hdr{'NNTP-Posting-Host'}
+				and not $hdr{Newsgroups} =~ /^(?:tw\.bbs\.|fido7\.)/ #XXX FIXME
+				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
+				and not ($gr{binary} and $lines > 100
+						and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
+					return reject('EMP (phl)', 'EMP')
+						if $PHLhistory->add("$hdr{'NNTP-Posting-Host'} $lines");
+			}
+
+			# create from/subject/lines hash
+			if ($config{do_fsl}) {
+				my $hash1;
+				if (defined $hdr{Sender}) {
+					$hash1 = lc "$hdr{Sender} $hdr{Subject}";
+				} else {
+					$hash1 = lc "$hdr{From} $hdr{Subject}";
+				}
+				$hash1 =~ s/\d+$//;
+				$hash1 =~ tr/a-z0-9\@\x80-\xFF//cd;
+				$hash1 = "$hash1 $lines";
+				return reject('EMP (fsl)', 'EMP') if $FSLhistory->add($hash1);
+			}
+		} # not reports groups
+
+		# Supersedes checks ##################################################
+		if ($hdr{Supersedes}) {
+			foreach (@Path_Entries) {
+				return reject("Supersedes with $_ in path", 'Rogue Supersedes')
+					if exists $Bad_Cancel_Path{$_};
+			}
+		}
+
+		if ($config{do_supersedes_filter} and $hdr{Supersedes}
+			and not $hdr{'NNTP-Posting-Host'}=~/$config{supersedes_exempt}/o) {
+			my $source;
+			if ($hdr{'NNTP-Posting-Host'} =~ /^(\d+\.\d+.\d+)\.\d+/) {
+				$source = $1;
+			} elsif ($hdr{'NNTP-Posting-Host'}) {
+				$source = lc $hdr{'NNTP-Posting-Host'};
+				$source =~ tr/a-z.//cd;
+			}
+
+			if ($source) {
+				my $max;
+				if    ($gr{faq})		{ $max = 45 }
+				elsif (not ($config{active_file} or defined &INN::newsgroup))
+										{ $max = 10 }
+				elsif ($gr{allmod})		{ $max = 35 }
+				elsif ($gr{mod})		{ $max = 10 }
+				else					{ $max = 6  }
+
+				return reject('Excessive Supersedes '
+						."($hdr{'NNTP-Posting-Host'})", 'Excessive Supersedes')
+					if $Suphistory->add2($source, $max);
+			}
+		}
+
+		if (defined &local_filter_after_emp) {
+			my @result = local_filter_after_emp();
+			return reject(@result) if $result[0];
+		}
+
+		# bot checks, the second part ########################################
+		return reject('Fake multipart bot', 'Bot signature')
+			if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
+
+		# bad words and scoring filter #######################################
+# FIXME: disabled because recent data is needed
+=cut DISABLED
+		if ($config{aggressive}) {
+			return reject("Spam ($1)", "Bad site")
+				if $lch{organization} =~ /(\b(?:$config{badguys})\.$TLDs\b)/o
+					or $lch{from} =~ /(\b(?:$config{badguys})\.$TLDs\b)/o
+					or lc($hdr{'NNTP-Posting-Host'})
+						=~ /(\b(?:$config{badguys})\.$TLDs\b)/o
+					or $lch{'message-id'}=~/(\b(?:$config{badguys})\.$TLDs>)/o;
+
+			if (not $gr{reports} and not $hdr{References}) {
+				$body = lc substr($hdr{__BODY__}, 0, 50000);
+				return reject("Spam ($1)", 'Bad site')
+					if $body =~ /http:..(
+						(?:www\.)?
+						(
+							(?:$config{badguys})\.$TLDs|
+							(?:$config{baddomainpat})\.(?:com|net|nu)
+						))/ox;
+			}
+		}
+=cut
+
+		if ($config{do_scoring_filter} and not $gr{reports}) {
+			my $score = 0;
+
+			$score += 3 if $lch{'content-type'}
+					=~ m#multipart/(?:related|mixed).*boundary#
+				and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
+				and $lch{'message-id'} !~ /webtv\.net>$/;
+
+			$score += 1 if scalar @followups > 4;
+			$score += 2 if scalar @followups > 8;
+
+			$score += 4 if $lch{from} =~ /$url2/o;
+
+			$score += 1 if $lch{subject} =~ /$url/o;
+			$score += 5 if $lch{subject} =~ /$stealthURL/o;
+			$score += 2 if $hdr{Subject} =~ / {15,}[^ ]/;
+			$score += 3 if $hdr{Subject} =~ /[\s~]\d{2,7}$/;
+			$score += 4 if $lch{subject} =~ /\s\d{1,3}\.jpg$/;
+			$score += 1 if $hdr{Subject} =~ /\${3}|!{3}|={4}|\*{3}/;
+			$score += 3 if $hdr{Subject} =~ /\r/;
+			$score += 1 if $hdr{Subject} !~ /[a-z]/;
+
+			if ($config{aggressive}) {
+# FIXME: disabled
+=cut DISABLED
+				$score += 4 if $lch{subject}
+						=~ /http:..(?:www\.)?(?:$config{badguys})\.$TLDs/ol
+=cut
+
+				$score += 1 while $lch{subject} =~ /$one_point_words/go;
+				$score += 2 while $lch{subject} =~ /$two_point_words/go;
+				$score += 1 while $lch{from} =~ /$one_point_words/go;
+				$score += 2 while $lch{from} =~ /$two_point_words/go;
+				$score += 1 while $lch{'message-id'} =~ /$one_point_words/go;
+				$score += 2 while $lch{'message-id'} =~ /$two_point_words/go;
+				$score += 1 while $lch{organization} =~ /$one_point_words/go;
+				$score += 2 while $lch{organization} =~ /$two_point_words/go;
+
+				local $_ = $lch{subject};
+				tr/a-z0-9 //cd;
+				$score += 5 if /$services/o;
+				$score += 3 if /$site_desc.{0,20}site/o;
+				$score += 1 if /(?:$free_stuff|$porn)/o;
+			}
+
+			$score += 2 if $lines < 30 and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
+			$score += 1 if $lines ne $hdr{Lines};
+			$score += 3 if $lch{organization} =~ /<no organization>/;
+			$score += 7 if $lch{organization} =~ /$stealthURL/o;
+			$score += 5 if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
+
+			$body = lc substr($hdr{__BODY__}, 0, 50000) unless defined $body;
+
+			if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
+				$score += 4 if $body =~ /<img src=/;
+				$score += 3 if $body =~ /^content-base:..?http/m;
+				$score += 7 if $body =~ /<meta http-equiv=.?refresh/;
+				$score += 7 if $body =~ /window\.open\(/;
+				$score += 6 if $body =~ /<script language=.?javascript/;
+				$score += 6 if $body =~ /<script language=.?livescript/;
+				$score += 2
+					if $body =~ /^content-type:\s+multipart\/alternative/m;
+			}
+
+			$score += 1 if $body =~ /\r/;
+			$score += 3 if $body =~ /\r\r/;
+			$score += 2 if $hdr{__BODY__} =~ /\n{15,}/;
+			$score += 5 if $body =~ /$HTTP$IP/o;
+			$score += 7 if $body =~ /$HTTP$StealthIP/o;
+
+			# only URL
+			$score += 6 if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
+
+			if ($hdr{References}) {
+				$score -= 3;
+				$score -= 2 if $hdr{References} =~ /^<[^>]+>\s+</;
+			}
+
+			if ($config{active_file} or defined &INN::newsgroup) {
+				if ($gr{allmod}) {
+					$score -= 6;
+				} elsif ($gr{mod}) {
+					$score -= 4;
+				}
+			}
+
+			$score += local_filter_scoring() if defined &local_filter_scoring;
+
+			return reject("Scoring filter ($score)", "Scoring filter")
+				if $score > 7;
+		}
+
+		if (defined &local_filter_last) {
+			my @result = local_filter_last();
+			return reject(@result) if $result[0];
+		}
+
+	# cancel messages ########################################################
+	} elsif ($hdr{Control} =~ /^\s*cancel/) {
+		foreach (@Path_Entries) {
+			return reject("Cancel with $_ in path", 'Rogue cancel')
+				if exists $Bad_Cancel_Path{$_};
+		}
+
+		reject('User-issued spam cancel')
+			if $config{block_user_spamcancels}
+				and $hdr{'X-Trace'} and $hdr{'NNTP-Posting-Host'}
+				and $hdr{Path} =~ /!cyberspam!/;
+
+		reject('User-issued cancel')
+			if $config{block_user_cancels}
+				and not $hdr{Path} =~ /!cyberspam!/;
+
+		return reject('Cancel in forbidden group', 'Rogue cancel')
+			if $gr{no_cancel} and not $hdr{Path} =~ /!cyberspam!/;
+
+		if ($config{block_late_cancels}
+				and $hdr{Control} =~ /^cancel\s+(.+)$/) {
+			return reject('Cancel for rejected article')
+				if $MIDhistory->check($1);
+		}
+
+		return reject('Cancel with Supersedes header')
+			if $hdr{Supersedes};
+
+		return reject('Rogue cancel (newsgroups)', 'Rogue cancel')
+			if grep(/^control(?:\.cancel)?$/, @groups);
+
+		# from Ricardo's "FAQ" + hipcrime signatures
+		return reject("Rogue cancel ($1)", 'Rogue cancel')
+			if $hdr{Path} =~ /(h[i\d]pcr[i\d]me|(?:hip|hacker|crack|porn|cripple|gimp|cunt|hole|fag|aids|faq|god|hindu|dothead|jew|kike|moslem|towelhead|nazi|kraut|nerd|geek|nigger|redneck|rice|slanteye|spick|whine)cancel|cyberwhin(?:er|ing))/;
+
+		if ($hdr{'X-Cancelled-By'} or $hdr{'X-Canceled-By'}) {
+			my $xcb = lc ($hdr{'X-Cancelled-By'} || $hdr{'X-Canceled-By'});
+			return reject('Bad X-Cancelled-By', 'Rogue cancel')
+				if $xcb !~ /\w\@\w/;
+		}
+
+		if (defined &local_filter_cancel) {
+			my @result = local_filter_cancel();
+			return reject(@result) if $result[0];
+		}
+
+	# newgroup and rmgroup messages ##########################################
+	} elsif ($hdr{Control} =~ /^\s*((?:new|rm)group)\s+(.*)/) {
+		my $control_type = $1;
+		my $control_group = $2;
+
+		return reject("Bogus $control_type message from Collabra luser",
+			'Bad control message')
+			if $hdr{Distribution} =~ /collabra-internal/ or $hdr{__BODY__}
+				=~ /Control message generated by Netscape Collabra Server/;
+
+		if ($control_group
+				=~ /^(?:comp|misc|news|rec|soc|sci|humanities|talk)\./) {
+			return reject("Big 8 $control_type message from wrong address",
+					'Bad control message')
+				if $hdr{From} !~ /group-admin\@isc\.org/;
+		} else {
+			return reject("Forged non-big-8 $control_type message supposedly from tale", 'Bad control message')
+				if $hdr{From}
+					=~ /(?:group-admin|tale)\@isc\.org|tale\@uunet\.uu\.net/;
+		}
+
+		return reject("Unapproved $control_type message",
+			'Bad control message') if not $hdr{Approved};
+
+		return reject("Newgroup for poison group $control_group",
+			'Bad control message')
+			if $control_type eq 'newgroup'
+				and $control_group =~ /$config{poison_groups}/o;
+
+	# other control messages #################################################
+	} elsif ($hdr{Control} =~ /^\s*(\w+)(?:\s+(.*))?/) {
+		my $control_type = $1;
+		my $control_group = $2;
+	
+		return reject("$control_type with Supersedes header")
+			if $hdr{Supersedes};
+
+		return reject("Unwanted $1 message", 'Bad control message')
+			if $config{drop_useless_controls}
+				and $control_type =~ /^(?:sendsys|senduuname|version)$/;
+		return reject("Unwanted $1 message", 'Bad control message')
+			if $config{drop_ihave_sendme}
+				and $control_type =~ /^(?:ihave|sendme)$/;;
+
+	}
+	##########################################################################
+
+	$status{accepted}++;
+	$timer{accepted}++ if $config{timer_info};
+	return '';
+}
+
+# Return true if the article is a binary, false otherwise.
+sub is_binary {
+	return 0 unless $lines > $config{max_encoded_lines};
+	return $Cache_Is_Binary if defined $Cache_Is_Binary;
+
+	if ($hdr{__BODY__} =~ /
+			(?:
+				^[ \t|>]*				# skip quoting marks, if any
+				(?>						# optimization: disable backtracking
+					M[\x20-\x60]{60,61}	# uuencoded line
+				)
+				\s*\r?\n				# trailing spaces and end of line
+			){$config{max_encoded_lines}} # at least this many lines
+		/mox or
+		$hdr{__BODY__} =~ /
+			(?:
+				^[ \t|>]*
+				(?>
+					[A-Za-z0-9\+\/]{59,76}
+				)
+				\s*\r?\n
+			){$config{max_encoded_lines}}
+		/mox) {
+		$Cache_Is_Binary = 1;
+		return 1;
+	}
+
+	if ($hdr{__BODY__} =~ /^=ybegin (.+)$/m) {
+		local $_ = $1;
+		if (/line=/ and /size=/ and /name=/) {
+			$Cache_Is_Binary = 1;
+			return 1;
+		}
+	}
+			
+
+	$Cache_Is_Binary = 0;
+	return 0;
+}
+
+# Attempt to determine the client software
+sub x_reader {
+	return	lc $hdr{'X-Newsreader'}	||
+			lc $hdr{'User-Agent'}	||
+			lc $hdr{'X-Newsposter'}	||
+			lc $hdr{'X-Poster'}		||
+			lc $hdr{'X-Mailer'}		|| '';
+}
+
+sub reject {
+	my ($verbose_reason, $short_reason) = @_;
+
+	if (defined &local_filter_reject) {
+		($verbose_reason, $short_reason) = local_filter_reject(@_);
+		return if not $verbose_reason;
+	}
+
+	$short_reason = $verbose_reason unless $short_reason;
+
+	if ($config{block_late_cancels}
+# XXX $config{block_extra_reposts}
+# XXX for reposts		and not $hdr{Control}
+		) {
+		$MIDhistory->add($hdr{'Message-ID'});
+	}
+
+	$status{rejected}++;
+
+	return $config{verbose} ? $verbose_reason : $short_reason;
+}
+
+##############################################################################
+# other functions called by INN
+##############################################################################
+
+# examine message-id during CHECK transaction (INN only)
+sub filter_messageid {
+	return '' if not $config{do_mid_filter};
+	my ($id) = @_;
+
+	if ($config{refuse_messageids} and $id =~ /$config{refuse_messageids}/o) {
+		$status{refused}++;
+		return 'No';
+	}
+
+	if ($config{block_late_cancels}
+			and (($id =~ /^<cancel\.[a-z0-9]{4}?\.(.+)/
+					and $MIDhistory->check('<'.$1))
+				or ($id =~ /^<cancel\.(.+)/ and $MIDhistory->check('<'.$1)))) {
+		$status{refused}++;
+		return 'No';
+	}
+
+	return '';
+}
+
+sub filter_mode {
+	if ($config{do_emp_dump}) {
+		if ($mode{NewMode} eq 'throttled') {
+			dump_emp();
+		} elsif ($mode{NewMode} eq 'running') {
+			restore_emp() if $mode{Mode} eq 'throttled';
+		}
+	}
+
+	slog('N', 'Meow unto the greatness of Fluffy, Ruler of All Usenet')
+		if lc $mode{reason} eq 'meow';
+
+	return;
+}
+
+# a status line in "ctlinnd mode" output (INN only).
+# (requires the "mode.patch" to innd or equivalent).
+sub filter_stats {
+	my $md5hashentries = $MD5history ? $MD5history->count : 0;
+	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
+	my $superentries   = $Suphistory ? $Suphistory->count : 0;
+	my $midhistentries = $MIDhistory->count;
+  
+	my $string = "Pass: $status{accepted}  Reject: $status{rejected}";
+	$string .= "  Refuse: $status{refused}" if $config{do_mid_filter};
+	$string .= "  MD5: $md5hashentries  PHL: $phlhashentries  FSL: $fslhashentries";
+	$string .= "  Arts/sec: $timer{rate}  Accept/sec: $timer{accept_rate}"
+		if $config{timer_info} and $timer{rate};
+	$string .= "  cleanfeed.conf NOT loaded!" if $Local_Conf_Err;
+
+	return $string;
+}
+
+##############################################################################
+# functions to write the report files
+##############################################################################
+
+# Write an HTML statfile
+sub write_html_stats {
+	if (not open(HTML, ">$config{html_statfile}")) {
+		slog('E', "Cannot open $config{html_statfile}: $!");
+		return;
+	}
+
+	print HTML "<html>\n<head>\n"
+	. "<title>Cleanfeed Status</title>\n"
+	. "</head>\n<body>\n\n"
+	. "<p>\n"
+	. "<b>Filter started:</b> " . scalar(localtime $Start_Time) . "<br>\n"
+	. "<b>Report generated:</b> " . scalar(localtime) . "<br>\n"
+	. 'Uptime: ' . ($now - $Start_Time) . " seconds\n"
+	. "\n<p>\n"
+	. "<b>Accepted:</b> $status{accepted}<br>\n"
+	. "<b>Rejected:</b> $status{rejected}\n";
+	print HTML "<br><b>Refused:</b> $status{refused}\n"
+		if $config{do_mid_filter};
+
+	if ($config{timer_info} and $timer{rate}) {
+		print HTML "\n<p>\n"
+		. "Period since last report: $timer{interval} seconds<br>\n"
+		. "Articles examined (this period): $timer{rate}/s<br>\n"
+		. "Articles accepted (this period): $timer{accept_rate}/s<br>\n"
+		. "Articles examined (entire uptime): $timer{total_rate}/s<br>\n"
+		. "Articles accepted (entire uptime): $timer{total_accept_rate}/s\n";
+	}
+
+	my $md5hashentries = $MD5history ? $MD5history->count : 0;
+	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
+	my $superentries   = $Suphistory ? $Suphistory->count : 0;
+	my $midhistentries = $MIDhistory->count;
+	my $md5count = $MD5history ? $MD5history->overflowed : 0;
+	my $phlcount = $PHLhistory ? $PHLhistory->overflowed : 0;
+	my $fslcount = $FSLhistory ? $FSLhistory->overflowed : 0;
+
+	print HTML "\n<p>\n"
+	. "<b>MD5 entries:</b> $md5hashentries <b>Rejecting:</b> $md5count<br>\n"
+	. "<b>PHL entries:</b> $phlhashentries <b>Rejecting:</b> $phlcount<br>\n"
+	. "<b>FSL entries:</b> $fslhashentries <b>Rejecting:</b> $fslcount<br>\n"
+	. "<b>MID history:</b> $midhistentries\n";
+
+	print HTML "\n<p>\n<blink>cleanfeed.conf <b>NOT</b> loaded!</blink>\n"
+		if $Local_Conf_Err;
+
+	print HTML "\n<p>\nSupersedes entries: $superentries\n";
+	if ($Suphistory) {
+		print HTML "<ul>\n";
+		my $items = $Suphistory->items;
+		foreach (sort keys %$items) {
+			print HTML "<li>$_: $items->{$_}\n";
+		}
+		print HTML "</ul>\n";
+	}
+
+	print HTML "</body></html>\n";
+	close HTML;
+}
+
+# write a crude stat file including accept/reject numbers,
+# hash sizes, and current configuration
+sub writestats {
+	my $noreset = $_[0] || 0;
+	$Last_Stats = $now unless $noreset;
+
+	timer_stats() if $config{timer_info};
+
+	write_html_stats() if $config{html_statfile};
+
+	return if not ($config{statfile} or $config{inn_syslog_status});
+
+	my $md5hashentries = $MD5history ? $MD5history->count : 0;
+	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
+	my $superentries   = $Suphistory ? $Suphistory->count : 0;
+	my $midhistentries = $MIDhistory->count;
+
+	if ($config{inn_syslog_status}) {
+		my $message = 'status: ';
+		$message .= "accepted $status{accepted} rejected $status{rejected}";
+		$message .= " refused $status{refused}" if $config{do_mid_filter};
+		$message .= " md5 $md5hashentries" if $md5hashentries;
+		$message .= " phl $phlhashentries" if $phlhashentries;
+		$message .= " fsl $fslhashentries" if $fslhashentries;
+		$message .= " arts/s $timer{rate} accept/s $timer{accept_rate}"
+			if $config{timer_info} and $timer{rate};
+		$message .= " WARNING cleanfeed.local NOT loaded" if $Local_Conf_Err;
+
+		slog('N', $message);
+	}
+
+	return if not $config{statfile};
+
+	if (not open FILE, ">$config{statfile}") {
+		slog('E', "Cannot open $config{statfile}: $!");
+		return;
+	}
+	print FILE 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
+	. 'Report generated: ' . scalar(localtime) . "\n"
+	. 'Uptime: ' . ($now - $Start_Time) . " seconds\n\n"
+	. "Accepted: $status{accepted}\nRejected: $status{rejected}\n";
+	print FILE "Refused: $status{refused}\n" if $config{do_mid_filter};
+	print FILE "MD5 entries: $md5hashentries\n"
+	. "PHL entries: $phlhashentries\n"
+	. "FSL entries: $fslhashentries\n"
+	. "MID history: $midhistentries\n\n";
+	if ($config{timer_info} and $timer{rate}) {
+		print FILE "Articles examined per second: $timer{rate}\n";
+		print FILE "Articles accepted per second: $timer{accept_rate}\n";
+	}
+
+	print FILE "\ncleanfeed.local NOT loaded! Check file permissions.\n"
+		if $Local_Conf_Err;
+
+	print FILE "\nSupersedes entries: $superentries\n";
+	if ($Suphistory) {
+		my $items = $Suphistory->items;
+		foreach (sort keys %$items) {
+			print FILE "  $_: $items->{$_}\n";
+		}
+	}
+
+	print FILE "\n\nCurrent configuration:\n\n";
+	foreach my $item (sort keys %config) {
+		print FILE "$item: $config{$item}\n"
+	}
+
+	close FILE;
+}
+
+# figure out how many articles per second we're looking at and accepting
+# $timer{articles} - how many we've seen since last time
+# $timer{accepted} - how many we've accepted since last time
+# $timer{time} - time of last check
+# $timer{interval} - interval time for this check
+# $timer{rate} - articles checked per second during this interval
+# $timer{accept_rate} - articles accepted per second during this interval
+# $timer{total_rate} - articles checked per second since we've been running
+# $timer{total_accept_rate} - art. accepted per second since we've been running
+sub timer_stats {
+	my $uptime = $now - $Start_Time;
+
+	$timer{interval} = $now - $timer{time} || 1;
+	$timer{rate} = (int ($timer{articles} / $timer{interval} * 10)) / 10;
+	$timer{accept_rate} = (int ($timer{accepted} / $timer{interval} * 10)) / 10;
+	$timer{total_rate} = (int ($status{articles} / $uptime * 10)) / 10;
+	$timer{total_accept_rate} = (int ($status{accepted} / $uptime * 10)) / 10;
+
+	$timer{time} = $now;
+	$timer{articles} = 0;
+	$timer{accepted} = 0;
+	return 1;
+}
+
+sub trimhashes {
+	$MD5history->trim if $MD5history;
+	$PHLhistory->trim if $PHLhistory;
+	$FSLhistory->trim if $FSLhistory;
+	$Suphistory->trim if $Suphistory;
+	$MIDhistory->trim;
+
+	# rotate log if necessary
+	if ($Do_Log == 1) {
+		if (($config{max_log_size} and -s $Log_File > $config{max_log_size})
+				or -e $config{rotate_file}) {
+			rotate_log();
+			unlink $config{rotate_file};
+		}
+	}		
+
+	$Last_Trim = $now;
+}
+
+##############################################################################
+# debugging functions to save articles
+##############################################################################
+
+sub saveart {
+	my ($file, $info, $format) = @_;
+	$format ||= 0;
+
+	return if not $config{debug_batch_directory};
+	checkrotate("$config{debug_batch_directory}/$file");
+
+	if (not open(LOCAL, ">>$config{debug_batch_directory}/$file")) {
+		slog('E', "Cannot open $file: $!");
+		return;
+	}
+	print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
+	print LOCAL "INFO: $info\n" if $info;
+	foreach (sort keys %hdr) {
+		next if $_ eq '__BODY__' or $_ eq '__LINES__';
+		print LOCAL "$_: $hdr{$_}\n"
+	}
+	if ($format == 2) {
+		print LOCAL "\n";
+	} elsif ($format != 1 and $lines > 250) {
+		print LOCAL "\n" . substr($hdr{__BODY__}, 0, 15000) . "\n\n";
+	} else {
+		print LOCAL "\n$hdr{__BODY__}\n";
+	}
+	close LOCAL;
+}
+
+# See if batch file is oversized and if so, rotate it
+sub checkrotate {
+	my ($batchfile) = @_;
+	my $num = 1;
+
+	return if not $config{debug_batch_size}
+		or -s $batchfile < $config{debug_batch_size};
+
+	$num += 1 while -e "$batchfile.$num";		# Ensure filename is unique
+	rename $batchfile, "$batchfile.$num";		# Move it out of the way
+}
+
+##############################################################################
+# internal state dump and restore
+##############################################################################
+sub dump_emp {
+	return if not $config{emp_dump_file};
+
+	if (not open(DUMP, ">$config{emp_dump_file}")) {
+		slog('E', "EMP database could not be dumped: $!");
+		return;
+	}
+
+	$MD5history->dump('MD5history', \*DUMP) if $MD5history;
+	$PHLhistory->dump('PHLhistory', \*DUMP) if $PHLhistory;
+	$FSLhistory->dump('FSLhistory', \*DUMP) if $FSLhistory;
+
+	close DUMP;
+
+	slog('N', 'Saved EMP database.');
+}
+
+sub restore_emp {
+	return if not $config{emp_dump_file} or not -r $config{emp_dump_file};
+
+	do $config{emp_dump_file};
+
+	# delete the data of checks which have been disabled since the last dump
+	undef $MD5history if not $config{do_md5};
+	undef $PHLhistory if not $config{do_phl};
+	undef $FSLhistory if not $config{do_fsl};
+
+	# We can't syslog at startup because INN doesn't provide the callbacks
+	# in time
+	slog('N', 'Restored EMP database.') if not defined $Start_Time;
+}
+
+sub slog {
+	return if not defined &INN::syslog;
+	INN::syslog(@_);
+}
+
+##############################################################################
+# parse the data files
+##############################################################################
+sub read_hash {
+	my ($file, $hash) = @_;
+
+	my @list;
+	read_file("$config_dir/$file", \@list);
+	%$hash = map { $_ => 1 } @list;
+}
+
+sub read_regex {
+	my ($file, $regex) = @_;
+
+	my @list;
+	read_file("$config_dir/$file", \@list);
+	$$regex = join('|', @list);
+	$$regex =~ s#\|\|#|#g;
+}
+
+sub read_file {
+	my ($file, $array) = @_;
+
+	return if not -e $file;
+	if (not open(FILE, $file)) {
+		slog('E', "Cannot open $file: $!");
+		return;
+	}
+	while (<FILE>) {
+		s/#.*//;
+		s/^\s*(.*?)\s*$/$1/;
+		next if /^$/;
+		if (/\s/) {
+			push @$array, split;
+		} else {
+			push @$array, $_;
+		}
+	}
+	close FILE;
+}
+
+print $fullURL if 0; # lint food
+
+##############################################################################
+# EMP filters
+##############################################################################
+package Cleanfeed::RateLimit;
+
+use strict;
+
+sub new {
+	my $class = shift;
+	my $self = {
+		ratecutoff => 4,	# reject if this many copies are in the history
+		rateceiling => 85,	# only count this high
+		ratebaseinterval => 7200, # how long to wait before decrementing count
+		history => { },
+	};
+	bless $self, $class;
+	return $self;
+}
+
+sub init {
+	my ($self, $rco, $rc, $rb) = @_;
+	$self->{ratecutoff} = $rco if defined $rco;
+	$self->{rateceiling} = $rc if defined $rc;
+	$self->{ratebaseinterval} = $rb if defined $rb;
+
+	$self->{dectable} = $self->make_curve_table($self->{rateceiling} + 1,
+		$self->{ratebaseinterval});
+}
+
+# return true if over ratecutoff
+sub add {
+	my ($self, $elem) = @_;
+
+	$self->{history}->{$elem}[0] = 0 if not exists $self->{history}->{$elem};
+	$self->{history}->{$elem} = [ $self->{history}->{$elem}[0] + 1, time ];
+	$self->{history}->{$elem}[0] = $self->{rateceiling}
+		if $self->{history}->{$elem}[0] > $self->{rateceiling};
+
+	return 1 if $self->{history}->{$elem}[0] > $self->{ratecutoff};
+	return 0;
+}
+
+sub add2 {
+	my ($self, $elem, $ratecutoff) = @_;
+
+	$self->{history}->{$elem}[0] = 0 if not exists $self->{history}->{$elem};
+	$self->{history}->{$elem} = [ $self->{history}->{$elem}[0] + 1, time ];
+	$self->{history}->{$elem}[0] = $self->{rateceiling}
+		if $self->{history}->{$elem}[0] > $self->{rateceiling};
+
+	return 1 if $self->{history}->{$elem}[0] > $ratecutoff;
+	return 0;
+}
+
+sub trim {
+	my ($self) = @_;
+	my $now = time;
+
+	my @del;
+	while (my ($id, $val) = each %{$self->{history}}) {
+		if ($now - $val->[1] > $self->{dectable}->[$val->[0]]) {
+			$self->{history}->{$id}[0]--;
+			$self->{history}->{$id}[1] = $now;
+		}
+		push @del, $id if $self->{history}->{$id}[0] < 1;
+	}
+	delete @{$self->{history}}{@del};
+}
+
+sub count {
+	my ($self) = @_;
+	return scalar keys %{$self->{history}};
+}
+
+sub overflowed {
+	my ($self) = @_;
+	my $count = 0;
+
+	foreach (keys %{$self->{history}}) {
+		$count++ if $self->{history}->{$_}[0] > $self->{ratecutoff};
+	}
+	return $count;
+}
+
+sub dump {
+	my ($self, $name, $fd) = @_;
+
+	my $dd = Data::Dumper->new([ $self->{history} ], [ $name.'->{history}' ]);
+	$dd->Indent(1);
+	print $fd $dd->Dumpxs;
+}
+
+sub items {
+	my ($self) = @_;
+
+	return {
+		map { $_ => @{$self->{history}->{$_}}[0] } keys %{$self->{history}}
+	};
+}
+
+# Create a lookup table of values on a descending curve
+sub make_curve_table {
+	my ($self, $xmax, $ymax) = @_;
+	my @values;
+
+	for (1..$xmax) {
+		$values[$_] = $ymax - int((($_ / $xmax) ** 2) * $ymax);
+	}
+	return \@values;
+}
+
+##############################################################################
+package Cleanfeed::Queue;
+
+sub new {
+	my $class = shift;
+	my $self = {
+		maxlife => 3600,
+		history => { },
+	};
+	bless $self, $class;
+	return $self;
+}
+
+sub add {
+	my ($self, $elem) = @_;
+
+	$self->{history}->{$elem} = time;
+}
+
+sub check {
+	my ($self, $elem) = @_;
+
+	return 1 if exists $self->{history}->{$elem};
+	return 0;
+}
+
+sub count {
+	return scalar keys %{$_[0]->{history}};
+}
+
+sub maxlife {
+	my $self = $_[0];
+	$self->{maxlife} = $_[1] if $_[1];
+	$self->{maxlife} = $_[1];
+}
+
+sub trim {
+	my ($self) = @_;
+	my $now = time;
+
+	my @del;
+	while (my ($id, $val) = each %{$self->{history}}) {
+		push @del, $id if $now - $val > $self->{maxlife};
+	}
+	delete @{$self->{history}}{@del};
+}
+
+1;
