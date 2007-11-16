@@ -152,7 +152,7 @@ sub get_config {
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
 	### exclude these newsgroups from the phn filter
-	phn_exclude => '^local\.|^alt\.anonymous\.messages',
+	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages',
 
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
