@@ -42,6 +42,7 @@ sub get_config {
 
 	do_md5 => 1,				# do the md5 checks?
 	do_phl => 1,				# do the posting-host/lines EMP check?
+	do_phn => 1,				# do the posting-host/newsgroups EMP check?
 	do_fsl => 1,				# do the from/subject/lines EMP check?
 	do_scoring_filter => 1,		# use the scoring filter?
 
@@ -54,6 +55,9 @@ sub get_config {
 	PHLRateCutoff => 20,
 	PHLRateCeiling => 80,
 	PHLRateBaseInterval => 3600,
+	PHNRateCutoff => 20,
+	PHNRateCeiling => 80,
+	PHNRateBaseInterval => 3600,
 	FSLRateCutoff => 20,
 	FSLRateCeiling => 40,
 	FSLRateBaseInterval => 1000,
@@ -146,6 +150,12 @@ sub get_config {
 	### exempt these hosts from the NNTP-Posting-Host filter
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
+
+	### exclude these newsgroups from the phn filter
+	phn_exclude => '^local\.|^alt\.anonymous\.messages',
+
+	### exempt these hosts from the phn filter
+	phn_exempt => '^localhost$|^127\.0\.0\.1$',
 
 	### posting hosts exempt from excessive supersedes filter
 	supersedes_exempt => '^localhost$|^penguin-lust\.mit\.edu$',
@@ -399,6 +409,13 @@ sub setup_stuff {
 			$config{PHLRateBaseInterval});
 	} else {
 		undef $PHLhistory;
+	}
+	if ($config{do_phn}) {
+		$PHNhistory = new Cleanfeed::RateLimit;
+		$PHNhistory->init($config{PHNRateCutoff}, $config{PHNRateCeiling},
+			$config{PHNRateBaseInterval});
+	} else {
+		undef $PHNhistory;
 	}
 	if ($config{do_fsl}) {
 		$FSLhistory = new Cleanfeed::RateLimit;
@@ -756,6 +773,16 @@ sub filter_art {
 						and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
 					return reject('EMP (phl)', 'EMP')
 						if $PHLhistory->add("$hdr{'NNTP-Posting-Host'} $lines");
+			}
+
+			# create posting-host/newsgroups hash
+			if ($config{do_phn} and not $gr{allmod}
+				and $hdr{'NNTP-Posting-Host'}
+				and not $hdr{Newsgroups} =~ /(?:$config{phn_exclude})/o
+				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o
+				and not $gr{binary} and $lines > 100) {
+					return reject('EMP (phn)', 'EMP')
+						if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{'Newsgroups'}");
 			}
 
 			# create from/subject/lines hash
@@ -1150,13 +1177,14 @@ sub filter_mode {
 sub filter_stats {
 	my $md5hashentries = $MD5history ? $MD5history->count : 0;
 	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $phnhashentries = $PHNhistory ? $PHNhistory->count : 0;
 	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
 	my $superentries   = $Suphistory ? $Suphistory->count : 0;
 	my $midhistentries = $MIDhistory->count;
   
 	my $string = "Pass: $status{accepted}  Reject: $status{rejected}";
 	$string .= "  Refuse: $status{refused}" if $config{do_mid_filter};
-	$string .= "  MD5: $md5hashentries  PHL: $phlhashentries  FSL: $fslhashentries";
+	$string .= "  MD5: $md5hashentries  PHL: $phlhashentries  PHN: $phnhashentries FSL: $fslhashentries";
 	$string .= "  Arts/sec: $timer{rate}  Accept/sec: $timer{accept_rate}"
 		if $config{timer_info} and $timer{rate};
 	$string .= "  cleanfeed.conf NOT loaded!" if $Local_Conf_Err;
@@ -1199,16 +1227,19 @@ sub write_html_stats {
 
 	my $md5hashentries = $MD5history ? $MD5history->count : 0;
 	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $phnhashentries = $PHNhistory ? $PHNhistory->count : 0;
 	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
 	my $superentries   = $Suphistory ? $Suphistory->count : 0;
 	my $midhistentries = $MIDhistory->count;
 	my $md5count = $MD5history ? $MD5history->overflowed : 0;
 	my $phlcount = $PHLhistory ? $PHLhistory->overflowed : 0;
+	my $phncount = $PHNhistory ? $PHNhistory->overflowed : 0;
 	my $fslcount = $FSLhistory ? $FSLhistory->overflowed : 0;
 
 	print HTML "\n<p>\n"
 	. "<b>MD5 entries:</b> $md5hashentries <b>Rejecting:</b> $md5count<br>\n"
 	. "<b>PHL entries:</b> $phlhashentries <b>Rejecting:</b> $phlcount<br>\n"
+	. "<b>PHN entries:</b> $phnhashentries <b>Rejecting:</b> $phncount<br>\n"
 	. "<b>FSL entries:</b> $fslhashentries <b>Rejecting:</b> $fslcount<br>\n"
 	. "<b>MID history:</b> $midhistentries\n";
 
@@ -1243,6 +1274,7 @@ sub writestats {
 
 	my $md5hashentries = $MD5history ? $MD5history->count : 0;
 	my $phlhashentries = $PHLhistory ? $PHLhistory->count : 0;
+	my $phnhashentries = $PHNhistory ? $PHNhistory->count : 0;
 	my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
 	my $superentries   = $Suphistory ? $Suphistory->count : 0;
 	my $midhistentries = $MIDhistory->count;
@@ -1274,6 +1306,7 @@ sub writestats {
 	print FILE "Refused: $status{refused}\n" if $config{do_mid_filter};
 	print FILE "MD5 entries: $md5hashentries\n"
 	. "PHL entries: $phlhashentries\n"
+	. "PHN entries: $phnhashentries\n"
 	. "FSL entries: $fslhashentries\n"
 	. "MID history: $midhistentries\n\n";
 	if ($config{timer_info} and $timer{rate}) {
@@ -1327,6 +1360,7 @@ sub timer_stats {
 sub trimhashes {
 	$MD5history->trim if $MD5history;
 	$PHLhistory->trim if $PHLhistory;
+	$PHNhistory->trim if $PHNhistory;
 	$FSLhistory->trim if $FSLhistory;
 	$Suphistory->trim if $Suphistory;
 	$MIDhistory->trim;
@@ -1399,6 +1433,7 @@ sub dump_emp {
 
 	$MD5history->dump('MD5history', \*DUMP) if $MD5history;
 	$PHLhistory->dump('PHLhistory', \*DUMP) if $PHLhistory;
+	$PHNhistory->dump('PHNhistory', \*DUMP) if $PHNhistory;
 	$FSLhistory->dump('FSLhistory', \*DUMP) if $FSLhistory;
 
 	close DUMP;
@@ -1414,6 +1449,7 @@ sub restore_emp {
 	# delete the data of checks which have been disabled since the last dump
 	undef $MD5history if not $config{do_md5};
 	undef $PHLhistory if not $config{do_phl};
+	undef $PHNhistory if not $config{do_phn};
 	undef $FSLhistory if not $config{do_fsl};
 
 	# We can't syslog at startup because INN doesn't provide the callbacks
