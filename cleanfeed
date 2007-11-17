@@ -152,7 +152,8 @@ sub get_config {
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
 	### exclude these newsgroups from the phn filter
-	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages',
+	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.pictures'.
+		'|^alt\.binaries',
 
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
@@ -780,7 +781,7 @@ sub filter_art {
 				and $hdr{'NNTP-Posting-Host'}
 				and not $hdr{Newsgroups} =~ /(?:$config{phn_exclude})/o
 				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o
-				and not $gr{binary} and $lines > 100) {
+				and not ($gr{binary} and $lines > 100)) {
 					return reject('EMP (phn)', 'EMP')
 						if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{'Newsgroups'}");
 			}
