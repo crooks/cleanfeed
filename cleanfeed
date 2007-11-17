@@ -131,6 +131,9 @@ sub get_config {
 	### HTML allowed here (if block_html or block_multi_alt is turned on)
 	html_allowed => '^microsoft\.',
 
+	### MIME HTML allowed here (if block_mime_html is turned on)
+	mime_html_allowed => '',
+
 	### groups where we restrict crossposts even more than normal
 	low_xpost_groups => 'test|jobs|forsale',
 
@@ -232,7 +235,7 @@ sub get_config {
 		# config_append adds to the config regexps
 		if (%config_append) {
 			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
-					allexclude html_allowed low_xpost_groups no_cancel_groups
+					allexclude html_allowed mime_html_allowed low_xpost_groups no_cancel_groups
 					baddomainpat phl_exempt supersedes_exempt
 					refuse_messageids net_abuse_groups spam_report_groups
 					adult_groups not_adult_groups faq_groups badguys)) {
@@ -467,6 +470,7 @@ sub filter_art {
 		$gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
 		$gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
 		$gr{html}++ if $config{html_allowed} and /$config{html_allowed}/o;
+		$gr{mime_html}++ if $config{mime_html_allowed} and /$config{mime_html_allowed}/o;
 		$gr{poison}++ if $config{poison_groups}
 			and /$config{poison_groups}/o;
 		$gr{reports}++ if $config{spam_report_groups}
@@ -494,6 +498,7 @@ sub filter_art {
 	$gr{binary} = ($gr{binary} == scalar @groups);
 	$gr{binary} = 0 if $gr{bad_bin};
 	$gr{html} = ($gr{html} == scalar @groups);
+	$gr{mime_html} = ($gr{mime_html} == scalar @groups);
 	$gr{allmod} = ($gr{mod} == scalar @groups);
 
 	# If all newsgroups are excluded from filtering, bail now
@@ -657,7 +662,7 @@ sub filter_art {
 
 		# mime-encapsulated HTML (attached *.html file)
 		return reject('Attached HTML file')
-			if $config{block_mime_html}
+			if $config{block_mime_html} and not $gr{mime_html}
 				and $hdr{'Content-Disposition'} =~ /filename.*\.html?/
 				or $hdr{'Content-Base'} =~ /file:.*\.html?/
 				or ($lch{'content-type'} =~ m#multipart/(?:mixed|related)#
