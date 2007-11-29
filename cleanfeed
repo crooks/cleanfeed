@@ -467,6 +467,7 @@ sub filter_art {
 		}
 		$gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
 		$gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
+		$gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
 		$gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
 		$gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
 		$gr{html}++ if $config{html_allowed} and /$config{html_allowed}/o;
@@ -495,6 +496,7 @@ sub filter_art {
 	# these only count if all groups match
 	$gr{skip} = ($gr{skip} == scalar @groups);
 	$gr{md5skip} = ($gr{md5skip} == scalar @groups);
+	$gr{phnskip} = ($gr{phnskip} == scalar @groups);
 	$gr{binary} = ($gr{binary} == scalar @groups);
 	$gr{binary} = 0 if $gr{bad_bin};
 	$gr{html} = ($gr{html} == scalar @groups);
@@ -783,8 +785,8 @@ sub filter_art {
 
 			# create posting-host/newsgroups hash
 			if ($config{do_phn} and not $gr{allmod}
+				and not $gr{phnskip}
 				and $hdr{'NNTP-Posting-Host'}
-				and not $hdr{Newsgroups} =~ /(?:$config{phn_exclude})/o
 				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o
 				and not ($gr{binary} and $lines > 100)) {
 					return reject('EMP (phn)', 'EMP')
