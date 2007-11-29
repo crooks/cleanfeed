@@ -156,8 +156,8 @@ sub get_config {
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.pictures'.
-        '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.|^gnu\.'.
-	    '|^gmane\.|^fa\.|^stu\.',
+        '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.|^gnus?\.'.
+	    '|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.',
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
 
