@@ -786,11 +786,20 @@ sub filter_art {
 			# create posting-host/newsgroups hash
 			if ($config{do_phn} and not $gr{allmod}
 				and not $gr{phnskip}
-				and $hdr{'NNTP-Posting-Host'}
-				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o
 				and not ($gr{binary} and $lines > 100)) {
-					return reject('EMP (phn)', 'EMP')
-						if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{'Newsgroups'}");
+					if ($hdr{'NNTP-Posting-Host'}) {
+						if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
+							return reject('EMP (phn)', 'EMP')
+								if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
+						}
+					} else {
+						my $server;
+						$server = lc "$hdr{Path}";
+						$server =~ s/(![^\.]+)+$//;
+						$server =~ s/.*!//;
+						return reject('EMP (phn)', 'EMP')
+							if $PHNhistory->add("$server $hdr{Newsgroups}");
+					}
 			}
 
 			# create from/subject/lines hash
