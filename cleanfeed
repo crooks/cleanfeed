@@ -801,9 +801,12 @@ sub filter_art {
 						my $server;
 						$server = lc "$hdr{Path}";
 						$server =~ s/(![^\.]+)+$//;
-						$server =~ s/.*!//;
-						return reject('EMP (phn)', 'EMP')
-							if $PHNhistory->add("$server $hdr{Newsgroups}");
+						my $exc_count = ($server =~ tr/!//);
+						if ($exc_count > 2) {
+							$server =~ s/.*!//;
+							return reject('EMP (phn)', 'EMP')
+								if $PHNhistory->add("$server $hdr{Newsgroups}");
+						}
 					}
 			}
 
