@@ -797,7 +797,7 @@ sub filter_art {
 								if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
 						}
 					}
-					elsif ($config{phn_agressive}) {
+					elsif ($config{phn_aggressive}) {
 						my $server;
 						$server = lc "$hdr{Path}";
 						$server =~ s/(![^\.]+)+$//;
