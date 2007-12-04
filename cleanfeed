@@ -69,6 +69,7 @@ sub get_config {
 	stats_interval => 3600,		# write status file every N seconds
 	MIDmaxlife => 4,			# time to keep rejected message-ids, in hours
 	md5_skips_followups => 1,	# avoid MD5 check on articles with References?
+	phn_aggressive => 1,		# use path for phn filter when no posting host
 	do_mid_filter => 1,			# use the message-id CHECK filter? (INN only)
 	do_supersedes_filter => 1,	# do the excessive supersedes filter?
 	drop_useless_controls => 1,	# drop sendsys, senduuname, version control msg
@@ -792,7 +793,8 @@ sub filter_art {
 							return reject('EMP (phn)', 'EMP')
 								if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
 						}
-					} else {
+					}
+					elsif ($config{phn_agressive}) {
 						my $server;
 						$server = lc "$hdr{Path}";
 						$server =~ s/(![^\.]+)+$//;
