@@ -164,9 +164,9 @@ sub get_config {
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
 	### exclude these newsgroups from the phn filter
-	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.pictures'.
+	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
         '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.|^gnus?\.'.
-	    '|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.',
+	    '|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.',
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
 
