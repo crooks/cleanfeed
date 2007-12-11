@@ -832,6 +832,17 @@ sub filter_art {
 						return reject('EMP (phr)', 'EMP')
 							if $PHNhistory->add("$hdr{'NNTP-Posting-Host'}");
 					}
+					elsif ($config{phr_aggressive}) {
+						my $server;
+						$server = lc "$hdr{Path}";
+						$server =~ s/(![^\.]+)+$//;
+						my $exc_count = ($server =~ tr/!//);
+						if ($exc_count > 1) {
+							$server =~ s/.*!//;
+							return reject('EMP (phr)', 'EMP')
+								if $PHNhistory->add("$server}");
+						}
+					}
 			}
 
 			# create from/subject/lines hash
