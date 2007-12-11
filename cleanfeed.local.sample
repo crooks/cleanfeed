@@ -1,0 +1,245 @@
+# vim: set syntax=perl ts=4 ai si:
+
+######################### IMPORTANT! - READ CAREFULLY ########################
+# This file contains some parts of my own cleafeed.local.
+# Many of these checks are too much content based than what I feel
+# confortable to put in the official source and others are just
+# experimental or need site-specific tweaks.
+# Before using any of this code please *think*, and be sure you really
+# understand what it does.
+######################### IMPORTANT! - READ CAREFULLY ########################
+
+my @badaspnntps = (
+	'PostIT Now',
+	'Jobsearch Limited',
+	'AudioWeb',					# audioweb.com
+	'Alex',						# sex spam
+	'Paul Simmons',				# OperationIT.com
+	'Alan',						# equest.com
+	'Digital Media Works',		# html sex spam
+	'Captive Technology',		# ccsscorp.com jobs flood
+	'Computer Horzions ISG',	# isgjobs.com jobs flood
+	'Mike Powers',				# ResumeGateway.com jobs flood
+);
+
+my %badaspnntp = map { $_ => 1 } @badaspnntps;
+undef @badaspnntps;
+
+sub local_filter_first {
+	my $localpost = 0;
+
+	$localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.inwind\.it /;
+
+	study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
+
+	# local posts ############################################################
+	if ($localpost) {
+		if ($hdr{Approved}) {
+		    foreach (@groups) {
+				if (not /^(?:alt|wind|inwind)\./) {
+					saveart('CF.approved');
+					return reject("Forged approval in $_ ($hdr{Approved})");
+				}
+		    }
+		}
+
+#		if ($hdr{Subject} =~ /^R: /) { saveart('L.r'); }
+
+		return reject('Non usare HTML in Usenet!')
+			if $hdr{'Content-Type'} and ($hdr{'Content-Type'} =~ m#text/html#
+				or $hdr{'Content-Type'} =~ m#multipart/alternative#);
+	}
+	##########################################################################
+
+	# save articles coming from broken sites so I can LART them
+	foreach (@groups) {
+		next unless $hdr{Newsgroups} =~ /^it/;
+		$gr{it}++;
+		saveart('W.nomod') if exists $Moderated{$_} and not $hdr{Approved};
+	}
+
+	# enforce it.* hierarchy restrictions
+	if ($gr{it} and (@groups > 10 or @followups > 3)) {
+		saveart('CF.ECP');
+		return reject('Excessive crosspost');
+	}
+
+	# specific sites or companies ############################################
+	return reject("Job spam ($1)")
+		if $hdr{From} =~ /@(ajilon\.ca|ntes\.com|trai\.com|lesliecorp\.com|topechelon\.net|ERecruitingWorld\.com|(?:data\.)?JobBankUSA\.com|resumes\.gojobs\.com|chemjobs\.net|eurosoft-inc\.com|newlonservices\.com|medzilla\.com|gisajob\.com|geologics\.com|brainhunter\.com|dsijobs\.com|offsitetechies\.com)\b/
+			or $hdr{'Message-ID'} =~ /\@((?:webhire|hrsites|jobcircle|sans)\.com)>$/;
+
+	return reject('NNTP Monitor', 'Bot Signature')
+		if $hdr{From} =~ /^NNTP-Monitor\@/;
+}
+
+sub local_filter_bot {
+	if ($hdr{'X-Newsreader'}) {
+		if ($hdr{'X-Newsreader'} =~ /^AspNNTP \S+ \((.*)\)/) {
+			return reject('AspNNTP', 'Bot signature')
+				if exists $badaspnntp{$1};
+			#saveart('W.aspnntp', $hdr{'X-Newsreader'});
+		}
+	}
+}
+
+# most articles with hashbusters are caught by the MD5 filter anyway, I need
+# to check why there are not
+sub local_filter_after_emp {
+	if ($hdr{__LINES__} < 250 and not $gr{reports}) {
+		if ($hdr{__LINES__} < 25) {
+			return reject('lcbot 60+end+short', 'Bot signature')
+				if $hdr{__BODY__} =~ /\n[a-z]{60,}\n+$/;
+			return reject('lcbot 7+only+num', 'Bot signature')
+				if $hdr{Subject} =~ /  \d{4,5}/
+					and $hdr{__BODY__} =~ /^\n[a-z]{7,}\n+$/;
+			return reject('lcbot 12+end+short+num', 'Bot signature')
+				if $hdr{Subject} =~ / \d{2,5}$/ and
+					$hdr{__BODY__} =~ /\n[a-z]{12,}\n+$/;
+		}
+
+		return reject('lcbot 100', 'Bot signature')
+			if $hdr{__BODY__} =~ /^[a-z]{100,}$/m;
+		return reject('lcbot 80+end', 'Bot signature')
+			if $hdr{__BODY__} =~ /\n[a-z]{80,}\n+$/;
+		return reject('lcbot 30+num', 'Bot signature')
+			if $hdr{Subject} =~ /  \d{2,5}$/
+				and $hdr{__BODY__} =~ /^[a-z]{30,}$/m;
+
+		if (not $hdr{References}
+			and $hdr{__BODY__} =~ /\n{2,}[a-zA-Z0-9]{27,}\n+$/) {
+			if ($hdr{Subject} =~ / [a-zA-Z0-9]{1,}$/) {
+				saveart('W.mchash');
+				return reject('mcbot 30+end', 'Bot signature');
+			}
+			saveart('W.mchash2'); # all f.p.
+		}
+
+	} # hdr{__LINES__} < 250 and not $gr{reports}
+
+	return '';
+}
+
+sub local_filter_last {
+	# body checks ############################################################
+	if ($hdr{__LINES__} < 250 and not $gr{reports}) {
+
+# Warning: this check has some false positives
+		if ($hdr{Subject} =~ m#\[[^0]/[^1]\]$# and not $hdr{References}
+				and $hdr{__BODY__} =~ /\n[a-z]{12,}\n*$/
+#				and $hdr{__BODY__} !~ /^begin [0-7]{3,4} /m
+#				and not is_binary()	# XXX
+				) {
+			saveart('CF.sette0');
+			return reject('7 bot', 'Bot signature');
+		}
+
+		# I suppose I can't add new domains forever
+		if (not $hdr{'X-Mailer'} and not $hdr{'X-Newsreader'} and
+				not $hdr{References} and
+				$hdr{__BODY__} =~ /www\.(?:pure-instinct\.com|get-some-mojo\.com|magnetizewomen\.com|makeherscream\.net|wantmoresex\.com|lovesenses\.com|sexfit\.net|enhancelibido\.net|lovesenses\.com|bettersexlife\.com|erect4life\.com|androsfit\.com|smokefreelungs\.com|evidencegone\.com|biggertool\.com|forthepuss\.com|moreladies\.com|improve-libido\.com|openthathole\.com|at7x\.com|fuas\.net|dheafit\.com|sexboxoffice\.com|increasemanhood\.com|getsomeass\.com|nicotineaddict\.net|perkupsexdrive\.com|dateseverynight\.com|hot-products\.net|greatproducts\.net|landinbed\.com|getfemales\.net|sexattention\.com|allurefem\.com|smokerusa\.com|improve-libido\.com|youngeryears\.com|compelthem\.net|fightimpotency\.com|drawherin\.com|invitelust\.com|youlivelonger\.com)/) {
+			saveart('CF.repsisdom');
+			return reject('Repsis');
+		}
+	}
+
+	my $localpost = 0;
+	$localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.inwind\.it /;
+
+	if ($config{watch_cancels} and $localpost) {
+		$LocalPosts{$hdr{'Message-ID'}} = $now;
+	}
+
+#	saveart('W.longsubj') if length $hdr{Subject} > 160;
+#	saveart('W.space') if $hdr{Subject} =~ / {15,}[^ ]/;
+	saveart('W.repostnotrej')
+		if $hdr{Subject} =~ /^REPOST: / and $hdr{Path} =~ /!resurrector!/;
+	return '';
+}
+
+sub local_filter_cancel {
+	my $localpost = 0;
+	$localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.inwind\.it /;
+
+	my $id = $hdr{Cancel};
+	$id =~ s/.* //;
+	return '' if not $id;
+
+	if ($config{reject_suspect_cancels} and $localpost
+			and not INN::havehist($1)) {
+		# return reject('Cancel for a missing article', 'Rogue cancel');
+		saveart('W.localcancelunknown');
+	}
+
+	if ($config{watch_cancels} and $localpost and not $LocalPosts{$id}) {
+		# return reject('Cancel for a non local article', 'Rogue cancel');
+		saveart('W.nonlocalcancel');
+	}
+
+	return reject('Rogue cancel (mindspring)')
+		if $hdr{Approved} =~ /deputydawg\@altavista\.com/;
+
+	if ($hdr{__LINES__} > 20 and $hdr{__BODY__} !~ /^Path: /m) {
+		saveart('R.long');
+		return reject('Rogue cancel (long body)', 'Rogue cancel');
+	}
+
+	return '';
+}
+
+# here I save some articles I want to check.
+sub local_filter_reject {
+	my ($vr, $sr) = @_;
+
+	saveart('CF.local', $vr)
+		if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.inwind\.it /;
+	saveart('WARN.it', $vr)
+		if $vr =~ /^NewsAgent/ and $hdr{Newsgroups} =~ /\bit\./;
+	saveart('W.supersedes') if $vr =~ /^Excessive Supersedes/;
+#	saveart('CF.scoring', $vr) if $vr =~ /^Scoring filter/;
+	saveart('CF.NewsAgent', $vr) if $vr =~ /^NewsAgent/;
+	saveart('CF.SEX', $vr) if $vr =~ /^Sex spam/ and $lines < 300;
+	saveart('Z.EMP', $vr) if $vr =~ /^EMP/;
+	saveart('R.nanacancel') if $vr eq 'Cancel in forbidden group';
+
+	return @_;
+}
+
+sub local_config {
+	%config_local = (
+		block_late_cancels => 1,
+		active_file => '/news/db/active',
+		statfile => '/news/log/cleanfeed.stats',
+#		html_statfile => '/news/log/cleanfeed.stats.html',
+		stats_interval => 300,
+		do_emp_dump => 1,
+		emp_dump_file => '/news/tmp/empdump',
+		debug_batch_directory => '/news/spam',
+		phn_aggressive => 1,
+		flood_groups => '^sci\.crypt$|^news\.admin\.net-abuse\.email$',
+	);
+
+	%config_append = (
+		bin_allowed => '^alt\.mag\.',
+	);
+
+	$Restricted_Groups{netscape} = '^netscape\.';
+
+	$config{reject_suspect_cancels} = 0;
+	$config{watch_cancels} = 0;
+	if ($config{watch_cancels}) {
+		eval { require AnyDBM_File; import AnyDBM_File;
+				require Fcntl; import Fcntl; }; # XXX ugly
+		if ($@) {
+			$config{watch_cancels} = undef;
+			slog('E', 'Cannot load AnyDBM_File: ' . $@);
+		}
+		tie %LocalPosts, 'AnyDBM_File', "$config_dir/posts",
+				&Fcntl::O_CREAT|&Fcntl::O_RDWR, 0666
+			or slog('E', 'Cannot load AnyDBM_File: ' . $!);
+	}
+}
+
+print $now.$config_dir.$lines.%Restricted_Groups.%Moderated.%config_local.%config_append.@followups if 0; # lint food
+
+1;
