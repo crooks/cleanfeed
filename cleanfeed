@@ -167,8 +167,11 @@ sub get_config {
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
         '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.|^gnus?\.'.
 	    '|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.',
+	
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
+
+	phr_exempt => '^localhost$|^127\.0\.0\.1$',
 
 	### newsgroups that get frequently flooded
 	flood_groups => '^sci\.crypt$|^news\.admin\.net-abuse\.email$',
@@ -410,6 +413,7 @@ sub setup_stuff {
 	read_hash('bad_cancel_paths', \%Bad_Cancel_Path);
 	read_hash('bad_adult_paths', \%Bad_Adult_Path);
 	read_hash('bad_hosts', \%Bad_Hosts);
+	read_hash('bad_groups', \%Bad_Groups);
 
 	# initialise the rate filters
 	if ($config{do_md5}) {
@@ -511,6 +515,9 @@ sub filter_art {
 		} elsif (defined &INN::newsgroup) {
 			$gr{mod}++ if INN::newsgroup($_) eq 'm';
 		}
+		
+		# Reject bad groups
+		return reject("Bad group ($_)", 'Bad group') if exists $Bad_Groups{$_};
 	}
 
 	# these only count if all groups match
@@ -845,8 +852,10 @@ sub filter_art {
 		if ($config{do_phr} and $gr{phrinc}
 			and not ($gr{binary} and $lines > 100)) {
 				if ($hdr{'NNTP-Posting-Host'}) {
-					return reject('EMP (phr nph)', 'EMP')
-						if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
+					if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o) {
+						return reject('EMP (phr nph)', 'EMP')
+							if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
+					}
 				}
 				elsif ($config{phr_aggressive}) {
 					my $server;
