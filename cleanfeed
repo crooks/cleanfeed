@@ -252,6 +252,7 @@ sub get_config {
 			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
 					allexclude html_allowed mime_html_allowed low_xpost_groups no_cancel_groups
 					baddomainpat phl_exempt supersedes_exempt
+					phn_exempt phr_exempt phn_exclude flood_groups
 					refuse_messageids net_abuse_groups spam_report_groups
 					adult_groups not_adult_groups faq_groups badguys)) {
 				if (defined $config_append{$_}) {
