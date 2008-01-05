@@ -175,7 +175,7 @@ sub get_config {
 	phr_exempt => '^localhost$|^127\.0\.0\.1$',
 
 	### newsgroups that get frequently flooded
-	flood_groups => '^sci\.crypt$|^news\.admin\.net-abuse\.email$',
+	flood_groups => '',
 
 	### posting hosts exempt from excessive supersedes filter
 	supersedes_exempt => '^localhost$|^penguin-lust\.mit\.edu$',
