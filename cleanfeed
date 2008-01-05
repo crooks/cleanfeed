@@ -59,8 +59,8 @@ sub get_config {
 	PHLRateCutoff => 20,
 	PHLRateCeiling => 80,
 	PHLRateBaseInterval => 3600,
-	PHNRateCutoff => 40,
-	PHNRateCeiling => 80,
+	PHNRateCutoff => 100,
+	PHNRateCeiling => 150,
 	PHNRateBaseInterval => 3600,
 	PHRRateCutoff => 10,
 	PHRRateCeiling => 80,
@@ -165,8 +165,9 @@ sub get_config {
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
-        '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.|^gnus?\.'.
-	    '|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.|\.talk',
+        '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.'.
+		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
+		'|\.talk|^lists\.',
 	
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
