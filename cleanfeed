@@ -946,8 +946,15 @@ sub filter_art {
 				and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
 				and $lch{'message-id'} !~ /webtv\.net>$/;
 
-			$score += 1 if scalar @followups > 4;
-			$score += 2 if scalar @followups > 8;
+			$score += 1 if scalar @followups > 2;
+			$score += 2 if scalar @followups > 4;
+			$score += 1 if scalar @followups ge scalar @groups;
+
+			# Add 1 to score for each followup not in groups
+			my %grps;
+			@grps{@groups} = (); # Convert array to hash (for exists)
+			for (@followups) { $score++ unless exists $grps{$_} };
+			undef %grps;
 
 			$score += 4 if $lch{from} =~ /$url2/o;
 
