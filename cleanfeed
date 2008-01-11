@@ -165,7 +165,7 @@ sub get_config {
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
-        '|\.binaries\.|\.(best)?jobs\.|^microsoft\.|\.bbs\.|^mailing\.'.
+	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^mailing\.'.
 		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
 		'|\.talk|^lists\.',
 	
