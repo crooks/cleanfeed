@@ -1158,7 +1158,7 @@ sub is_binary {
 			(?:
 				^[ \t|>]*
 				(?>
-					[A-Za-z0-9\+\/]{59,76}
+					\S{59,76}
 				)
 				\s*\r?\n
 			){$config{max_encoded_lines}}
