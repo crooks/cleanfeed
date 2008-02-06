@@ -67,8 +67,8 @@ def update_hosts_db():
             db_hosts[key] = now
     db_hosts.sync()
 
-def housekeeping():
-    age = hours_ago(168)
+def housekeeping(expire):
+    age = hours_ago(expire)
     for key in db_hosts.keys():
         print "%s\t%s" % (db_hosts[key], key)
         if db_hosts[key] < age:
@@ -89,5 +89,5 @@ hosts = populate_hosts(option)
 
 db_hosts = bsddb.hashopen(config.dbfile)
 update_hosts_db()
-housekeeping()
+housekeeping(config.expire)
 db_hosts.close()
