@@ -36,57 +36,58 @@ def hours_ago(past_hours):
     timestamp = thentime.strftime("%Y-%m-%d %H:%M:%S")
     return timestamp
 
-def opendbs(filename):
-    """Open the database we will use to store hostnames and timestamps"""
-    global db_hosts
-    db_hosts = bsddb.hashopen(filename)
+def populate_hosts(filename):
+    hosts = {}
+    # Try and open the file from which we will read the cleanfeed rejects
+    try:
+        file = open(filename, 'r')
+    except IOError:
+        sys.stdout.write("File %s not found\n" % (filename,))
+        sys.exit(1)
+    # Populate a dictionary keyed by hostname
+    for line in file:
+        re_test = host_re.match(line)
+        if re_test:
+            foo = re_test.group(1)
+            if hosts.has_key(foo):
+                hosts[foo] += 1
+            else:
+                hosts[foo] = 1
+    return hosts
+
+def update_hosts_db():
+    now = utcnow()
+    for key in hosts:
+        if hosts[key] >= config.threshold:
+            print "%s\t%s" % (hosts[key], key)
+            if db_hosts.has_key(key):
+                print "Known bad host, updating timestamp"
+            else:
+                print "New bad host, adding to list"
+            db_hosts[key] = now
+    db_hosts.sync()
+
+def housekeeping():
+    age = hours_ago(168)
+    for key in db_hosts.keys():
+        print "%s\t%s" % (db_hosts[key], key)
+        if db_hosts[key] < age:
+            print "Deleting expired host %s" % (key,)
+            del db_hosts[key]
 
 # Regex used to extract hosts
 # TODO There is a risk that a clever abuser could include this in the
 #      message payload in order to seed innocent hosts.
 host_re = re.compile('^NNTP-Posting-Host: (.*)')
-hosts = {}
 
 # Check if we're being passed an arguement on the command line
 if len(sys.argv) > 1:
     option = sys.argv[1]
 else:
     option = config.report_file
-
-# Try and open the file from which we will read the cleanfeed rejects
-try:
-    file = open(option, 'r')
-except IOError:
-    sys.stdout.write("File %s not found\n" % (option,))
-    sys.exit(1)
-
-# Populate a dictionary keyed by hostname
-for line in file:
-    test = host_re.match(line)
-    if test:
-        foo = test.group(1)
-        if hosts.has_key(foo):
-           hosts[foo] += 1
-        else:
-            hosts[foo] = 1
-file.close()
+hosts = populate_hosts(option)
 
 db_hosts = bsddb.hashopen(config.dbfile)
-now = utcnow()
-for key in hosts:
-    if hosts[key] >= config.threshold:
-        print "%s\t%s" % (hosts[key], key)
-        if db_hosts.has_key(key):
-            print "Known bad host, updating timestamp"
-        else:
-            print "New bad host, adding to list"
-        db_hosts[key] = now
-db_hosts.sync()
-
-age = hours_ago(168)
-for key in db_hosts.keys():
-    print "%s\t%s" % (db_hosts[key], key)
-    if db_hosts[key] < age:
-        print "Deleting expired host %s" % (key,)
-        del db_hosts[key]
+update_hosts_db()
+housekeeping()
 db_hosts.close()
