@@ -163,6 +163,9 @@ sub get_config {
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
+	### exclude these newsgroups from the phl filter
+	phl_exclude => '\.test',
+
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
 	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^mailing\.'.
@@ -252,7 +255,7 @@ sub get_config {
 		if (%config_append) {
 			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
 					allexclude html_allowed mime_html_allowed low_xpost_groups no_cancel_groups
-					baddomainpat phl_exempt supersedes_exempt
+					baddomainpat phl_exempt phl_exclude supersedes_exempt
 					phn_exempt phr_exempt phn_exclude flood_groups
 					refuse_messageids net_abuse_groups spam_report_groups
 					adult_groups not_adult_groups faq_groups badguys)) {
@@ -493,6 +496,7 @@ sub filter_art {
 		$gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
 		$gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
 		$gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
+		$gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
 		$gr{phrinc}++ if $config{flood_groups} and /$config{flood_groups}/o;
 		$gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
 		$gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
@@ -526,6 +530,7 @@ sub filter_art {
 	$gr{skip} = ($gr{skip} == scalar @groups);
 	$gr{md5skip} = ($gr{md5skip} == scalar @groups);
 	$gr{phnskip} = ($gr{phnskip} == scalar @groups);
+	$gr{phlskip} = ($gr{phlskip} == scalar @groups);
 	$gr{binary} = ($gr{binary} == scalar @groups);
 	$gr{binary} = 0 if $gr{bad_bin};
 	$gr{html} = ($gr{html} == scalar @groups);
@@ -803,8 +808,7 @@ sub filter_art {
 		if (not $gr{reports}) {
 			# create posting-host/lines hash
 			if ($config{do_phl} and not $gr{allmod}
-				and $hdr{'NNTP-Posting-Host'}
-				and not $hdr{Newsgroups} =~ /^(?:tw\.bbs\.|fido7\.)/ #XXX FIXME
+				and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
 				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
 				and not ($gr{binary} and $lines > 100
 						and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
