@@ -28,4 +28,6 @@ expire = 160
 
 report_file = '/usr/local/news/cleanfeed/log/badhosts'
 
-badhosts_textfile = '/usr/local/news/cleanfeed/badhosts.txt'
+badhosts_textfile = '/usr/local/news/badhosts/badhosts.txt'
+
+exclude_file = '/usr/local/news/badhosts/exclude_hosts'
