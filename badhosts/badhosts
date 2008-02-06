@@ -59,11 +59,6 @@ def update_hosts_db():
     now = utcnow()
     for key in hosts:
         if hosts[key] >= config.threshold:
-            print "%s\t%s" % (hosts[key], key)
-            if db_hosts.has_key(key):
-                print "Known bad host, updating timestamp"
-            else:
-                print "New bad host, adding to list"
             db_hosts[key] = now
     db_hosts.sync()
 
@@ -74,6 +69,17 @@ def housekeeping(expire):
         if db_hosts[key] < age:
             print "Deleting expired host %s" % (key,)
             del db_hosts[key]
+    db_hosts.sync()
+
+def write_bad_hosts(filename):
+    try:
+        file = open(filename, 'w')
+    except IOError:
+        sys.stdout.write("File %s could not be written\n" % (filename,))
+        sys.exit(1)
+    for key in db_hosts.keys():
+        file.write('%s\n' % (key,))
+    file.close()
 
 # Regex used to extract hosts
 # TODO There is a risk that a clever abuser could include this in the
@@ -90,4 +96,5 @@ hosts = populate_hosts(option)
 db_hosts = bsddb.hashopen(config.dbfile)
 update_hosts_db()
 housekeeping(config.expire)
+write_bad_hosts(config.badhosts_textfile)
 db_hosts.close()

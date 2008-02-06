@@ -18,7 +18,7 @@
 
 # Filename for the badhosts database file
 # TODO This needs to be fully qualified for release versions
-dbfile = 'badhosts.db'
+dbfile = '/usr/local/news/cleanfeed/etc/badhosts.db'
 
 # How many rejects we accept from a host before declaring it a bad guy
 threshold = 200
@@ -26,5 +26,6 @@ threshold = 200
 # Hours to retain bad_hosts before expiring them from the db
 expire = 160
 
-report_file = '/usr/local/news/cleanfeed/log/PHR.EMP'
+report_file = '/usr/local/news/cleanfeed/log/badhosts'
 
+badhosts_textfile = '/usr/local/news/cleanfeed/badhosts.txt'
