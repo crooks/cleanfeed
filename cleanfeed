@@ -418,6 +418,7 @@ sub setup_stuff {
 	read_hash('bad_cancel_paths', \%Bad_Cancel_Path);
 	read_hash('bad_adult_paths', \%Bad_Adult_Path);
 	read_hash('bad_hosts', \%Bad_Hosts);
+	read_hash('bad_hosts_central', \%Bad_Hosts_Central);
 	read_hash('bad_groups', \%Bad_Groups);
 
 	# initialise the rate filters
@@ -547,7 +548,7 @@ sub filter_art {
 	# checks common to all article types #####################################
 	foreach (split(/\s+/, $hdr{'NNTP-Posting-Host'})) {
 		return reject("Bad host ($hdr{'NNTP-Posting-Host'})", 'Bad site')
-			if exists $Bad_Hosts{$_};
+			if exists $Bad_Hosts{$_} or exists $Bad_Hosts_Central{$_};
 	}
 
 	@Path_Entries = split(/!/, $hdr{Path});
