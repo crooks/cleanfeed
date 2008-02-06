@@ -72,6 +72,7 @@ for line in file:
 file.close()
 
 db_hosts = bsddb.hashopen(config.dbfile)
+now = utcnow()
 for key in hosts:
     if hosts[key] >= config.threshold:
         print "%s\t%s" % (hosts[key], key)
@@ -79,7 +80,13 @@ for key in hosts:
             print "Known bad host, updating timestamp"
         else:
             print "New bad host, adding to list"
-        db_hosts[key] = utcnow()
-
+        db_hosts[key] = now
 db_hosts.sync()
+
+age = hours_ago(168)
+for key in db_hosts.keys():
+    print "%s\t%s" % (db_hosts[key], key)
+    if db_hosts[key] < age:
+        print "Deleting expired host %s" % (key,)
+        del db_hosts[key]
 db_hosts.close()
