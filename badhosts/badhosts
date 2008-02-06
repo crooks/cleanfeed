@@ -78,10 +78,11 @@ def update_hosts_db(exclude):
 def housekeeping(expire):
     age = hours_ago(expire)
     for key in db_hosts.keys():
-        print "%s\t%s" % (db_hosts[key], key)
         if db_hosts[key] < age:
-            print "Deleting expired host %s" % (key,)
+            print "%s\t%s\tExpired" % (db_hosts[key], key)
             del db_hosts[key]
+        else:
+            print "%s\t%s" % (db_hosts[key], key)
     db_hosts.sync()
 
 def write_bad_hosts(filename):
