@@ -123,6 +123,20 @@ def db_delete(regex_text):
         else:
             sys.stdout.write("Deletion cancelled\n")
 
+def cmd_args(args):
+    # Mode is used to identify what we're going to do.  Current modes are:-
+    # 0     Normal operation with no command line arguements.
+    # 1     Delete database entries matching a supplies regex.
+    mode = 0
+    # Check if we're being passed an arguement on the command line
+    if len(args) > 1:
+        if args[1].startswith('--'):
+            option = args[1] [2:]
+            if option == 'delete' and len(args) > 2:
+                mode = 1
+                db_delete(args[2])
+    return mode
+
 
 # Regex used to extract hosts
 # TODO There is a risk that a clever abuser could include this in the
@@ -130,15 +144,8 @@ def db_delete(regex_text):
 host_re = re.compile('^NNTP-Posting-Host: (.*)')
 
 db_hosts = bsddb.hashopen(config.dbfile)
-# Check if we're being passed an arguement on the command line
-mode = 0
-if len(sys.argv) > 1:
-    if sys.argv[1].startswith('--'):
-        option = sys.argv[1] [2:]
-        if option == 'delete' and len(sys.argv) > 2:
-            mode = 1
-            db_delete(sys.argv[2])
-            sys.exit(0)
+
+mode = cmd_args(sys.argv)
 
 if mode == 0:
     hosts = populate_hosts(config.report_file)
