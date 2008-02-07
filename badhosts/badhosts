@@ -58,13 +58,10 @@ def populate_hosts(filename):
         sys.exit(1)
     # Populate a dictionary keyed by hostname
     for line in file:
-        re_test = host_re.match(line)
-        if re_test:
-            foo = re_test.group(1)
-            if hosts.has_key(foo):
-                hosts[foo] += 1
-            else:
-                hosts[foo] = 1
+        if hosts.has_key(line):
+            hosts[line] += 1
+        else:
+            hosts[line] = 1
     return hosts
 
 def update_hosts_db(exclude):
@@ -137,11 +134,6 @@ def cmd_args(args):
                 db_delete(args[2])
     return mode
 
-
-# Regex used to extract hosts
-# TODO There is a risk that a clever abuser could include this in the
-#      message payload in order to seed innocent hosts.
-host_re = re.compile('^NNTP-Posting-Host: (.*)')
 
 db_hosts = bsddb.hashopen(config.dbfile)
 

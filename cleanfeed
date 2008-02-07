@@ -1479,6 +1479,12 @@ sub trimhashes {
 ##############################################################################
 
 sub saveart {
+	# We currently recognise various formatting options:
+	# 0: Header and body truncated if over 250 lines (Default)
+	# 1: Header and full body regardless of length
+	# 2: Header only
+	# 3: Just NNTP-Posting-Host (If it exists in the message)
+
 	my ($file, $info, $format) = @_;
 	$format ||= 0;
 
@@ -1489,18 +1495,28 @@ sub saveart {
 		slog('E', "Cannot open $file: $!");
 		return;
 	}
-	print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
-	print LOCAL "INFO: $info\n" if $info;
-	foreach (sort keys %hdr) {
-		next if $_ eq '__BODY__' or $_ eq '__LINES__';
-		print LOCAL "$_: $hdr{$_}\n"
+	if ($format == 3 and $hdr{'NNTP-Posting-Host'}) {
+		print LOCAL "$hdr{'NNTP-Posting-Host'}\n"
+	}
+	if ($format != 3) {
+		print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
+		print LOCAL "INFO: $info\n" if $info;
+		foreach (sort keys %hdr) {
+			next if $_ eq '__BODY__' or $_ eq '__LINES__';
+			print LOCAL "$_: $hdr{$_}\n"
+		}
 	}
 	if ($format == 2) {
 		print LOCAL "\n";
-	} elsif ($format != 1 and $lines > 250) {
+	}
+	if ($lines > 250 and $format == 0) {
 		print LOCAL "\n" . substr($hdr{__BODY__}, 0, 15000) . "\n\n";
-	} else {
+	}
+	if ($lines > 250 and $format == 1) {
 		print LOCAL "\n$hdr{__BODY__}\n";
+	}
+	if ($lines <= 250 and ($format == 0 or $format == 1)) {
+			print LOCAL "\n$hdr{__BODY__}\n";
 	}
 	close LOCAL;
 }
