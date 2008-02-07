@@ -101,21 +101,49 @@ def write_bad_hosts(filename):
         file.write('%s\n' % (key,))
     file.close()
 
+def db_delete(regex_text):
+    hits = 0
+    deletes = []
+    regex = re.compile(regex_text)
+    for key in db_hosts.keys():
+        match = regex.match(key)
+        if match:
+            sys.stdout.write('%s matched for deletion\n' % key)
+            deletes.append(key)
+            hits += 1
+    sys.stdout.write('Matching entries: %s\n' % hits)
+    if hits:
+        confirm = raw_input("Are you sure? (yes/no): ")
+        confirm = confirm.lower()
+        if confirm == "yes":
+            for key in deletes:
+                sys.stdout.write("%s deleted\n" % key)
+                del db_hosts[key]
+            db_hosts.sync()
+        else:
+            sys.stdout.write("Deletion cancelled\n")
+
+
 # Regex used to extract hosts
 # TODO There is a risk that a clever abuser could include this in the
 #      message payload in order to seed innocent hosts.
 host_re = re.compile('^NNTP-Posting-Host: (.*)')
 
-# Check if we're being passed an arguement on the command line
-if len(sys.argv) > 1:
-    option = sys.argv[1]
-else:
-    option = config.report_file
-hosts = populate_hosts(option)
-
 db_hosts = bsddb.hashopen(config.dbfile)
-exclude_hosts = file_to_list(config.exclude_file)
-update_hosts_db(exclude_hosts)
-housekeeping(config.expire)
-write_bad_hosts(config.badhosts_textfile)
+# Check if we're being passed an arguement on the command line
+mode = 0
+if len(sys.argv) > 1:
+    if sys.argv[1].startswith('--'):
+        option = sys.argv[1] [2:]
+        if option == 'delete' and len(sys.argv) > 2:
+            mode = 1
+            db_delete(sys.argv[2])
+            sys.exit(0)
+
+if mode == 0:
+    hosts = populate_hosts(config.report_file)
+    exclude_hosts = file_to_list(config.exclude_file)
+    update_hosts_db(exclude_hosts)
+    housekeeping(config.expire)
+    write_bad_hosts(config.badhosts_textfile)
 db_hosts.close()
