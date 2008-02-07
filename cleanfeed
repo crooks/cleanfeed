@@ -159,6 +159,9 @@ sub get_config {
 # FIXME currently disabled
 #	baddomainpat => '[\w\-]+xxx|xxx[\w\-]+',
 
+	### exclude these newsgroups from the fsl filter
+	fsl_exclude => '\.test',
+
 	### exempt these hosts from the NNTP-Posting-Host filter
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
@@ -254,8 +257,9 @@ sub get_config {
 		# config_append adds to the config regexps
 		if (%config_append) {
 			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
-					allexclude html_allowed mime_html_allowed low_xpost_groups no_cancel_groups
-					baddomainpat phl_exempt phl_exclude supersedes_exempt
+					allexclude html_allowed mime_html_allowed low_xpost_groups
+					no_cancel_groups baddomainpat fsl_exclude
+					phl_exempt phl_exclude supersedes_exempt
 					phn_exempt phr_exempt phn_exclude flood_groups
 					refuse_messageids net_abuse_groups spam_report_groups
 					adult_groups not_adult_groups faq_groups badguys)) {
@@ -495,6 +499,7 @@ sub filter_art {
 			$gr{'rg_'.$item}++ if /$Restricted_Groups{$item}/;
 		}
 		$gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
+		$gr{fslskip}++ if $config{fslexclude} and /$config{fslexclude}/o;
 		$gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
 		$gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
 		$gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
@@ -841,7 +846,7 @@ sub filter_art {
 			}
 
 			# create from/subject/lines hash
-			if ($config{do_fsl}) {
+			if ($config{do_fsl} and not $gr{fslskip}) {
 				my $hash1;
 				if (defined $hdr{Sender}) {
 					$hash1 = lc "$hdr{Sender} $hdr{Subject}";
