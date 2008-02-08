@@ -48,6 +48,11 @@ def file_to_list(name):
         list.append(item.rstrip())
     return list
 
+def dictkeys_to_list(dict):
+    list = dict.keys()
+    list.sort()
+    return list
+
 def populate_hosts(filename):
     hosts = {}
     # Try and open the file from which we will read the cleanfeed rejects
@@ -96,8 +101,9 @@ def write_bad_hosts(filename):
     file.write('# overwritten during the next scheduled download.    #\n')
     file.write('# For manual listings, update the bad_hosts file.    #\n')
     file.write('######################################################\n\n')
-    for key in db_hosts.keys():
-        file.write('%s\n' % (key,))
+    host_addys = dictkeys_to_list(db_hosts)
+    for entry in host_addys:
+        file.write('%s\n' % (entry,))
     file.close()
 
 def db_delete(regex_text):
