@@ -122,20 +122,32 @@ def db_delete(regex_text):
         else:
             sys.stdout.write("Deletion cancelled\n")
 
+def db_insert(entry):
+    entry = entry.rstrip()
+    if db_hosts.has_key(entry):
+        sys.stdout.write("%s already in DB.  Refreshing timestamp\n" % entry)
+    else:
+        sys.stdout.write("Adding %s to badhost DB\n" % entry)
+    db_hosts[entry] = utcnow()
+
 def cmd_args(args):
     # Mode is used to identify what we're going to do.  Current modes are:-
     # 0     Normal operation with no command line arguements.
     # 1     Delete database entries matching a supplies regex.
+    # 2     Manual insert into database
     mode = 0
     # Check if we're being passed an arguement on the command line
     if len(args) > 1:
         if args[1].startswith('--'):
             option = args[1] [2:]
-            if option == 'delete' and len(args) > 2:
-                mode = 1
-                db_delete(args[2])
+            if len(args) > 2:
+                if option == 'delete':
+                    mode = 1
+                    db_delete(args[2])
+                if option == 'insert':
+                    mode = 2
+                    db_insert(args[2])
     return mode
-
 
 db_hosts = bsddb.hashopen(config.dbfile)
 
