@@ -58,6 +58,7 @@ def populate_hosts(filename):
         sys.exit(1)
     # Populate a dictionary keyed by hostname
     for line in file:
+        line = line.rstrip()
         if hosts.has_key(line):
             hosts[line] += 1
         else:
@@ -67,6 +68,7 @@ def populate_hosts(filename):
 def update_hosts_db(exclude):
     now = utcnow()
     for key in hosts:
+        key = key.rstrip()
         if hosts[key] >= config.threshold and \
         key not in exclude:
             db_hosts[key] = now
