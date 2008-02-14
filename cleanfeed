@@ -160,14 +160,14 @@ sub get_config {
 #	baddomainpat => '[\w\-]+xxx|xxx[\w\-]+',
 
 	### exclude these newsgroups from the fsl filter
-	fsl_exclude => '\.test',
+	fsl_exclude => '\.test|comp\.lang\.ruby',
 
 	### exempt these hosts from the NNTP-Posting-Host filter
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
 	### exclude these newsgroups from the phl filter
-	phl_exclude => '\.test',
+	phl_exclude => '\.test|comp\.lang\.ruby',
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
@@ -675,13 +675,16 @@ sub filter_art {
 		return reject("UUencoded $1")
 			if $lines > 3 and $lines < 2000
 				and $hdr{__BODY__} =~ /
-					^[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
+					(?:^|\n)[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
 					\S?.{0,45}?\S*			# file name
 					\.(						# file extensions
 						[Tt][Ee]?[Xx][Tt]|
 						[Hh][Tt][Mm][Ll]?|
 						[Ee][Xx][Ee]|
-						[Uu][Rr][Ll]
+						[Uu][Rr][Ll]|
+						[Jj][Pp][Ee]?[Gg]|
+						[Gg][Ii][Ff]|
+						[Pp][Nn][Gg]
 					)
 					\s+						# end of line
 					(?:
@@ -1177,7 +1180,7 @@ sub is_binary {
 		return 1;
 	}
 
-	if ($hdr{__BODY__} =~ /^=ybegin (.+)$/m) {
+	if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
 		local $_ = $1;
 		if (/line=/ and /size=/ and /name=/) {
 			$Cache_Is_Binary = 1;
