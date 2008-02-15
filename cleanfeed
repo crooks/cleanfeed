@@ -681,10 +681,7 @@ sub filter_art {
 						[Tt][Ee]?[Xx][Tt]|
 						[Hh][Tt][Mm][Ll]?|
 						[Ee][Xx][Ee]|
-						[Uu][Rr][Ll]|
-						[Jj][Pp][Ee]?[Gg]|
-						[Gg][Ii][Ff]|
-						[Pp][Nn][Gg]
+						[Uu][Rr][Ll]
 					)
 					\s+						# end of line
 					(?:
