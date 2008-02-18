@@ -120,7 +120,7 @@ sub get_config {
 	bin_allowed => '^\w+\.binae?r|^alt\.sex\.pictures|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
 		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
-		'|^fido\.|^linux\.|^unidata\.',
+		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
 	### no binaries allowed even if bin_allowed matches
 	bad_bin => '\.d$|^alt\.chello',
