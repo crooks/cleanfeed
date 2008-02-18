@@ -542,6 +542,7 @@ sub filter_art {
 	$gr{html} = ($gr{html} == scalar @groups);
 	$gr{mime_html} = ($gr{mime_html} == scalar @groups);
 	$gr{allmod} = ($gr{mod} == scalar @groups);
+	$gr{alltest} = ($gr{test} == scalar @groups);
 
 	# If all newsgroups are excluded from filtering, bail now
 	return '' if $gr{skip};
