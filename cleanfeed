@@ -127,7 +127,7 @@ sub get_config {
 	bad_bin => '\.d$|^alt\.chello',
 
 	### md5 EMP check not done if groups match
-	md5exclude => '\.test(?:$|\.)|^es\.pruebas$',
+	md5exclude => '^perl\.cpan\.testers|\.test(?:$|\.)|^es\.pruebas$',
 
 	### reject all articles crossposted to groups matching this
 	poison_groups => '^alt\.(?:binaires|bainaries)|sexzilla|^newsmon$'.
@@ -1175,7 +1175,7 @@ sub is_binary {
 			(?:
 				^[ \t|>]*
 				(?>
-					\S{59,76}
+					[A-Za-z0-9\+\/]{59,76}
 				)
 				\s*\r?\n
 			){$config{max_encoded_lines}}
