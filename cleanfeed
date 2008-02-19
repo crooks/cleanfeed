@@ -3,7 +3,7 @@
 # Copyright 1999 Jeremy Nixon <jeremy@exit109.com>
 # Copyright 2001 Marco d'Itri <md@linux.it>
 #
-# Modified by Steve Crook (14th Feb 2008) and redistributed in accordance with
+# Modified by Steve Crook (19th Feb 2008) and redistributed in accordance with
 # the terms of the license.
 #
 # This software is distributed under the terms of the Artistic License.
@@ -82,6 +82,7 @@ sub get_config {
 	do_supersedes_filter => 1,	# do the excessive supersedes filter?
 	drop_useless_controls => 1,	# drop sendsys, senduuname, version control msg
 	drop_ihave_sendme => 1,		# drop ihave, sendme control messages
+	bad_rate_reload => 10000,   # Reload bad_* files after this many articles
 
 	low_xpost_maxgroups => 6,	# max xposts in low_xpost_groups
 	meow_ext_maxgroups => 2,	# max xposts from meow_groups to other groups
@@ -418,12 +419,8 @@ sub setup_stuff {
 		}
 	}
 
-	read_hash('bad_paths', \%Bad_Path);
-	read_hash('bad_cancel_paths', \%Bad_Cancel_Path);
-	read_hash('bad_adult_paths', \%Bad_Adult_Path);
-	read_hash('bad_hosts', \%Bad_Hosts);
-	read_hash('bad_hosts_central', \%Bad_Hosts_Central);
-	read_hash('bad_groups', \%Bad_Groups);
+	# Read all the bad_* files
+	read_hashes();
 
 	# initialise the rate filters
 	if ($config{do_md5}) {
@@ -480,6 +477,15 @@ sub filter_art {
 
 	$status{articles}++;
 	$timer{articles}++ if $config{timer_info};
+
+	# Reload the bad_* files every $bad_rate_reload articles accepted
+	if ($status{accepted} % $config{bad_rate_reload} == 0
+		and $status{accepted} > $status{bad_reloaded}) {
+		slog('N', "Reloading bad files after $status{accepted} articles");
+		read_hashes();
+		# Prevent looping whilst waiting for another accepted article
+		$status{bad_reloaded} = $status{accepted};
+	}
 
 	# break out newsgroups into an array
 	@groups = split(/[,\s]+/, $hdr{Newsgroups});
@@ -1581,6 +1587,15 @@ sub slog {
 ##############################################################################
 # parse the data files
 ##############################################################################
+sub read_hashes {
+	read_hash('bad_paths', \%Bad_Path);
+	read_hash('bad_cancel_paths', \%Bad_Cancel_Path);
+	read_hash('bad_adult_paths', \%Bad_Adult_Path);
+	read_hash('bad_hosts', \%Bad_Hosts);
+	read_hash('bad_hosts_central', \%Bad_Hosts_Central);
+	read_hash('bad_groups', \%Bad_Groups);
+}
+
 sub read_hash {
 	my ($file, $hash) = @_;
 
