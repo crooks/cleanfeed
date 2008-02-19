@@ -136,7 +136,7 @@ sub get_config {
 					: '|^alt\.hipcrime|^us\.hipcrime|^hipcrime|h\dpcr\dme'),
 
 	### no checks done if groups match
-	allexclude => '\.test',
+	allexclude => '^jess\.uio\.no',
 
 	### HTML allowed here (if block_html or block_multi_alt is turned on)
 	html_allowed => '^microsoft\.',
