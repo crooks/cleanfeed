@@ -161,7 +161,7 @@ sub get_config {
 #	baddomainpat => '[\w\-]+xxx|xxx[\w\-]+',
 
 	### exclude these newsgroups from the fsl filter
-	fsl_exclude => '\.test|comp\.lang\.ruby',
+	fsl_exclude => 'comp\.lang\.ruby',
 
 	### exempt these hosts from the NNTP-Posting-Host filter
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
@@ -822,6 +822,7 @@ sub filter_art {
 			# create posting-host/lines hash
 			if ($config{do_phl} and not $gr{allmod}
 				and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
+				and not is_binary() and not $gr{alltest}
 				and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
 				and not ($gr{binary} and $lines > 100
 						and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
@@ -853,7 +854,7 @@ sub filter_art {
 			}
 
 			# create from/subject/lines hash
-			if ($config{do_fsl} and not $gr{fslskip}) {
+			if ($config{do_fsl} and not $gr{fslskip} and not $gr{alltest}) {
 				my $hash1;
 				if (defined $hdr{Sender}) {
 					$hash1 = lc "$hdr{Sender} $hdr{Subject}";
@@ -888,6 +889,12 @@ sub filter_art {
 					}
 				}
 		}
+
+#		if (defined $Cache_Is_Binary) {
+#			if ($Cache_Is_Binary == 4) {
+#				saveart('cf.catch');
+#			}
+#		}
 
 		# Supersedes checks ##################################################
 		if ($hdr{Supersedes}) {
@@ -1170,8 +1177,12 @@ sub is_binary {
 				)
 				\s*\r?\n				# trailing spaces and end of line
 			){$config{max_encoded_lines}} # at least this many lines
-		/mox or
-		$hdr{__BODY__} =~ /
+		/mox) {
+		$Cache_Is_Binary = 1;
+		return 1;
+	}
+
+	if ($hdr{__BODY__} =~ /
 			(?:
 				^[ \t|>]*
 				(?>
@@ -1180,18 +1191,30 @@ sub is_binary {
 				\s*\r?\n
 			){$config{max_encoded_lines}}
 		/mox) {
-		$Cache_Is_Binary = 1;
-		return 1;
+		$Cache_Is_Binary = 2;
+		return 2;
 	}
 
 	if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
 		local $_ = $1;
 		if (/line=/ and /size=/ and /name=/) {
-			$Cache_Is_Binary = 1;
-			return 1;
+			$Cache_Is_Binary = 3;
+			return 3;
 		}
 	}
-			
+
+	if ($hdr{__BODY__} =~ /
+		(?:^|\n)
+		[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
+		\S?.{0,45}?\S*          # file name
+		\.([a-z]{3,4})          # file extension
+		\s+                     # end of line
+        ^M\S{60,61}             # uuencoded line
+        \s*\n
+		/mox) {
+			$Cache_Is_Binary = 4;
+			return 4;
+	}
 
 	$Cache_Is_Binary = 0;
 	return 0;
@@ -1508,6 +1531,7 @@ sub saveart {
 	if ($format != 3) {
 		print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
 		print LOCAL "INFO: $info\n" if $info;
+		print LOCAL "Binary: $Cache_Is_Binary\n";
 		foreach (sort keys %hdr) {
 			next if $_ eq '__BODY__' or $_ eq '__LINES__';
 			print LOCAL "$_: $hdr{$_}\n"
