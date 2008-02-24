@@ -118,9 +118,9 @@ sub get_config {
 	debug_batch_size => 0,			# max size of batch files before rotation
 
 	### binaries allowed if groups match
-	bin_allowed => '^\w+\.binae?r|^alt\.sex\.pictures|^fur\.artwork'.
+	bin_allowed => '\w+\.binae?r|^alt\.sex\.pictures|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
-		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot|^alt\.binaries'.
+		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
 		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
 	### no binaries allowed even if bin_allowed matches
@@ -1203,13 +1203,16 @@ sub is_binary {
 		}
 	}
 
+	#TODO This check is weak as it doesn't check for max_encoded_lines.
+	# It shouldn't be needed at all but the uuencoded check is missing
+	# some positives.
 	if ($hdr{__BODY__} =~ /
 		(?:^|\n)
 		[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
 		\S?.{0,45}?\S*          # file name
 		\.([a-z]{3,4})          # file extension
 		\s+                     # end of line
-        ^M\S{60,61}             # uuencoded line
+        ^M[\x20-\x60]{60,61}    # uuencoded line
         \s*\n
 		/mox) {
 			$Cache_Is_Binary = 4;
