@@ -118,7 +118,9 @@ sub get_config {
 	debug_batch_size => 0,			# max size of batch files before rotation
 
 	### binaries allowed if groups match
-	bin_allowed => '\w+\.binae?r|^alt\.sex\.pictures|^fur\.artwork'.
+	#TODO We treat pictures as binaries.  There should be a seperate check that
+	#examines the extension and allows jpeg, png, etc.
+	bin_allowed => '\w+\.binae?r|\w+\.pictures|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
 		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
 		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
@@ -889,12 +891,6 @@ sub filter_art {
 					}
 				}
 		}
-
-#		if (defined $Cache_Is_Binary) {
-#			if ($Cache_Is_Binary == 4) {
-#				saveart('cf.catch');
-#			}
-#		}
 
 		# Supersedes checks ##################################################
 		if ($hdr{Supersedes}) {
