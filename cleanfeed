@@ -138,7 +138,7 @@ sub get_config {
 					: '|^alt\.hipcrime|^us\.hipcrime|^hipcrime|h\dpcr\dme'),
 
 	### no checks done if groups match
-	allexclude => '',
+	allexclude => '^mailing\.',
 
 	### HTML allowed here (if block_html or block_multi_alt is turned on)
 	html_allowed => '^microsoft\.',
@@ -170,13 +170,13 @@ sub get_config {
 		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
 
 	### exclude these newsgroups from the phl filter
-	phl_exclude => '\.test|comp\.lang\.ruby',
+	phl_exclude => '\.test|comp\.lang\.ruby|^microsoft\.',
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
 	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^mailing\.'.
 		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
-		'|\.talk|^lists\.',
+		'|\.talk|^lists\.|^microsoft\.',
 	
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$',
