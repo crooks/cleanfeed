@@ -70,23 +70,33 @@ def populate_hosts(filename):
             hosts[line] = 1
     return hosts
 
-def update_hosts_db(exclude):
+def update_hosts_db(hosts):
     now = utcnow()
     for key in hosts:
         key = key.rstrip()
-        if hosts[key] >= config.threshold and \
-        key not in exclude:
+        if hosts[key] >= config.threshold:
             db_hosts[key] = now
     db_hosts.sync()
 
+def regcheck(badhost):
+    excluded = False
+    for regex in exclude_hosts:
+        if regex.startswith('/') and regex.endswith('/'):
+            regex = regex.strip('/')
+            if re.match(regex, badhost):
+                excluded = True
+                break
+        else:
+            if badhost == regex:
+                excluded = True
+                break
+    return excluded
+    
 def housekeeping(expire):
     age = hours_ago(expire)
     for key in db_hosts.keys():
         if db_hosts[key] < age:
-            print "%s\t%s\tExpired" % (db_hosts[key], key)
             del db_hosts[key]
-        else:
-            print "%s\t%s" % (db_hosts[key], key)
     db_hosts.sync()
 
 def write_bad_hosts(filename):
@@ -103,7 +113,9 @@ def write_bad_hosts(filename):
     file.write('######################################################\n\n')
     host_addys = dictkeys_to_list(db_hosts)
     for entry in host_addys:
-        file.write('%s\n' % (entry,))
+        if not regcheck(entry):
+            file.write('%s\n' % (entry,))
+            print db_hosts[entry], entry
     file.close()
 
 def db_delete(regex_text):
@@ -162,7 +174,7 @@ mode = cmd_args(sys.argv)
 if mode == 0:
     hosts = populate_hosts(config.report_file)
     exclude_hosts = file_to_list(config.exclude_file)
-    update_hosts_db(exclude_hosts)
+    update_hosts_db(hosts)
     housekeeping(config.expire)
     write_bad_hosts(config.badhosts_textfile)
 db_hosts.close()
