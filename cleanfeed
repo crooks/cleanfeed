@@ -59,8 +59,8 @@ sub get_config {
 	PHLRateCutoff => 20,
 	PHLRateCeiling => 80,
 	PHLRateBaseInterval => 3600,
-	PHNRateCutoff => 100,
-	PHNRateCeiling => 150,
+	PHNRateCutoff => 150,
+	PHNRateCeiling => 200,
 	PHNRateBaseInterval => 3600,
 	PHRRateCutoff => 10,
 	PHRRateCeiling => 80,
@@ -165,21 +165,22 @@ sub get_config {
 	### exclude these newsgroups from the fsl filter
 	fsl_exclude => 'comp\.lang\.ruby',
 
+	### exclude these newsgroups from the phl filter
+	phl_exclude => '\.test|comp\.lang\.ruby|^microsoft\.|^alt\.bestjobsusa',
+
 	### exempt these hosts from the NNTP-Posting-Host filter
 	phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
-		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$',
-
-	### exclude these newsgroups from the phl filter
-	phl_exclude => '\.test|comp\.lang\.ruby|^microsoft\.',
+		'|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$'.
+		'|localhost\.pld-linux\.org',
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|\.test|^alt\.anonymous\.messages|^alt\.sex\.'.
-	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^mailing\.'.
+	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa'.
 		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
 		'|\.talk|^lists\.|^microsoft\.',
 	
 	### exempt these hosts from the phn filter
-	phn_exempt => '^localhost$|^127\.0\.0\.1$',
+	phn_exempt => '^localhost$|^127\.0\.0\.1$|localhost\.pld-linux\.org',
 
 	phr_exempt => '^localhost$|^127\.0\.0\.1$',
 
@@ -1174,8 +1175,8 @@ sub is_binary {
 				\s*\r?\n				# trailing spaces and end of line
 			){$config{max_encoded_lines}} # at least this many lines
 		/mox) {
-		$Cache_Is_Binary = 1;
-		return 1;
+		$Cache_Is_Binary = 'uuencoded';
+		return $Cache_Is_Binary;
 	}
 
 	if ($hdr{__BODY__} =~ /
@@ -1187,15 +1188,15 @@ sub is_binary {
 				\s*\r?\n
 			){$config{max_encoded_lines}}
 		/mox) {
-		$Cache_Is_Binary = 2;
-		return 2;
+		$Cache_Is_Binary = 'Base64';
+		return $Cache_Is_Binary;
 	}
 
 	if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
 		local $_ = $1;
 		if (/line=/ and /size=/ and /name=/) {
-			$Cache_Is_Binary = 3;
-			return 3;
+			$Cache_Is_Binary = 'yEnc Encoded';
+			return $Cache_Is_Binary;
 		}
 	}
 
@@ -1211,8 +1212,8 @@ sub is_binary {
         ^M[\x20-\x60]{60,61}    # uuencoded line
         \s*\n
 		/mox) {
-			$Cache_Is_Binary = 4;
-			return 4;
+			$Cache_Is_Binary = 'Weak uuencoded';
+			return $Cache_Is_Binary;
 	}
 
 	$Cache_Is_Binary = 0;
@@ -1530,7 +1531,8 @@ sub saveart {
 	if ($format != 3) {
 		print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
 		print LOCAL "INFO: $info\n" if $info;
-		print LOCAL "Binary: $Cache_Is_Binary\n";
+		print LOCAL "Binary: $Cache_Is_Binary\n"
+			if is_binary();
 		foreach (sort keys %hdr) {
 			next if $_ eq '__BODY__' or $_ eq '__LINES__';
 			print LOCAL "$_: $hdr{$_}\n"
