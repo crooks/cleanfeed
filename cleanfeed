@@ -129,7 +129,7 @@ sub get_config {
 	bad_bin => '\.d$|^alt\.chello',
 
 	### md5 EMP check not done if groups match
-	md5exclude => '^perl\.cpan\.testers|\.test(?:$|\.)|^es\.pruebas$',
+	md5exclude => '^perl\.cpan\.testers|^es\.pruebas$',
 
 	### reject all articles crossposted to groups matching this
 	poison_groups => '^alt\.(?:binaires|bainaries)|sexzilla|^newsmon$'.
@@ -798,7 +798,7 @@ sub filter_art {
 
 		# EMP checks #########################################################
 		# create MD5 body checksum hash.
-		if ($config{do_md5} and not $gr{md5skip}
+		if ($config{do_md5} and not $gr{md5skip} and not $gr{alltest}
 				and not ($hdr{References} and $config{md5_skips_followups})
 				and (($config{md5_max_length}
 						and $lines < $config{md5_max_length})
