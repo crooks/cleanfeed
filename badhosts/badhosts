@@ -167,14 +167,29 @@ def cmd_args(args):
                     db_insert(args[2])
     return mode
 
-db_hosts = bsddb.hashopen(config.dbfile)
+def main():
+    # Open a Berkeley style database containing hostnames and timestamps.
+    global db_hosts
+    db_hosts = bsddb.hashopen(config.dbfile)
 
-mode = cmd_args(sys.argv)
+    mode = cmd_args(sys.argv)
 
-if mode == 0:
-    hosts = populate_hosts(config.report_file)
-    exclude_hosts = file_to_list(config.exclude_file)
-    update_hosts_db(hosts)
-    housekeeping(config.expire)
-    write_bad_hosts(config.badhosts_textfile)
-db_hosts.close()
+    if mode == 0:
+        # Populate a dictionary keyed by hostname, containing the number of
+        # occurances of each hostname within the Cleanfeed report file.
+        hosts = populate_hosts(config.report_file)
+        # Populate a list with the hosts we wish to exclude from filtering. We
+        # do this in main() to avoid recursion.
+        global exclude_hosts
+        exclude_hosts = file_to_list(config.exclude_file)
+        # Create or update entries in the database with the current timestamp
+        # if they exceed a threshold of occurances.
+        update_hosts_db(hosts)
+        # Parse the database and remove expired entries.
+        housekeeping(config.expire)
+        # Write the database payload to a text file for cleanfeed to use.
+        write_bad_hosts(config.badhosts_textfile)
+    db_hosts.close()
+
+if (__name__ == "__main__"):
+    main()
