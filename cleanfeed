@@ -1071,12 +1071,12 @@ sub filter_art {
 				if exists $Bad_Cancel_Path{$_};
 		}
 
-		reject('User-issued spam cancel')
+		return reject('User-issued spam cancel')
 			if $config{block_user_spamcancels}
 				and $hdr{'X-Trace'} and $hdr{'NNTP-Posting-Host'}
 				and $hdr{Path} =~ /!cyberspam!/;
 
-		reject('User-issued cancel')
+		return reject('User-issued cancel')
 			if $config{block_user_cancels}
 				and not $hdr{Path} =~ /!cyberspam!/;
 
