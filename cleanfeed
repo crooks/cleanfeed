@@ -118,7 +118,7 @@ sub get_config {
 	debug_batch_size => 0,			# max size of batch files before rotation
 
 	### binaries allowed if groups match
-	#TODO We treat pictures as binaries.  There should be a seperate check that
+	#TODO We treat pictures as binaries.  There should be a separate check that
 	#examines the extension and allows jpeg, png, etc.
 	bin_allowed => '\w+\.binae?r|\w+\.pictures|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
@@ -875,23 +875,23 @@ sub filter_art {
 		# create high-risk newsgroups hash
 		if ($config{do_phr} and $gr{phrinc}
 			and not ($gr{binary} and $lines > 100)) {
-				if ($hdr{'NNTP-Posting-Host'}) {
-					if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o) {
-						return reject('EMP (phr nph)', 'EMP')
-							if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
-					}
+			if ($hdr{'NNTP-Posting-Host'}) {
+				if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o) {
+					return reject('EMP (phr nph)', 'EMP')
+						if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
 				}
-				elsif ($config{phr_aggressive}) {
-					my $server;
-					$server = lc "$hdr{Path}";
-					$server =~ s/(![^\.]+)+$//;
-					my $exc_count = ($server =~ tr/!//);
-					if ($exc_count > 1) {
-						$server =~ s/.*!//;
-						return reject('EMP (phr path)', 'EMP')
-							if $PHRhistory->add("$server}");
-					}
+			}
+			elsif ($config{phr_aggressive}) {
+				my $server;
+				$server = lc "$hdr{Path}";
+				$server =~ s/(![^\.]+)+$//;
+				my $exc_count = ($server =~ tr/!//);
+				if ($exc_count > 1) {
+					$server =~ s/.*!//;
+					return reject('EMP (phr path)', 'EMP')
+						if $PHRhistory->add("$server");
 				}
+			}
 		}
 
 		# Supersedes checks ##################################################
