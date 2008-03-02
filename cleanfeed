@@ -263,7 +263,7 @@ sub get_config {
 		if (%config_append) {
 			foreach (qw(bin_allowed bad_bin md5exclude poison_groups
 					allexclude html_allowed mime_html_allowed low_xpost_groups
-					no_cancel_groups baddomainpat fsl_exclude
+					test_groups no_cancel_groups baddomainpat fsl_exclude
 					phl_exempt phl_exclude supersedes_exempt
 					phn_exempt phr_exempt phn_exclude flood_groups
 					refuse_messageids net_abuse_groups spam_report_groups
