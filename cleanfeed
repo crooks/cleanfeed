@@ -146,6 +146,9 @@ sub get_config {
 	### MIME HTML allowed here (if block_mime_html is turned on)
 	mime_html_allowed => '',
 
+	test_groups => '\.test(ing)?(?:$|\.)|^es\.pruebas|^borland\.public\.test2'.
+		'|^cern\.testnews',
+
 	### groups where we restrict crossposts even more than normal
 	low_xpost_groups => 'test|jobs|forsale',
 
@@ -344,8 +347,8 @@ $site_desc = "$desc1|password";
 $servPre = "(?:$free|cheap|unlimited|nationwide|$site_desc)";
 $servPost = '(?:$free|minute|samples|800|900|no.?charge)';
 $servStr = "(?:phone.{0,15}(?:$sex|fun)|(?:adult|r.?a.?p.?e|$sex).{0,10}(?:chat|site)".
-	"|(?:$sex).{0,15}(?:show|call|connection|vid(?:eo|s))".
-	'|hard.?core.(?:vid(?:eo|s)|amateur)|900.dateline|(?:mass|bulk).e?-?mail)';
+	"|(?:$sex).{0,15}(?:show|call|connection|vid(?:eo|s)|dvd)".
+	'|hard.?core.(?:vid(?:eo|s)|dvd|amateur)|900.dateline|(?:mass|bulk).e?-?mail)';
 $services = "(?:$servPre.{0,30}?$servStr)|(?:$servStr.{0,30}?$servPost)";
 
 $free_stuff = "$free.{0,20}(?:password|membership|$pics|chat)".
@@ -354,12 +357,12 @@ $free_stuff = "$free.{0,20}(?:password|membership|$pics|chat)".
 
 $sex_adjs = "$desc1|$sex|erotic|gay|amateur|lesbian|blow.?job|fetish".
 	'|pre.?teen|nude|celeb|school.?girl|bondage|rape|torture';
-$porn = "(?:$sex_adjs).{0,25}(?:$pics|video|image|porn|photo|mpeg)";
+$porn = "(?:$sex_adjs).{0,25}(?:$pics|video|dvd|image|porn|photo|mpeg)";
 
 $one_point_words = "teen|hot|sex|$free|credit|amateur|lolita|horne?y".
-	'|dildo|anal(?!yst)|oral|school.?girl|bondage|breast|vid(?:eo|s)|orgy|erotic|porn'.
-	'|fetish|whore|nympho|sucking|password|membership|make.money|fast.cash'.
-	'|barely.?(?:18|legal)|orgasm';
+	'|dildo|anal(?!yst)|oral|school.?girl|bondage|breast|vid(?:eo|s)|dvd'.
+	'|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
+	'|make.money|fast.cash|barely.?(?:18|legal)|orgasm';
 $two_point_words = 'fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
 	'|le[sz]b(?:ian|o)|tit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
 	'|pam(?:ela)?.anderson|twat|cunt|hard-?core|[^x]xxx|facial|gangbang'.
@@ -528,7 +531,7 @@ sub filter_art {
 			and /$config{meow_groups}/o;
 		$gr{no_cancel}++ if $config{no_cancel_groups}
 			and /$config{no_cancel_groups}/o;
-		$gr{test}++ if /\.test\b/;
+		$gr{test}++ if /$config{test_groups}/o;
 		$gr{adult}++ if /$config{adult_groups}/o
 			and not /$config{not_adult_groups}/o;
 		$gr{faq}++ if /$config{faq_groups}/o;
