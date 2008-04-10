@@ -181,7 +181,7 @@ sub get_config {
 	phn_exclude => '^local\.|^alt\.anonymous\.messages|^alt\.sex\.'.
 	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa'.
 		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
-		'|\.talk|^lists\.|^microsoft\.',
+		'|\.talk|^lists\.|^microsoft\.|^news\.lists\.filters',
 	
 	### exempt these hosts from the phn filter
 	phn_exempt => '^localhost$|^127\.0\.0\.1$|localhost\.pld-linux\.org',
