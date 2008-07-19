@@ -481,6 +481,7 @@ sub filter_art {
 	undef $body;
 	undef $Cache_Is_Binary;
 	undef $XReader;
+	$is_fuzzied = 0;
 
 	$status{articles}++;
 	$timer{articles}++ if $config{timer_info};
@@ -814,6 +815,7 @@ sub filter_art {
 							and $lines < $config{fuzzy_max_length})
 						or not $config{fuzzy_max_length})
 					and not is_binary()) {
+				$is_fuzzied = 1;
 				$mbody = lc $hdr{__BODY__};
 				$mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
 				$mbody =~ s/\r{3}.*$//mg;
@@ -1210,9 +1212,8 @@ sub is_binary {
 	if ($hdr{__BODY__} =~ /
 		(?:^|\n)
 		[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
-		\S?.{0,45}?\S*          # file name
-		\.([a-z]{3,4})          # file extension
-		\s+                     # end of line
+		\w+\.\w{3,4}			# filename and extension
+		\s*$                    # end of line
         ^M[\x20-\x60]{60,61}    # uuencoded line
         \s*\n
 		/mox) {
@@ -1537,6 +1538,7 @@ sub saveart {
 		print LOCAL "INFO: $info\n" if $info;
 		print LOCAL "Binary: $Cache_Is_Binary\n"
 			if is_binary();
+		print LOCAL "MD5-Fuzzied: $is_fuzzied\n";
 		foreach (sort keys %hdr) {
 			next if $_ eq '__BODY__' or $_ eq '__LINES__';
 			print LOCAL "$_: $hdr{$_}\n"
