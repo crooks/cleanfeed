@@ -120,10 +120,14 @@ sub get_config {
 	### binaries allowed if groups match
 	#TODO We treat pictures as binaries.  There should be a separate check that
 	#examines the extension and allows jpeg, png, etc.
-	bin_allowed => '^[a-z]+\.binae?r|^[a-z]+\.pictures|^fur\.artwork'.
+	bin_allowed => '^[a-z]+\.binae?r|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
 		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
 		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
+
+	image_allowed => '\.pictures',
+
+	image_extensions => 'jpe?g|png|gif',
 
 	### no binaries allowed even if bin_allowed matches
 	bad_bin => '\.d$|^alt\.chello',
@@ -519,6 +523,7 @@ sub filter_art {
 		$gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
 		$gr{phrinc}++ if $config{flood_groups} and /$config{flood_groups}/o;
 		$gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
+		$gr{image}++ if $config{image_allowed} and /$config{image_allowed}/o;
 		$gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
 		$gr{html}++ if $config{html_allowed} and /$config{html_allowed}/o;
 		$gr{mime_html}++ if $config{mime_html_allowed} and /$config{mime_html_allowed}/o;
@@ -551,6 +556,7 @@ sub filter_art {
 	$gr{md5skip} = ($gr{md5skip} == scalar @groups);
 	$gr{phnskip} = ($gr{phnskip} == scalar @groups);
 	$gr{phlskip} = ($gr{phlskip} == scalar @groups);
+	$gr{image} = (($gr{image} + $gr{binary}) == scalar @groups);
 	$gr{binary} = ($gr{binary} == scalar @groups);
 	$gr{reports} = ($gr{reports} == scalar @groups);
 	$gr{binary} = 0 if $gr{bad_bin};
@@ -714,7 +720,9 @@ sub filter_art {
 			unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
 				return reject('Binary in non-binary group')
 					if $lines > $config{max_encoded_lines}
-						and not $gr{binary} and is_binary();
+						and is_binary()
+						and (not $gr{binary}
+						and (not $gr{image} and is_image()));
 			}
 		}
 
@@ -1225,6 +1233,23 @@ sub is_binary {
 	$Cache_Is_Binary = 0;
 	return 0;
 }
+
+# Useful for groups where pictures are accepted, but not other binary formats.
+sub is_image {
+	return 0 unless is_binary();
+	if ($hdr{__BODY__} =~ /
+		[Bb][Ee][Gg][Ii][Nn][ \t]+	# begin (or =ybegin)
+		[0-7]{3,4}[ \t]+ 			# 666
+		\w+							# filename
+		\.$config{image_extensions}	# image extension
+		\s*$                    	# end of line
+		/mox) {
+			$Cache_Is_Binary .= ' image';
+			return 1;
+		};
+	};
+	return 0;
+
 
 # Attempt to determine the client software
 sub x_reader {
