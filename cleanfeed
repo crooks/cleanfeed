@@ -179,7 +179,7 @@ sub get_config {
 
 	### exclude these newsgroups from the phn filter
 	phn_exclude => '^local\.|^alt\.anonymous\.messages|^alt\.sex\.'.
-	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa'.
+	    '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
 		'|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
 		'|\.talk|^lists\.|^microsoft\.|^news\.lists\.filters',
 	
