@@ -552,6 +552,7 @@ sub filter_art {
 	$gr{phnskip} = ($gr{phnskip} == scalar @groups);
 	$gr{phlskip} = ($gr{phlskip} == scalar @groups);
 	$gr{binary} = ($gr{binary} == scalar @groups);
+	$gr{reports} = ($gr{reports} == scalar @groups);
 	$gr{binary} = 0 if $gr{bad_bin};
 	$gr{html} = ($gr{html} == scalar @groups);
 	$gr{mime_html} = ($gr{mime_html} == scalar @groups);
