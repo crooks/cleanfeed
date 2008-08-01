@@ -1573,13 +1573,13 @@ sub saveart {
 	if ($format == 2) {
 		print LOCAL "\n";
 	}
-	if ($lines > 250 and $format == 0) {
-		print LOCAL "\n" . substr($hdr{__BODY__}, 0, 15000) . "\n\n";
+	if ($lines > 50 and $format == 0) {
+		print LOCAL "\n" . substr($hdr{__BODY__}, 0, 3000) . "\n\n";
 	}
-	if ($lines > 250 and $format == 1) {
+	if ($lines > 50 and $format == 1) {
 		print LOCAL "\n$hdr{__BODY__}\n";
 	}
-	if ($lines <= 250 and ($format == 0 or $format == 1)) {
+	if ($lines <= 50 and ($format == 0 or $format == 1)) {
 			print LOCAL "\n$hdr{__BODY__}\n";
 	}
 	close LOCAL;
