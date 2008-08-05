@@ -1238,17 +1238,22 @@ sub is_binary {
 sub is_image {
 	return 0 unless is_binary();
 	if ($hdr{__BODY__} =~ /
-		[Bb][Ee][Gg][Ii][Nn][ \t]+	# begin (or =ybegin)
-		[0-7]{3,4}[ \t]+ 			# 666
-		\w+							# filename
-		\.$config{image_extensions}	# image extension
-		\s*$                    	# end of line
+		(								# Start of uuEnc section
+		[Bb][Ee][Gg][Ii][Nn][ \t]+		# begin
+		[0-7]{3,4}[ \t]+ 				# 666
+		|								# Start of yEnc section
+		\=[Yy][Bb][Ee][Gg][Ii][Nn]		# ybegin
+		.+name\=						# yEnc headers
+		)
+		.+								# filename (greedy is good)
+		\.($config{image_extensions})	# image extension
+		\s*$                    		# end of line
 		/mox) {
 			$Cache_Is_Binary .= ' image';
 			return 1;
-		};
 	};
 	return 0;
+};
 
 
 # Attempt to determine the client software
