@@ -118,14 +118,12 @@ sub get_config {
 	debug_batch_size => 0,			# max size of batch files before rotation
 
 	### binaries allowed if groups match
-	#TODO We treat pictures as binaries.  There should be a separate check that
-	#examines the extension and allows jpeg, png, etc.
 	bin_allowed => '^[a-z]+\.binae?r|^fur\.artwork'.
 		'|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
 		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
 		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
-	# Groups matching this regex will accept binary uuEnc and yEnc files
+	# Groups matching this regex will accept binary UUenc and yEnc files
 	# where filename extensions match 'image_extensions'.
 	image_allowed => '\.pictures',
 
@@ -489,7 +487,6 @@ sub filter_art {
 	undef $body;
 	undef $Cache_Is_Binary;
 	undef $XReader;
-	$is_fuzzied = 0;
 
 	$status{articles}++;
 	$timer{articles}++ if $config{timer_info};
@@ -701,7 +698,7 @@ sub filter_art {
 		return reject("UUencoded $1")
 			if $lines > 3 and $lines < 2000
 				and $hdr{__BODY__} =~ /
-					(?:^|\n)[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
+					^[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
 					\S?.{0,45}?\S*			# file name
 					\.(						# file extensions
 						[Tt][Ee]?[Xx][Tt]|
@@ -828,7 +825,6 @@ sub filter_art {
 							and $lines < $config{fuzzy_max_length})
 						or not $config{fuzzy_max_length})
 					and not is_binary()) {
-				$is_fuzzied = 1;
 				$mbody = lc $hdr{__BODY__};
 				$mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
 				$mbody =~ s/\r{3}.*$//mg;
@@ -1219,21 +1215,6 @@ sub is_binary {
 		}
 	}
 
-	#TODO This check is weak as it doesn't check for max_encoded_lines.
-	# It shouldn't be needed at all but the uuencoded check is missing
-	# some positives.
-	if ($hdr{__BODY__} =~ /
-		(?:^|\n)
-		[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
-		\w+\.\w{3,4}			# filename and extension
-		\s*$                    # end of line
-        ^M[\x20-\x60]{60,61}    # uuencoded line
-        \s*\n
-		/mox) {
-			$Cache_Is_Binary = 'Weak uuencoded';
-			return $Cache_Is_Binary;
-	}
-
 	$Cache_Is_Binary = 0;
 	return 0;
 }
@@ -1549,8 +1530,9 @@ sub trimhashes {
 ##############################################################################
 
 sub saveart {
+#TODO: Messy!  I need to tidy up the mess I've made of this sub.
 	# We currently recognise various formatting options:
-	# 0: Header and body truncated if over 250 lines (Default)
+	# 0: Header and body truncated if over 50 lines (Default)
 	# 1: Header and full body regardless of length
 	# 2: Header only
 	# 3: Just NNTP-Posting-Host (If it exists in the message)
@@ -1573,7 +1555,6 @@ sub saveart {
 		print LOCAL "INFO: $info\n" if $info;
 		print LOCAL "Binary: $Cache_Is_Binary\n"
 			if is_binary();
-		print LOCAL "MD5-Fuzzied: $is_fuzzied\n";
 		foreach (sort keys %hdr) {
 			next if $_ eq '__BODY__' or $_ eq '__LINES__';
 			print LOCAL "$_: $hdr{$_}\n"
