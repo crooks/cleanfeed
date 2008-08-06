@@ -3,7 +3,7 @@
 # Copyright 1999 Jeremy Nixon <jeremy@exit109.com>
 # Copyright 2001 Marco d'Itri <md@linux.it>
 #
-# Modified by Steve Crook (06th Aug 2008) (svn:r104) and redistributed in
+# Modified by Steve Crook (06th Aug 2008) (svn:r105) and redistributed in
 # accordance with the terms of the license.
 #
 # This software is distributed under the terms of the Artistic License.
@@ -125,8 +125,11 @@ sub get_config {
 		'|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
 		'|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
+	# Groups matching this regex will accept binary uuEnc and yEnc files
+	# where filename extensions match 'image_extensions'.
 	image_allowed => '\.pictures',
 
+	# Extensions on image files that are allowed in 'image_allowed' groups.
 	image_extensions => 'jpe?g|png|gif',
 
 	### no binaries allowed even if bin_allowed matches
@@ -274,7 +277,8 @@ sub get_config {
 					phl_exempt phl_exclude supersedes_exempt
 					phn_exempt phr_exempt phn_exclude flood_groups
 					refuse_messageids net_abuse_groups spam_report_groups
-					adult_groups not_adult_groups faq_groups badguys)) {
+					adult_groups not_adult_groups faq_groups badguys
+					image_allowed image_extensions)) {
 				if (defined $config_append{$_}) {
 					$config{$_} .= "|$config_append{$_}";
 					$config{$_} =~ s/\|\|/\|/g;
