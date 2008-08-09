@@ -124,11 +124,11 @@ sub get_config {
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
         '|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
+    # Extensions on image files that are allowed in 'image_allowed' groups.
     # Groups matching this regex will accept binary UUenc and yEnc files
     # where filename extensions match 'image_extensions'.
     image_allowed => '\.pictures',
 
-    # Extensions on image files that are allowed in 'image_allowed' groups.
     image_extensions => 'jpe?g|png|gif',
 
     ### no binaries allowed even if bin_allowed matches
@@ -721,12 +721,22 @@ sub filter_art {
         if ($config{block_binaries}
             and $lines > $config{max_encoded_lines}) {
                 unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
-                return reject('Binary in non-binary group')
-                    if is_binary() and not $gr{image};
-                return reject('Image in non-image group')
-                    if is_binary() and not is_image() and $gr{image};
-            }
-        }
+                # We're only interested in binaries
+                if (is_binary()) {
+                    # Is the binary an image?
+                    if (is_image()) {
+                        return reject("Binary image in non-image group")
+                        if not $gr{image};
+                        # gr{image} is true when distro matches bin_allowed
+                        # or image_allowed
+                    } else {
+                        return reject("Binary in non-binary group")
+                        if not $gr{binary};
+                        # gr{binary} is true when distro matches bin_allowed
+                    }; # End of is_image
+                }; # End of is_binary
+            }; # End of moderated groups
+        }; # End of max encoded lines
 
         # mime-encapsulated HTML (attached *.html file)
         return reject('Attached HTML file')
