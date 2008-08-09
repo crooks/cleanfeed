@@ -558,7 +558,7 @@ sub filter_art {
     $gr{md5skip} = ($gr{md5skip} == scalar @groups);
     $gr{phnskip} = ($gr{phnskip} == scalar @groups);
     $gr{phlskip} = ($gr{phlskip} == scalar @groups);
-    $gr{image} = (($gr{image} + $gr{binary}) == scalar @groups);
+    $gr{image} = (($gr{image} + $gr{binary}) >= scalar @groups);
     $gr{binary} = ($gr{binary} == scalar @groups);
     $gr{reports} = ($gr{reports} == scalar @groups);
     $gr{binary} = 0 if $gr{bad_bin};
@@ -718,14 +718,13 @@ sub filter_art {
                 /mx;
 
         # binaries in non-binary newsgroups
-        if ($config{block_binaries}) {
-            unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
+        if ($config{block_binaries}
+            and $lines > $config{max_encoded_lines}) {
+                unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 return reject('Binary in non-binary group')
-                    if $lines > $config{max_encoded_lines}
-                        and is_binary()
-                        and not $gr{binary}
-                        and (not $gr{image}
-                        and (is_image() or is_binary()));
+                    if is_binary() and not $gr{image};
+                return reject('Image in non-image group')
+                    if is_binary() and not is_image() and $gr{image};
             }
         }
 
