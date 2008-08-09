@@ -124,11 +124,12 @@ sub get_config {
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
         '|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
 
-    # Extensions on image files that are allowed in 'image_allowed' groups.
     # Groups matching this regex will accept binary UUenc and yEnc files
     # where filename extensions match 'image_extensions'.
     image_allowed => '\.pictures',
 
+    # Extensions on image files that are allowed in 'image_allowed' groups.
+    # These are not case sensitive
     image_extensions => 'jpe?g|png|gif',
 
     ### no binaries allowed even if bin_allowed matches
@@ -1235,16 +1236,16 @@ sub is_image {
     return 0 unless is_binary();
     if ($hdr{__BODY__} =~ /
         (                               # Start of uuEnc section
-        [Bb][Ee][Gg][Ii][Nn][ \t]+      # begin
+        begin[ \t]+                     # begin
         [0-7]{3,4}[ \t]+                # 666
         |                               # Start of yEnc section
-        \=[Yy][Bb][Ee][Gg][Ii][Nn]      # ybegin
+        \=ybegin                        # ybegin
         .+name\=                        # yEnc headers
         )
         .+                              # filename (greedy is good)
         \.($config{image_extensions})   # image extension
         \s*$                            # end of line
-        /mox) {
+        /imox) {
             $Cache_Is_Binary .= ' image';
             return 1;
     };
