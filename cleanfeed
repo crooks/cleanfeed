@@ -724,17 +724,20 @@ sub filter_art {
                 unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 # We're only interested in binaries
                 if (is_binary()) {
+                    # Try to get the file extension
+                    $file_extension = extension();
                     # Is the binary an image?
-                    if (is_image()) {
-                        return reject("Binary image in non-image group")
+                    if ($config{image_extensions}
+                    and $file_extension =~ /$config{image_extensions}/) {
+                        return reject("Binary Image: misplaced $file_extension")
                         if not $gr{image};
                         # gr{image} is true when distro matches bin_allowed
                         # or image_allowed
                     } else {
-                        return reject("Binary in non-binary group")
+                        return reject("Binary: misplaced $file_extension")
                         if not $gr{binary};
                         # gr{binary} is true when distro matches bin_allowed
-                    }; # End of is_image
+                    }; # End of extension()
                 }; # End of is_binary
             }; # End of moderated groups
         }; # End of max encoded lines
@@ -1232,7 +1235,7 @@ sub is_binary {
 }
 
 # Useful for groups where pictures are accepted, but not other binary formats.
-sub is_image {
+sub extension {
     return 0 unless is_binary();
     if ($hdr{__BODY__} =~ /
         (                               # Start of uuEnc section
@@ -1243,11 +1246,10 @@ sub is_image {
         .+name\=                        # yEnc headers
         )
         .+                              # filename (greedy is good)
-        \.($config{image_extensions})   # image extension
+        \.(\w{2,4})                     # file extension
         \s*$                            # end of line
         /imox) {
-            $Cache_Is_Binary .= ' image';
-            return 1;
+            return $2;                  # Return file extension
     };
     return 0;
 };
