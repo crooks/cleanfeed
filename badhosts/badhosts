@@ -38,6 +38,7 @@ def hours_ago(past_hours):
     return timestamp
 
 def file_to_list(name):
+    """Read a file and return each line as an element of a list"""
     list = []
     if not path.exists(name):
         return list 
@@ -49,11 +50,15 @@ def file_to_list(name):
     return list
 
 def dictkeys_to_list(dict):
+    """Take a Dictionary and return it's keys as a sorted list"""
     list = dict.keys()
     list.sort()
     return list
 
 def populate_hosts(filename):
+    """Read a file produced by Cleanfeed that contains all the rejected
+    NNTP-Posting-Host entries.  Return this info as a Dictionary, keyed by
+    hostname and containing a count of each rejected message."""
     hosts = {}
     # Try and open the file from which we will read the cleanfeed rejects
     try:
@@ -71,6 +76,8 @@ def populate_hosts(filename):
     return hosts
 
 def update_hosts_db(hosts):
+    """For entries in our hosts dictionary that exceed the threshold of rejected
+    messages, update the timestamp to utcnow in our db_hosts database."""
     now = utcnow()
     for key in hosts:
         key = key.rstrip()
@@ -79,6 +86,9 @@ def update_hosts_db(hosts):
     db_hosts.sync()
 
 def regcheck(badhost):
+    """Compare a given host with all the entries in our excluded_hosts file.
+    Entries can be plain text matches or regex if the entry in exclude_hosts is
+    wrapped within slashes."""
     excluded = False
     for regex in exclude_hosts:
         if regex.startswith('/') and regex.endswith('/'):
@@ -93,6 +103,8 @@ def regcheck(badhost):
     return excluded
     
 def housekeeping(expire):
+    """Expire entries from our database where the timestamp is prior
+    to a defined age."""
     age = hours_ago(expire)
     for key in db_hosts.keys():
         if db_hosts[key] < age:
@@ -100,6 +112,8 @@ def housekeeping(expire):
     db_hosts.sync()
 
 def write_bad_hosts(filename):
+    """Write the keys of our hosts dictionary to the actual bad_hosts file.
+    This is the file we then distribute as bad_hosts_central."""
     try:
         file = open(filename, 'w')
     except IOError:
@@ -119,6 +133,9 @@ def write_bad_hosts(filename):
     file.close()
 
 def db_delete(regex_text):
+    """Manually delete entries from the database.  Remember that they will get
+    reinstated with the next run if entries within the current Cleanfeed
+    rejects file still exceeds the threshold."""
     hits = 0
     deletes = []
     regex = re.compile(regex_text)
@@ -141,6 +158,8 @@ def db_delete(regex_text):
             sys.stdout.write("Deletion cancelled\n")
 
 def db_insert(entry):
+    """Manually add an entry to the database.  If the entry already exists,
+    the timestamp will be reset to utcnow."""
     entry = entry.rstrip()
     if db_hosts.has_key(entry):
         sys.stdout.write("%s already in DB.  Refreshing timestamp\n" % entry)
