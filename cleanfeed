@@ -113,7 +113,7 @@ sub get_config {
     html_statfile => '',
     inn_syslog_status => 0,         # status to syslog (late-model INN only)
 
-    timer_info => 1,        # timing information (arts/second) in status report?
+    timer_info => 1,                # timing information (arts/second) in status report?
 
     debug_batch_directory => '',    # directory for debugging batches
     debug_batch_size => 0,          # max size of batch files before rotation
@@ -529,7 +529,8 @@ sub filter_art {
         $gr{image}++ if $config{image_allowed} and /$config{image_allowed}/o;
         $gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
         $gr{html}++ if $config{html_allowed} and /$config{html_allowed}/o;
-        $gr{mime_html}++ if $config{mime_html_allowed} and /$config{mime_html_allowed}/o;
+        $gr{mime_html}++ if $config{mime_html_allowed}
+            and /$config{mime_html_allowed}/o;
         $gr{poison}++ if $config{poison_groups}
             and /$config{poison_groups}/o;
         $gr{reports}++ if $config{spam_report_groups}
