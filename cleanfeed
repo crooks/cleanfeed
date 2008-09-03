@@ -224,15 +224,7 @@ sub get_config {
     faq_groups => '\.answers$|^news\.announce\.newgroups$',
 
     # used to form domain names for filtering - depreciated!
-    badguys => 'ilovefreesex|moneyvue|backdoor|portlandplace|cure-impotency'.
-    '|freezone|\w+\.quim|holowww|\w+\.holowww'.
-    '|answerme|emi|latexfetish|nymphette|bondage|6t9|nudesights'.
-    '|porngodess|phatt|rawxxxfun|porn-?king|dreamlands|youwish|uwish'.
-    '|ilovecelebs|dirtysecrets|harddicks|\w+\.mnet1|pictureview|postagent'.
-    '|malebytes|southcorp|ucla\.dorms|bmc-engineering|orchidvideos'.
-    '|sexplosion|members\.sexzilla|studio\d\d\.sexzilla|netzilla|jalapeno'.
-    '|forbiddenphotos|spck|simplecom|mallpage|yes-pheromones|4jon'.
-    '|headhunter|conline|adultserv|theadultstore',
+    badguys => ''
     );
 
     ### List of group patterns that don't allow outside crossposts.
@@ -493,6 +485,11 @@ sub filter_art {
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
+
+    # Study the message BODY.  This used to be in the local config file but
+    # this seems more logical.
+    # TODO: Make the number of lines configurable.
+    study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
     if ($status{accepted} % $config{bad_rate_reload} == 0
@@ -966,6 +963,14 @@ sub filter_art {
         # bot checks, the second part ########################################
         return reject('Fake multipart bot', 'Bot signature')
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
+
+        if ($config{aggressive}) {
+            if (not $gr{reports} and not $hdr{References}) {
+                $body = lc substr($hdr{__BODY__}, 0, 4000);
+                return reject("Body ($1)", 'Bad Body')
+                    if $body =~ /($Bad_Body)/;
+            };
+        };
 
         # bad words and scoring filter #######################################
 # FIXME: disabled because recent data is needed
@@ -1657,6 +1662,7 @@ sub read_hashes {
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
     read_hash('bad_groups', \%Bad_Groups);
+    read_regex('bad_body', \$Bad_Body);
 }
 
 sub read_hash {
