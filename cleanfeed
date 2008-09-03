@@ -490,6 +490,7 @@ sub filter_art {
     # this seems more logical.
     # TODO: Make the number of lines configurable.
     study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
+    $body = lc substr($hdr{__BODY__}, 0, 4000);
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
     if ($status{accepted} % $config{bad_rate_reload} == 0
@@ -966,7 +967,6 @@ sub filter_art {
 
         if ($config{aggressive}) {
             if (not $gr{reports} and not $hdr{References}) {
-                $body = lc substr($hdr{__BODY__}, 0, 4000);
                 return reject("Body ($1)", 'Bad Body')
                     if $body =~ /($Bad_Body)/;
             };
@@ -1053,8 +1053,6 @@ sub filter_art {
             $score += 3 if $lch{organization} =~ /<no organization>/;
             $score += 7 if $lch{organization} =~ /$stealthURL/o;
             $score += 5 if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
-
-            $body = lc substr($hdr{__BODY__}, 0, 50000) unless defined $body;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
                 $score += 4 if $body =~ /<img src=/;
