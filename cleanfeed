@@ -1,5 +1,4 @@
 # vim: set tabstop=4 shiftwidth=4 expandtab syntax=perl:
-# autoindent smartindent smarttab
 #
 # Copyright 1999 Jeremy Nixon <jeremy@exit109.com>
 # Copyright 2001 Marco d'Itri <md@linux.it>
@@ -172,30 +171,32 @@ sub get_config {
 # FIXME currently disabled
 #   baddomainpat => '[\w\-]+xxx|xxx[\w\-]+',
 
-    ### exclude these newsgroups from the fsl filter
+    ### Exclude these Newsgroups from the From / Subject / Lines filter
     fsl_exclude => 'comp\.lang\.ruby',
 
-    ### exclude these newsgroups from the phl filter
+    ### Exclude these Newsgroups from the NNTP-Posting-Host / Lines filter
     phl_exclude => 'comp\.lang\.ruby|^microsoft\.|^alt\.bestjobsusa'.
         '|\.bbs\.',
 
-    ### exempt these hosts from the NNTP-Posting-Host filter
+    ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
     phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
         '|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$'.
         '|localhost\.pld-linux\.org',
 
-    ### exclude these newsgroups from the phn filter
+    ### Exclude these Newsgroups from the NNTP-Posting-Host / Newsgroup filter
     phn_exclude => '^local\.|^alt\.anonymous\.messages|^alt\.sex\.'.
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
         '|\.talk|^lists\.|^microsoft\.|^news\.lists\.filters',
     
-    ### exempt these hosts from the phn filter
+    ### Exempt these hosts from the NNTP-Posting-Host / Newsgroup filter
     phn_exempt => '^localhost$|^127\.0\.0\.1$|localhost\.pld-linux\.org',
 
+    ### Exempt these hosts from the High-Risk Newsgroups filter
     phr_exempt => '^localhost$|^127\.0\.0\.1$',
 
-    ### newsgroups that get frequently flooded
+    ### Newsgroups that get frequently flooded.  This defines the groups
+    ### processed by the PHR filter.  It should be entirely user-defined.
     flood_groups => '',
 
     ### posting hosts exempt from excessive supersedes filter
