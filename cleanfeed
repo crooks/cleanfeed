@@ -332,6 +332,8 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 # match the whole URL including path (used by body_urls() )
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
+# URL abbreviation services (Commonly used to obfuscate spam links)
+$shorturl = "tinyurl\.com|useurl\.us";
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
@@ -1004,8 +1006,10 @@ sub filter_art {
                 and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
                 and $lch{'message-id'} !~ /webtv\.net>$/;
 
-            $score += 1 if scalar @followups > 2;
-            $score += 2 if scalar @followups > 4;
+            # Followups will equal Newsgroups if no actual Followup-To header
+            # is specified on a posting.
+            $score += 1 if scalar @followups > 3;
+            $score += 2 if scalar @followups > 6;
             $score += 1 if scalar @followups ge scalar @groups;
 
             # Add 1 to score for each followup not in groups
@@ -1073,6 +1077,9 @@ sub filter_art {
 
             # only URL
             $score += 6 if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
+
+            # Contains a link to a URL abbreviation service
+            $score += 2 if $body =~ /$shorturl\/\w/o;
 
             if ($hdr{References}) {
                 $score -= 3;
