@@ -135,7 +135,7 @@ sub get_config {
     bad_bin => '\.d$|^alt\.chello',
 
     ### md5 EMP check not done if groups match
-    md5exclude => '^perl\.cpan\.testers|^es\.pruebas$',
+    md5exclude => '^perl\.cpan\.testers',
 
     ### reject all articles crossposted to groups matching this
     poison_groups => '^alt\.(?:binaires|bainaries)|sexzilla|^newsmon$'.
@@ -145,6 +145,9 @@ sub get_config {
 
     ### no checks done if groups match
     allexclude => '^mailing\.',
+
+    ### Exclude matching Newsgroups from the scoring filters
+    score_exclude => 'alt\.anonymous\.messages',
 
     ### HTML allowed here (if block_html or block_multi_alt is turned on)
     html_allowed => '^microsoft\.',
@@ -187,7 +190,8 @@ sub get_config {
     phn_exclude => '^local\.|^alt\.anonymous\.messages|^alt\.sex\.'.
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
-        '|\.talk|^lists\.|^microsoft\.|^news\.lists\.filters',
+        '|\.talk|^lists\.|^microsoft\.|^news\.lists\.filters'.
+        '\.marketplace|\.ebay|\.forsale',
     
     ### Exempt these hosts from the NNTP-Posting-Host / Newsgroup filter
     phn_exempt => '^localhost$|^127\.0\.0\.1$|localhost\.pld-linux\.org',
@@ -333,7 +337,8 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
 # URL abbreviation services (Commonly used to obfuscate spam links)
-$shorturl = "tinyurl\.com|useurl\.us";
+$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org'.
+            'sites\.google\.com/site/|groups\.google\.com/group/';
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
@@ -344,6 +349,8 @@ $ci_cte = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Rr][Aa][Nn][Ss][Ff][Ee][Rr]-'.
 $sex = 'sex|xxx|fuck';
 $free = 'free(?!dom|bsd|ppp)';
 $pics = 'pi(?:c|x)';
+$drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
+         'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 $site_desc = "$desc1|password";
 
@@ -362,14 +369,17 @@ $sex_adjs = "$desc1|$sex|erotic|gay|amateur|lesbian|blow.?job|fetish".
     '|pre.?teen|nude|celeb|school.?girl|bondage|rape|torture';
 $porn = "(?:$sex_adjs).{0,25}(?:$pics|video|dvd|image|porn|photo|mpeg)";
 
-$one_point_words = "teen|hot|sex|$free|credit|amateur|lolita|horne?y".
-    '|dildo|anal(?!yst)|oral|school.?girl|bondage|breast|vid(?:eo|s)|dvd'.
+$one_point_words = "teen|sex|$free|credit|amateur|horne?y".
+    '|anal(?!yst)|oral|bondage|breast|vid(?:eo|s)|dvd'.
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
-    '|make.money|fast.cash|barely.?(?:18|legal)|orgasm';
-$two_point_words = 'fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
+    '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties'.
+    '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture';
+$two_point_words = "$drugs".
+    '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
     '|le[sz]b(?:ian|o)|tit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
-    '|pam(?:ela)?.anderson|twat|cunt|hard-?core|[^x]xxx|facial|gangbang'.
-    '|(?:live|real|innocent).girl';
+    '|twat|cunt|hard-?core|[^x]xxx|facial|gangbang|strap.on|submissive'.
+    '|(?:live|real|innocent).girl|phone.{0,5}(?:sex|fun|play)|she.?male'.
+    '|lolita|dildo|whore|barely.?(?:18|legal)';
 
 # assorted spamware names found in X-Newreader/X-Mailer/etc headers
 $Xbot = '^2\.\d\.(?:\d\d? [a-z]|\d\d?)$|newsgroup bulk mailer'
@@ -525,6 +535,7 @@ sub filter_art {
         $gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
         $gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
         $gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
+        $gr{scoreskip}++ if $config{score_exclude} and /$config{score_exclude}/o;
         $gr{phrinc}++ if $config{flood_groups} and /$config{flood_groups}/o;
         $gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
         $gr{image}++ if $config{image_allowed} and /$config{image_allowed}/o;
@@ -561,6 +572,7 @@ sub filter_art {
     $gr{md5skip} = ($gr{md5skip} == scalar @groups);
     $gr{phnskip} = ($gr{phnskip} == scalar @groups);
     $gr{phlskip} = ($gr{phlskip} == scalar @groups);
+    $gr{scoreskip} = ($gr{scoreskip} == scalar @groups);
     $gr{image} = (($gr{image} + $gr{binary}) >= scalar @groups);
     $gr{binary} = ($gr{binary} == scalar @groups);
     $gr{reports} = ($gr{reports} == scalar @groups);
@@ -569,6 +581,7 @@ sub filter_art {
     $gr{mime_html} = ($gr{mime_html} == scalar @groups);
     $gr{allmod} = ($gr{mod} == scalar @groups);
     $gr{alltest} = ($gr{test} == scalar @groups);
+    $gr{alladult} = ($gr{adult} == scalar @groups);
 
     # If all newsgroups are excluded from filtering, bail now
     return '' if $gr{skip};
@@ -975,13 +988,15 @@ sub filter_art {
         };
 
         # bad words and scoring filter #######################################
-        if ($config{do_scoring_filter} and not $gr{reports}) {
+        if ($config{do_scoring_filter} and not $gr{reports}
+            and not $gr{scoreskip}) {
             my $score = "";
 
-            $score .= "!!!webtv" if $lch{'content-type'}
-                    =~ m#multipart/(?:related|mixed).*boundary#
-                and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
-                and $lch{'message-id'} !~ /webtv\.net>$/;
+            #FIXME All that's MIME isn't WebTV
+            #$score .= "!!!webtv" if $lch{'content-type'}
+            #        =~ m#multipart/(?:related|mixed).*boundary#
+            #    and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
+            #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
             # Followups will equal Newsgroups if no actual Followup-To header
             # is specified on a posting.
@@ -1000,19 +1015,16 @@ sub filter_art {
             $score .= "!SubURL" if $lch{subject} =~ /$url/o;
             $score .= "!!!!!SubStealthURL" if $lch{subject} =~ /$stealthURL/o;
             $score .= "!!Sub15Space" if $hdr{Subject} =~ / {15,}[^ ]/;
+            #TODO Digit filter matches Subjects ending in a year (e.g. 2008)
             $score .= "!!!SubDigit" if $hdr{Subject} =~ /[\s~]\d{2,}$/;
             $score .= "!!!!SubDigitJPG" if $lch{subject} =~ /\s\d{1,3}\.jpg$/;
             $score .= "!SubSymbols" if $hdr{Subject} =~ /\${3}|!{3}|={4}|\*{3}/;
+            $score .= "!!SubUSPhone" if $hdr{Subject} =~ /\d[\s\-]+8\d{2}[\s\-]+\d{2,3}[\s\-]+/;
             $score .= "!!!SubCR" if $hdr{Subject} =~ /\r/;
             $score .= "!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
+            $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\s+){8}/o;
 
             if ($config{aggressive}) {
-# FIXME: disabled
-=cut DISABLED
-                $score += 4 if $lch{subject}
-                        =~ /http:..(?:www\.)?(?:$config{badguys})\.$TLDs/ol
-=cut
-
                 $score .= "!Sub1Pt" while $lch{subject} =~ /$one_point_words/go;
                 $score .= "!!Sub2Pt" while $lch{subject} =~ /$two_point_words/go;
                 $score .= "!From1Pt" while $lch{from} =~ /$one_point_words/go;
@@ -1024,13 +1036,14 @@ sub filter_art {
 
                 local $_ = $lch{subject};
                 tr/a-z0-9 //cd;
-                $score .= "!!!!!SubServices" if /$services/o;
-                $score .= "!!!SubSiteDesc" if /$site_desc.{0,20}site/o;
+                #FIXME Next two return false positives.
+                #$score .= "!!!!!SubServices" if /$services/o;
+                #$score .= "!!!SubSiteDesc" if /$site_desc.{0,20}site/o;
                 $score .= "!SubPorn" if /(?:$free_stuff|$porn)/o;
             }
 
             $score .= "!!SubImage" if $lines < 30 and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
-            $score .= "!FakeLines" if $lines ne $hdr{Lines};
+            $score .= "!Lines:$lines-$hdr{Lines}" if $lines ne $hdr{Lines};
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
@@ -1045,9 +1058,11 @@ sub filter_art {
                 $score .= "!!HTMLAlternate" if $body =~ /^content-type:\s+multipart\/alternative/m;
             }
 
-            $score .= "!CR" if $body =~ /\r/;
+            #All messages matched this unless they were single line.
+            #$score .= "!CR" if $body =~ /\r/;
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15,}/;
+            $score .= "!!USPhone" if $body =~ /\+[89]\d{2}[\s\-*]+\d{2,3}[\s\-*]+\d{4}/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
@@ -1055,7 +1070,7 @@ sub filter_art {
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
 
             # Contains a link to a URL abbreviation service
-            $score += "!!URLShortener" if $body =~ /$shorturl\/\w/o;
+            $score .= "!!URLShortener" if $body =~ /$shorturl\/\S/o;
 
             if ($hdr{References}) {
                 #$score -= 3;
@@ -1073,6 +1088,9 @@ sub filter_art {
                     $score .= "****Mod";
                 }
             }
+
+            # Cut adult groups some slack
+            $score .= "**Adult" if $gr{alladult};
 
             #TODO Uncomment the following after scoring testing
             #$score += local_filter_scoring() if defined &local_filter_scoring;
