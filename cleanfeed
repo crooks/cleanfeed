@@ -351,6 +351,9 @@ $free = 'free(?!dom|bsd|ppp)';
 $pics = 'pi(?:c|x)';
 $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
          'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
+# US Phone 800-123-1234  UK Phone 09096-400141
+$phone = '[89]\d{2}[\s\-_*]+\d{2,3}[\s\-_*]+\d{4}'.
+         '|[\s\-_*0][89]\d{3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 $site_desc = "$desc1|password";
 
@@ -369,11 +372,12 @@ $sex_adjs = "$desc1|$sex|erotic|gay|amateur|lesbian|blow.?job|fetish".
     '|pre.?teen|nude|celeb|school.?girl|bondage|rape|torture';
 $porn = "(?:$sex_adjs).{0,25}(?:$pics|video|dvd|image|porn|photo|mpeg)";
 
-$one_point_words = "teen|sex|$free|credit|amateur|horne?y".
-    '|anal(?!yst)|oral|bondage|breast|vid(?:eo|s)|dvd'.
+$one_point_words = "pre.?teen|\bteen|sex|$free|credit|amateur|horne?y".
+    '|anal(?!yst)|oral|bondage|breast|vid(?:eo|s)|dvd|kink(?:y|ier)|mistress'.
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
     '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties'.
-    '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture';
+    '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture'.
+    'suduc(?:e|tress)';
 $two_point_words = "$drugs".
     '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
     '|le[sz]b(?:ian|o)|tit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
@@ -1000,27 +1004,24 @@ sub filter_art {
 
             # Followups will equal Newsgroups if no actual Followup-To header
             # is specified on a posting.
-            $score .= "!Followup1" if scalar @followups > 3;
-            $score .= "!!Followup2" if scalar @followups > 6;
+            $score .= "!Followup1" if scalar @followups > 2;
+            $score .= "!!Followup2" if scalar @followups > 4;
             $score .= "!Followup3" if scalar @followups > scalar @groups;
-
-            # Add 1 to score for each followup not in groups
-            my %grps;
-            @grps{@groups} = (); # Convert array to hash (for exists)
-            for (@followups) { $score++ unless exists $grps{$_} };
-            undef %grps;
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
 
             $score .= "!SubURL" if $lch{subject} =~ /$url/o;
             $score .= "!!!!!SubStealthURL" if $lch{subject} =~ /$stealthURL/o;
             $score .= "!!Sub15Space" if $hdr{Subject} =~ / {15,}[^ ]/;
-            #TODO Digit filter matches Subjects ending in a year (e.g. 2008)
-            $score .= "!!!SubDigit" if $hdr{Subject} =~ /[\s~]\d{2,}$/;
+            # Digits at the end are bad, but not if they are a year
+            $score .= "!!!SubDigit" if $hdr{Subject} =~ /[\s~]\d{2,}$/
+                and $hdr{Subject} !~ /\D20[0-9]{2}$/;
+           
             $score .= "!!!!SubDigitJPG" if $lch{subject} =~ /\s\d{1,3}\.jpg$/;
             $score .= "!SubSymbols" if $hdr{Subject} =~ /\${3}|!{3}|={4}|\*{3}/;
-            $score .= "!!SubUSPhone" if $hdr{Subject} =~ /\d[\s\-]+8\d{2}[\s\-]+\d{2,3}[\s\-]+/;
+            $score .= "!!!SubPhone" if $hdr{Subject} =~ /$phone/;
             $score .= "!!!SubCR" if $hdr{Subject} =~ /\r/;
+            $score .= "!!SubLength" if length($hdr{Subject}) > 210;
             $score .= "!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
             $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\s+){8}/o;
 
@@ -1046,6 +1047,7 @@ sub filter_art {
             $score .= "!Lines:$lines-$hdr{Lines}" if $lines ne $hdr{Lines};
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
+            $score .= "!Google" if $lch{organization} =~ /groups\.google\.com/;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
@@ -1058,11 +1060,10 @@ sub filter_art {
                 $score .= "!!HTMLAlternate" if $body =~ /^content-type:\s+multipart\/alternative/m;
             }
 
-            #All messages matched this unless they were single line.
             #$score .= "!CR" if $body =~ /\r/;
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15,}/;
-            $score .= "!!USPhone" if $body =~ /\+[89]\d{2}[\s\-*]+\d{2,3}[\s\-*]+\d{4}/;
+            $score .= "!!Phone" if $body =~ /$phone/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
