@@ -3,8 +3,9 @@
 # Copyright 1999 Jeremy Nixon <jeremy@exit109.com>
 # Copyright 2001 Marco d'Itri <md@linux.it>
 #
-# Modified by Steve Crook (3rd Sep 2008) (svn:r124) and redistributed in
-# accordance with the terms of the license.
+# Modified by Steve Crook <steve@mixmin.net>
+# Redistributed in accordance with the terms of the Artistic license.
+# $Id$
 #
 # This software is distributed under the terms of the Artistic License.
 # Please see the LICENSE file in the distribution.
