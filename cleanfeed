@@ -119,7 +119,7 @@ sub get_config {
     debug_batch_size => 0,          # max size of batch files before rotation
 
     ### binaries allowed if groups match
-    bin_allowed => '^[a-z]+\.binae?r|^fur\.artwork'.
+    bin_allowed => '[a-z]+\.binae?r|^fur\.artwork'.
         '|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
         '|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
@@ -163,7 +163,7 @@ sub get_config {
     low_xpost_groups => 'test|jobs|forsale',
 
     ### groups where we restrict crossposts whith other groups
-    meow_groups => '|^alt\.fan\.karl-malden\.nose|^alt\.flame|^alt\.troll'.
+    meow_groups => '^alt\.fan\.karl-malden\.nose|^alt\.flame|^alt\.troll'.
         '|^alt\.alien\.vampire\.flonk\.flonk\.flonk|^alt\.romath'.
         '|^alt\.snuh|^alt\.fan\.natasha',
 
@@ -281,6 +281,8 @@ sub get_config {
                     $config{$_} .= "|$config_append{$_}";
                     $config{$_} =~ s/\|\|/\|/g;
                 }
+                $config{$_} =~ s/^\|//;
+                $config{$_} =~ s/\|$//;
             }
             undef %config_append;
         }
@@ -348,7 +350,7 @@ $ci_cte = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Rr][Aa][Nn][Ss][Ff][Ee][Rr]-'.
 
 # for the scoring filter
 $sex = 'sex|xxx|fuck';
-$free = 'free(?!dom|bsd|ppp)';
+$free = 'free(?!dom|bsd|ppp|xp)';
 $pics = 'pi(?:c|x)';
 $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
          'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
