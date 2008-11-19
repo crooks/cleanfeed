@@ -41,11 +41,9 @@ def file_to_list(name):
     if not path.exists(name):
         return list 
     file = open(name, 'r')
-    tmplist = file.readlines()
+    for line in file:
+        list.append(line.rstrip())
     file.close()
-    #TODO: I hate reading a whole file and then parsing it to strip LF's
-    for item in tmplist:
-        list.append(item.rstrip())
     return list
 
 def dictkeys_to_list(dict):
