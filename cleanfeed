@@ -119,7 +119,7 @@ sub get_config {
     debug_batch_size => 0,          # max size of batch files before rotation
 
     ### binaries allowed if groups match
-    bin_allowed => '[a-z]+\.binae?r|^fur\.artwork'.
+    bin_allowed => '^bin[a.]|\.bin[aei.]|\.bin$|^fur\.artwork'.
         '|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
         '|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
