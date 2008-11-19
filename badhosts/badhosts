@@ -30,9 +30,7 @@ def utcnow():
     return utcstamp
 
 def hours_ago(past_hours):
-    """Return a timestamp for a given number of hours prior to utc. This
-    is used by housekeeping to clear expired entries from the request and
-    dupcheck databases."""
+    """Return a timestamp for a given number of hours prior to utc."""
     thentime = datetime.datetime.utcnow() - datetime.timedelta(hours=past_hours)
     timestamp = thentime.strftime("%Y-%m-%d %H:%M:%S")
     return timestamp
@@ -45,6 +43,7 @@ def file_to_list(name):
     file = open(name, 'r')
     tmplist = file.readlines()
     file.close()
+    #TODO: I hate reading a whole file and then parsing it to strip LF's
     for item in tmplist:
         list.append(item.rstrip())
     return list
@@ -91,11 +90,13 @@ def regcheck(badhost):
     wrapped within slashes."""
     excluded = False
     for regex in exclude_hosts:
+        # Entries wrapped in /.../ are regex format.
         if regex.startswith('/') and regex.endswith('/'):
             regex = regex.strip('/')
             if re.match(regex, badhost):
                 excluded = True
                 break
+        # If entry is not regex, do a plain-text compare.
         else:
             if badhost == regex:
                 excluded = True
@@ -168,14 +169,17 @@ def db_insert(entry):
     db_hosts[entry] = utcnow()
 
 def cmd_args(args):
-    # Mode is used to identify what we're going to do.  Current modes are:-
-    # 0     Normal operation with no command line arguements.
-    # 1     Delete database entries matching a supplies regex.
-    # 2     Manual insert into database
+    """Return a mode variable based on what arguement we're passed:
+    Mode is used to identify what we're going to do.  Current modes are:-
+    0     Normal operation with no command line arguements.
+    1     Delete database entries matching a supplies regex.
+    2     Manual insert into database"""
     mode = 0
     # Check if we're being passed an arguement on the command line
     if len(args) > 1:
+        # Command switches must start with -- or be ignored.
         if args[1].startswith('--'):
+            # Strip the -- and put the remainder in option.
             option = args[1] [2:]
             if len(args) > 2:
                 if option == 'delete':
