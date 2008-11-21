@@ -672,6 +672,14 @@ sub filter_art {
             }
         }
 
+        # Do any elements of the Path appear more than once.
+        # TODO Wow, this filter catches a lot.  Too much!  Need to make it a
+        #      scoring element rather than a reject.
+        #%seen = {};
+        #@Path_Entries2 = grep {!$seen{$_}++ } @Path_Entries;
+        #return reject('Duplicated Path entry', 'Bad Path')
+        #    if (scalar @Path_Entries) != (scalar @Path_Entries2);
+
         return reject('U2 violation - invalid distribution', 'U2 violation')
             if $gr{rg_net} and $hdr{Distribution} !~ /^[ \t]*4[Gg][Hh][ \t]*$/;
 
