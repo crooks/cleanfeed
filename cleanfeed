@@ -68,7 +68,7 @@ sub get_config {
     PHRRateBaseInterval => 3600,
     FSLRateCutoff => 20,
     FSLRateCeiling => 40,
-    FSLRateBaseInterval => 1000,
+    FSLRateBaseInterval => 1800,
 
     fuzzy_md5 => 1,             # screw around with the body before md5ing?
     fuzzy_max_length => 700,    # don't screw with bodies over this many lines
