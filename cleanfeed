@@ -182,11 +182,6 @@ sub get_config {
     phl_exclude => 'comp\.lang\.ruby|^microsoft\.|^alt\.bestjobsusa'.
         '|\.bbs\.',
 
-    ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
-    phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
-        '|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$'.
-        '|localhost\.pld-linux\.org',
-
     ### Exclude these Newsgroups from the NNTP-Posting-Host / Newsgroup filter
     phn_exclude => '^local\.|^alt\.anonymous\.messages|^alt\.sex\.'.
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
@@ -194,6 +189,11 @@ sub get_config {
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters'.
         '\.marketplace|\.ebay|\.forsale',
     
+    ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
+    phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
+        '|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$'.
+        '|localhost\.pld-linux\.org',
+
     ### Exempt these hosts from the NNTP-Posting-Host / Newsgroup filter
     phn_exempt => '^localhost$|^127\.0\.0\.1$|localhost\.pld-linux\.org',
 
@@ -239,6 +239,7 @@ sub get_config {
         net     => '^net\.',
         bofh    => '^bofh\.',
         'de.alt.dateien' => '^de\.alt\.dateien',
+        sdnet   => '^sdnet\.',  # Requested by William Kronert
     );
 
     # Load up the external config file
