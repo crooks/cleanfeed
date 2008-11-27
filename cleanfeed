@@ -357,14 +357,15 @@ $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
 $phone = '[89]\d{2}[\s\-_*\)]+\d{2,3}[\s\-_*]+\d{4}'.
          '|[\s\-_*0][89]\d{2,3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
-$site_desc = "$desc1|password";
 
-$servPre = "(?:$free|cheap|unlimited|nationwide|$site_desc)";
-$servPost = '(?:$free|minute|samples|800|900|no.?charge)';
-$servStr = "(?:phone.{0,15}(?:$sex|fun)|(?:adult|r.?a.?p.?e|$sex).{0,10}(?:chat|site)".
-    "|(?:$sex).{0,15}(?:show|call|connection|vid(?:eo|s)|dvd)".
-    '|hard.?core.(?:vid(?:eo|s)|dvd|amateur)|900.dateline|(?:mass|bulk).e?-?mail)';
-$services = "(?:$servPre.{0,30}?$servStr)|(?:$servStr.{0,30}?$servPost)";
+# Renable the following is we fix the false positives in the scoring section.
+#$site_desc = "$desc1|password";
+#$servPre = "(?:$free|cheap|unlimited|nationwide|$site_desc)";
+#$servPost = '(?:$free|minute|samples|800|900|no.?charge)';
+#$servStr = "(?:phone.{0,15}(?:$sex|fun)|(?:adult|r.?a.?p.?e|$sex).{0,10}(?:chat|site)".
+#    "|(?:$sex).{0,15}(?:show|call|connection|vid(?:eo|s)|dvd)".
+#    '|hard.?core.(?:vid(?:eo|s)|dvd|amateur)|900.dateline|(?:mass|bulk).e?-?mail)';
+#$services = "(?:$servPre.{0,30}?$servStr)|(?:$servStr.{0,30}?$servPost)";
 
 $free_stuff = "$free.{0,20}(?:password|membership|$pics|chat)".
     "|(?:100\%|total|complete|absolut|all).{0,15}$free".
