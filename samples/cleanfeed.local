@@ -1,0 +1,167 @@
+# vim: tabstop=4 expandtab shiftwidth=4 autoindent syntax=perl
+
+######################### IMPORTANT! - READ CAREFULLY ########################
+# This file contains some parts of my own cleafeed.local.
+# Many of these checks are too much content based than what I feel
+# confortable to put in the official source and others are just
+# experimental or need site-specific tweaks.
+# Before using any of this code please *think*, and be sure you really
+# understand what it does.
+######################### IMPORTANT! - READ CAREFULLY ########################
+
+my @badaspnntps = (
+    'PostIT Now',
+    'Jobsearch Limited',
+    'AudioWeb',                 # audioweb.com
+    'Alex',                     # sex spam
+    'Paul Simmons',             # OperationIT.com
+    'Alan',                     # equest.com
+    'Digital Media Works',      # html sex spam
+    'Captive Technology',       # ccsscorp.com jobs flood
+    'Computer Horzions ISG',    # isgjobs.com jobs flood
+    'Mike Powers',              # ResumeGateway.com jobs flood
+);
+
+my %badaspnntp = map { $_ => 1 } @badaspnntps;
+undef @badaspnntps;
+
+sub local_filter_first {
+
+    # A well known troll is preloading Path headers.  Save articles for
+    # inspection when alt\.net appears more than once in the Path.
+    if ($hdr{Path} =~ /alt\.net.*alt\.net/) {
+        saveart('path-preload');
+    };
+
+    # Reject the current wave of Chinese spam being posted via Google.
+    if (not $hdr{References} and
+            $hdr{'X-Trace'} =~ /posting\.google\.com/ and
+            not $gr{reports}) {
+        if ($hdr{Subject} =~ /
+                cheap.*wholesale
+            |   wholesale.*cheap
+            |   ^\(CN-CIRCLE
+            |   china.*(?:shoes|sandals|sneakers|clothes|bags|jeans|caps|
+                          watch)
+            |   shoes.*(?:gucci|parda|chanel|puma|hogan|bape|armani|ugg|ice|
+                          versace)
+            /imx) {
+            saveart('subject');
+            return reject('Subject Rejected');
+        };
+    };
+
+    # Reject repeated troll-posting about Shakespeare.
+    if ($hdr{Newsgroups} =~ /humanities\.lit\.authors\.shakespeare/) {
+        if ($hdr{__BODY__} =~ /
+            ^www\.shakespeareauthorship\.com
+        |   ^http:\/\/hometown\.aol\.com\/kqknave\/shakenbake\.html
+        |   ^http:\/\/hometown\.aol\.com\/kqknave\/monsarr1\.html
+        |   ^Agent\sJim
+        /imx) {
+            saveart('shakespeare');
+            return reject('Shakespeare Spam');
+        };
+    };
+};
+
+sub local_filter_bot {
+    if ($hdr{'X-Newsreader'}) {
+        if ($hdr{'X-Newsreader'} =~ /^AspNNTP \S+ \((.*)\)/) {
+            return reject('AspNNTP', 'Bot signature')
+                if exists $badaspnntp{$1};
+            #saveart('W.aspnntp', $hdr{'X-Newsreader'});
+        };
+    };
+};
+
+sub local_filter_last {
+    my $localpost = 0;
+    $localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.mixmin\.net/;
+    $localpost = 1 if $hdr{Path} =~ /^not\-for\-mail$/;
+    $localpost = 1 if $hdr{Path} =~ /^news\.mixmin\.net!not-for-mail/;
+    $localpost = 1 if $hdr{'Message-ID'} =~ /\@news\.mixmin\.net>$/;
+    $localpost = 1 if $hdr{'X-Complaints-To'} =~ /abuse\@mixmin\.net/;
+
+    #This should be done in filter_nnrpd.pl but works for now.
+    if ($localpost) {
+        # Don't allow posts (or crossposts) to these groups
+        if ($hdr{Newsgroups} =~ /
+            hr\.alt\.trash
+        |   rec\.radio\.
+        |   alt\.ham-radio\.
+        /x) {
+            saveart('local.group');
+            return reject('Group rejected');
+        };
+        saveart('local.post');
+    };
+
+    if ($config{watch_cancels} and $localpost) {
+        $LocalPosts{$hdr{'Message-ID'}} = $now;
+    };
+};
+
+sub local_filter_reject {
+    my ($vr, $sr) = @_;
+
+    # Create logfiles for rejected articles I want to monitor.
+    saveart('local.reject', $vr)
+        if $hdr{Path} =~ /^not\-for\-mail$/ or
+           $hdr{Path} =~ /^news\.mixmin\.net!not-for-mail/;
+    saveart('emp.phn', $vr) if $vr =~ /^EMP\s\(phn/;
+    saveart('emp.phr', $vr) if $vr =~ /^EMP\s\(phr/;
+    saveart('emp.phl', $vr) if $vr =~ /^EMP\s\(phl/;
+    saveart('emp.fsl', $vr) if $vr =~ /^EMP\s\(fsl/;
+    if (is_binary()) {
+        saveart('emp.md5.bin', $vr) if $vr =~ /^EMP\s\(md5/;
+        saveart('cf.scoring', $vr, 2) if $vr =~ /^Scoring/;
+    } else {
+        saveart('emp.md5', $vr) if $vr =~ /^EMP\s\(md5/;
+        saveart('cf.scoring', $vr) if $vr =~ /^Scoring/;
+    }
+    saveart('cf.hosts', $vr) if $vr =~ /^Bad\shost/;
+    saveart('cf.uuenc', $vr) if $vr =~ /^UUencoded/;
+    saveart('cf.binary', $vr) if $vr =~ /^Binary/;
+    saveart('cf.body', $vr) if $vr =~ /^Body/;
+
+    return @_;
+}
+
+sub local_config {
+    %config_local = (
+        active_file => '/usr/local/news/db/active',
+        debug_batch_directory => '/usr/local/news/cleanfeed/log',
+        emp_dump_file => '/usr/local/news/tmp/empdump',
+        statfile => '/usr/local/news/cleanfeed/cleanfeed.stats',
+#       html_statfile => '/news/log/cleanfeed.stats.html',
+        bad_rate_reload => 5000,
+        block_late_cancels => 1,
+        block_user_cancels => 1,
+        do_emp_dump => 1,
+        do_scoring_filter => 1,
+        flood_groups => '^sci\.crypt$',
+        low_xpost_maxgroups => 3,
+        maxgroups => 6,
+        MD5RateCutoff => 3,
+        md5_skips_followups => 0,
+        meow_ext_maxgroups => 2,
+        PHNRateBaseInterval => 1800,
+        PHRRateBaseInterval => 1800,
+        reject_suspect_cancels => 1,
+        stats_interval => 300,
+    );
+
+    %config_append = (
+        allexclude => '^fa\.linux\.kernel|^microsoft\.',
+        bin_allowed => '^alt\.mag\.',
+        phn_exempt => 'bristol.highgroove.com',
+        phn_exclude => 'uk.people.silversurfers',
+    );
+
+    $Restricted_Groups{netscape} = '^netscape\.';
+};
+
+print $now.$config_dir.$lines.%Restricted_Groups.%Moderated.%config_local.%config_append.@followups if 0; # lint food
+
+1;
