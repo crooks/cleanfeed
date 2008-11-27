@@ -1,0 +1,241 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed - Regular Expressions</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='config.html'>Configuration Parameters</a> &gt;
+<a href='regex.html'>Regular Expressions</a>
+</p>
+
+<h1>Cleanfeed - Regular Expressions</h1>
+<h2>Overview</h2>
+Apart from the EMP type filters Regular Expressions form the foundations
+for all the other types of filters in Cleanfeed.  It's not vital to fully
+understand them in order to run Cleanfeed but it will be very advantageous
+to have at least a basic knowledge if you wish to customise its behaviour.
+<h2>Regular Expression Resources</h2>
+There are dozens of good Regular Expression resources on the World Wide Web and
+a <a
+href='http://www.google.co.uk/search?hl=en&q=perl+regular+expressions&btnG=Google+Search&meta='>Search</a>
+is a good way to locate them.  The <a
+href='http://perldoc.perl.org/perlre.html'>official Perl manual page</a> is a
+good reference but isn't really intended as a tutorial for beginners.  The <a
+href='http://perldoc.perl.org/perlretut.html'>official Perl tutorial</a> is
+excellent, as are many of the other hits your search will uncover.
+
+<h2>Regex Details</h2>
+The following table doesn't include the defaults for Regex's as many of them
+are very long indeed.  I'd recommend browsing through the Cleanfeed Perl file
+and checking them there.  If you think something is missing from the defaults
+that would improve the filter for other users, please <a
+href='mailto:steve@mixmin.net?subject=Cleanfeed Update'>email me</a>.
+
+<table class='one'>
+<tr>
+<td class='oneHed'>Parameter</td>
+<td class='oneHed'>Description</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bin_allowed'>bin_allowed</a></td>
+<td class='oneBod'>Which groups are exempt from binary filtering.  To put it
+another way, these are the groups where binaries are acceptable.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='image_allowed'>image_allowed</a></td>
+<td class='oneBod'>Whilst images are technically binaries, they are accepted in
+a broader range of groups than other types of binaries.  This option defines
+groups in addition to <a href='bin_allowed'>bin_allowed</a> where images are
+allowed.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='image_extensions'>image_extensions</a></td>
+<td class='oneBod'>Files with these extensions are accepted in <a
+href='image_allowed'>image_allowed</a> groups.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bad_bin'>bad_bin</a></td>
+<td class='oneBod'>Binaries are not allowed in groups matching this, even if
+they are defined in <a href='bin_allowed'>bin_allowed</a>.  This enables
+bin_allowed to define a broad hierarchy of groups and then specific ones to be
+excluded by this option.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='md5exclude'>md5exclude</a></td>
+<td class='oneBod'>Groups matching this regex are excluded from the EMP MD5 check.
+Where an article is crossposted, <b>all</b> the groups in the distribution must
+match <a href='#md5exclude'>md5exclude</a> in order to be excluded.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='poison_groups'>poison_groups</a></td>
+<td class='oneBod'>Reject all crossposts to these groups.  If a message is
+posted to more than one group and any of the groups match this regex, it will
+be rejected.  Use with caution, it's a potent filter.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='allexclude'>allexclude</a></td>
+<td class='oneBod'>If all the groups in a distribution match this regex, the
+message will be excluded from <b>any</b> filters.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='score_exclude'>score_exclude</a></td>
+<td class='oneBod'>Exclude groups matching this from the scoring filter.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='html_allowed'>html_allowed</a></td>
+<td class='oneBod'>If <a href='config.html#block_html'>block_html</a> is turned
+on, HTML formatted messages will be accepted in groups matching this regex.
+Where an article is crossposted, <b>all</b> the groups must match.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='mime_html_allowed'>mime_html_allowed</a></td>
+<td class='oneBod'>If <a href='config.html#block_mime_html'>block_mime_html</a>
+is turned on, groups matching this will be excluded from the filter.  Where an
+article is crossposted, <b>all</b> the groups must match. By default, no groups
+are defined as accepting MIME HTML.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='test_groups'>test_groups</a></td>
+<td class='oneBod'>Usenet has hundreds of test groups and the role of this
+regex is to match all of them.  Test groups are excluded from all the EMP
+filters, except the <a href='config.html#do_phr'>PHR filter</a> where groups
+must be explicitly defined.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='low_xpost_groups'>low_xpost_groups</a></td>
+<td class='oneBod'>Messages where the distribution contains a group matching this regex will be
+rejected if the number of groups exceeds <a
+href='config.html#low_xpost_maxgroups'>low_xpost_maxgroups</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='meow_groups'>meow_groups</a></td>
+<td class='oneBod'>Messages where the distribution contains a group matching
+this regex will be rejected if the number of <b>non-meow groups</b> in the
+distribution exceeds <a
+href='config.html#meow_ext_maxgroups'>meow_ext_maxgroups</a>.</td></td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='no_cancel_groups'>no_cancel_groups</a></td>
+<td class='oneBod'>Cancel messages to these groups will be rejected</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='fsl_exclude'>fsl_exclude</a></td>
+<td class='oneBod'>Groups matching this regex will be excluded from the <a
+href='config.html#do_fsl'>FSL EMP Filter</a>.  Where an article is crossposted,
+<b>all</b> the groups must match.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phl_exclude'>phl_exclude</a></td>
+<td class='oneBod'>See <a href='#fsl_exclude'>fsl_exclude</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phn_exclude'>phn_exclude</a></td>
+<td class='oneBod'>See <a href='#fsl_exclude'>fsl_exclude</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phl_exempt'>phl_exempt</a></td>
+<td class='oneBod'>Posts originating from these hosts will be excluded from the
+<a href='config.html#do_phl'>PHL EMP Filter</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phn_exempt'>phn_exempt</a></td>
+<td class='oneBod'>See <a href='#phl_exempt'>phl_exempt</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phr_exempt'>phr_exempt</a></td>
+<td class='oneBod'>See <a href='#phl_exempt'>phl_exempt</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='flood_groups'>flood_groups</a></td>
+<td class='oneBod'>Messages posted (or crossposted) to a group matching this
+regex will be subject to the <a href='config.html#do_phr'>PHR EMP Filter</a> By
+default, no groups are defined as high-risk, it's up to the operator to
+identify them at times when a flood occurs.  Usually this is by way of abuse
+complaints as the operator can't watch tens of thousands of newsgroups.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='supersedes_exempt'>supersedes_exempt</a></td>
+<td class='oneBod'>Messages originating from a host matching this regex will be
+exempt from the <a href='config.html#do_supersedes_filter'>Supersedes Filter</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='refuse_messageids'>refuse_messageids</a></td>
+<td class='oneBod'>Messages with a Message-ID matching this regex will be
+rejected.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='spam_report_groups'>spam_report_groups</a></td>
+<td class='oneBod'>Some groups are dedicated to dealing with spam.  We want to
+exclude them from filtering as the content there is likely to be
+spam-like.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='adult_groups'>adult_groups</a></td>
+<td class='oneBod'>Groups matching this regex are treated as Adult Groups,
+unless the match is negated by a subsequent match in <a
+href='#not_adult_groups'>not_adult_groups</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='not_adult_groups'>not_adult_groups</a></td>
+<td class='oneBod'>Groups matching this will be treated as non-adult groups,
+even if they match <a href='#adult_groups'>adult_groups</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='faq_groups'>faq_groups</a></td>
+<td class='oneBod'>Distributions where all the groups match this regex are
+granted a much higher accepted level of supersedes than normal groups.  This is
+because FAQ postings are often superseding previous versions of the same FAQ.
+This parameter is ignored unless <a
+href='config.html#do_supersedes_filter'>do_supersedes_filter</a> is
+enabled.</td>
+</tr>
+
+<tr>
+<td class='oneBodBG'><a name='Restricted_Groups'>Restricted_Groups</a></td>
+<td class='oneBodBG'>Unlike all the other regex's this one is contained in a
+Perl Hash, keyed by a friendly name and containing the regex.  Distributions
+with a group that matches this regex will be rejected if they also include a
+group that doesn't match it. This parameter is included here for completeness
+but is not considered user-definable.  If you would like it updated, please <a
+href='mailto:steve@mixmin.net?subject=Cleanfeed Update'>email me</a> so it can
+be changed at source.</td>
+</tr>
+
+</table>
+
+</body> </html>

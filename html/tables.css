@@ -1,0 +1,80 @@
+table.list
+{
+text-align: left;
+font-size: 11px;
+font-weight: normal;
+border: none;
+margin: 10px;
+}
+
+table.toc
+{
+font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+text-align: left;
+font-size: 14px;
+border: 1px solid #000000;
+margin: 10px;
+background-color: #33FF99;
+padding-right: 20px;
+}
+
+td.tocleft
+{
+font-weight: normal;
+padding-right: 20px;
+}
+
+td.tocleftind
+{
+font-weight: normal;
+padding-right: 20px;
+padding-left: 10px;
+}
+
+table.one
+{
+text-align: center;
+font-family: Verdana;
+font-weight: normal;
+font-size: 11px;
+color: #404040;
+width: 800px;
+background-color: #fafafa;
+border-collapse: collapse;
+border-spacing: 0px;
+margin: 20px;
+}
+
+td.oneHed
+{
+border: 2px solid #6699CC;
+background-color: #BEC8D1;
+text-align: left;
+text-indent: 5px;
+font-family: Verdana;
+font-weight: bold;
+font-size: 14px;
+color: #404040;
+}
+
+td.oneBod
+{
+border: 2px solid #6699CC;
+text-align: left;
+font-family: Verdana, sans-serif, Arial;
+font-weight: normal;
+font-size: 12px;
+color: #404040;
+background-color: #fafafa;
+}
+
+td.oneBodBG
+{
+border: 2px solid #6699CC;
+text-align: left;
+font-family: Verdana, sans-serif, Arial;
+font-weight: normal;
+font-size: 12px;
+color: #404040;
+background-color: #FFCCFF;
+}

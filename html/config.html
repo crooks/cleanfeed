@@ -1,0 +1,543 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed - Configuration Parameters</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='config.html'>Configuration Parameters</a>
+</p>
+
+<h1>Cleanfeed - Configuration Parameters</h1>
+<h2>Overview</h2>
+Every characteristic of Cleanfeed's behaviour can be tuned using parameters
+within the <a href='files.html#local_config'>local_config</a> function of <a
+href='files.html#cleanfeed.local'>cleanfeed.local</a>.  Some parameters are
+defined only within this file, others can be applied to override the defaults.
+In all instances, consider that these are changes to the
+actual Cleanfeed code.  The syntax should always be verified prior to reloading
+the INN filters.  This can't be stressed too much as little internal checking
+is done.  <b>Get it wrong and you break Cleanfeed</b>.
+
+<h2>Parameter Details</h2>
+The following table provides a description of each function and whether it is
+Local or Replace.  Local implies that it is defined only within the
+cleanfeed.local file.  Replace, that it overrides the internal cleanfeed
+default.<br>
+<b>If you do nothing else, check out the Local options, there are only four of
+them</b>.
+<table class='one'>
+<tr>
+<td class='oneHed'>Parameter</td>
+<td class='oneHed'>Type</td>
+<td class='oneHed'>Description</td>
+<td class='oneHed'>Default</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='verbose'>verbose</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>When True, messages about rejected articles will be posted
+to the INN news.notice log file.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='aggressive'>aggressive</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If set to 0, bad_body will be ignored and some elements of
+the scoring filter will not be processed.  Unless you're very paranoid about
+dropping articles, this is best left at default.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='maxgroups'>maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Maximum groups to allow in a crosspost.  The default is very
+high and can safely be reduced if you see much crosspost spam.</td>
+<td class='oneBod'>14</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_binaries'>block_binaries</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Should Cleanfeed reject articles posted to non-binary
+groups.  Unless you have very special requirements, please leave this enabled.
+Misplaced binaries can have a serious performance impact on both the local
+server and its downstream peers.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_late_cancels'>block_late_cancels</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Should Cleanfeed block cancels of already rejected articles.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_user_spamcancels'>block_user_spamcancels</a>
+</td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Prevent users from using bots to cancel what they consider
+to be Spam.  This parameter addresses a specific bot and is unlikely to catch
+much on Usenet in current times.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_user_cancels'>block_user_cancels</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>When set to True, this will cause all user issued cancels to
+be rejected.  This is one you may wish to change; in modern times, cancels are
+not honoured by a lot of News providers.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_extra_reposts'>block_extra_reposts</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Prevent bot wars where a cancelbot cancels an article and
+a repost bot tries to put it back again.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_md5'>do_md5</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'><a href='http://en.wikipedia.org/wiki/MD5'>MD5</a> checking
+prevents multiple identical posts being sent to Usenet in high volumes.  This
+is a typical characteristic of Spam so it's strongly advised to leave this
+enabled. The name of this check is slightly misleading:  All the EMP type
+filters in Cleanfeed use MD5 but this is the only one that applies to the
+posted payload.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_phl'>do_phl</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>An EMP check seeded by the NNTP-Posting-Host and number of
+lines within the message payload.  Some spam evades the <a href='#do_md5'>MD5
+filter</a> above by adding a signature (a random series of characters) to the
+posting.  This filter attempts to address that issue although it can only
+function if the posting host applies an NNTP-Posting-Host header.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_phn'>do_phn</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>An EMP check seeded by the NNTP-Posting-Host and the
+Newsgroups headers.  This attempts to address flooding of a specific Newsgroup
+from a single source.  It can cause false positives in some groups where
+individuals post high volumes of brief messages in a short period of time.
+These groups can be excluded from the filter using the <a
+href='regex.html#phn_exclude'>phn_exclude</a> parameter.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_phr'>do_phr</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>A special EMP filter that will do nothing in default
+configuration.  It relies on the operator specifying groups that are considered
+at a high risk of being flooded.  These groups are specified in the
+flood_groups parameter.  An additional parameter of phr_aggressive makes this
+filter seed on the Path header if no NNTP-Posting-Host is supplied.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_fsl'>do_fsl</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>An EMP seeded using the From, Subject and Lines headers.
+Similar in function to the <a href='#do_phl'>PHL filter</a>, it attempts to
+trap spam that evades the <a href='#do_md5'>MD5 filter</a> but also doesn't
+have an NNTP-Posting-Host header.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_scoring_filter'>do_scoring_filter</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>When enabled Cleanfeed scores each article according to
+various spam characteristics.  If the score exceeds a threshold, the message is
+rejected.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_emp_dump'>do_emp_dump</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Enables dumping of hashes from the various EMP filters to
+disk.  This means the filters are retained between INN restarts.  This parameter
+requires <a href='#emp_dump_file'>emp_dump_file</a> to be defined.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBodBG'><a name='emp_dump_file'>emp_dump_file</a></td>
+<td class='oneBodBG'>Local</td>
+<td class='oneBodBG'>The location to dump the EMP hash entries to if <a
+href='#do_emp_dump'>do_emp_dump</a> is enabled.</td>
+<td class='oneBodBG'></td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='MD5RateCutoff'>MD5RateCutoff</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>How many identical MD5 hashes to allow before rejecting further
+duplicates.</td>
+<td class='oneBod'>5</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='MD5RateCeiling'>MD5RateCeiling</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>When the count against a specific MD5 hash reaches this number,
+stop incrementing any further.</td>
+<td class='oneBod'>85</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name=''>MD5RateBaseInterval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>After this many seconds, begin to decrement the count against a
+specific hash.</td>
+<td class='oneBod'>7200</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHLRateCutoff'>PHLRateCutoff</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCutoff'>MD5RateCutoff</a></td>
+<td class='oneBod'>20</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHLRateCeiling'>PHLRateCeiling</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCeiling'>MD5RateCeiling</a></td>
+<td class='oneBod'>80</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHLRateBaseInterval'>PHLRateBaseInterval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateBaseInterval'>MD5RateBaseInterval</a></td>
+<td class='oneBod'>3600</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHNRateCutoff'>PHNRateCutoff</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCutoff'>MD5RateCutoff</a></td>
+<td class='oneBod'>150</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHNRateCeiling'>PHNRateCeiling</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCeiling'>MD5RateCeiling</a></td>
+<td class='oneBod'>200</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHNRateBaseInterval'>PHNRateBaseInterval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateBaseInterval'>MD5RateBaseInterval</a></td>
+<td class='oneBod'>3600</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHLRateCutoff'>PHLRateCutoff</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCutoff'>MD5RateCutoff</a></td>
+<td class='oneBod'>10</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHRRateCeiling'>PHRRateCeiling</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCeiling'>MD5RateCeiling</a></td>
+<td class='oneBod'>80</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='PHRRateBaseInterval'>PHRRateBaseInterval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateBaseInterval'>MD5RateBaseInterval</a></td>
+<td class='oneBod'>3600</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='FSLRateCutoff'>FSLRateCutoff</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCutoff'>MD5RateCutoff</a></td>
+<td class='oneBod'>20</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='FSLRateCeiling'>FSLRateCeiling</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateCeiling'>MD5RateCeiling</a></td>
+<td class='oneBod'>40</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='FSLRateBaseInterval'>FSLRateBaseInterval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#MD5RateBaseInterval'>MD5RateBaseInterval</a></td>
+<td class='oneBod'>1800</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='fuzzy_md5'>fuzzy_md5</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If the message payload is less than <a
+href='#fuzzy_max_length'>fuzzy_max_length</a> lines then modify it before
+hashing.  The modification strips out white spaces, converts everything to
+lowercase and does some other simplification to help match payloads that would
+be identical except for minor formatting differences..</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='fuzzy_max_length'>fuzzy_max_length</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Only do <a href='#fuzzy_md5'>fuzzy_md5</a> if the payload is
+less than this number of lines.</td>
+<td class='oneBod'>700</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='md5_max_length'>md5_max_length</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Don't attempt to produce MD5 hashes for messages that exceed
+this number of lines.  This is largely down to system performance as producing
+cryptographic hashes can take time and CPU.</td>
+<td class='oneBod'>2000</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='trim_interval'>trim_interval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>How frequently (in seconds) to review the EMP hash tables to
+see if any entries can be decremented.</td>
+<td class='oneBod'>900</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='stats_interval'>stats_interval</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>How frequently (in seconds) should Cleanfeed produce its
+status file.  In order for stats to be produced, either <a
+href='#statfile'>statfile</a> must be defined or <a
+href='inn_syslog_status'>inn_syslog_status</a> must be set to True.</td>
+<td class='oneBod'>3600</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='MIDmaxlife'>MIDmaxlife</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>How long (in hours) to remember rejected Message-ID's.</td>
+<td class='oneBod'>4</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='md5_skips_followups'>md5_skips_followups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If True, the MD5 filter will not be applied to articles
+containing a References header.  As it's trivial for an abuser to add such a
+header, enabling this is not recommended for normal Usenet operations.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phn_aggressive'>phn_aggressive</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>The <a href='#do_phn'>PHN Filter</a> tries to create hashes
+based on the NNTP-Posting_Host of the sender.  If this header doesn't exist,
+then setting <a href='#phn_aggressive'>phn_aggressive</a> to True will cause it
+to fall back on the Path header instead.  The implication of this is that
+messages to a specific newsgroup will be rejected if too many originate from
+the same service provider instead of merely the same poster.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='phr_aggressive'>phr_aggressive</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a href='#phn_aggressive'>phn_aggressive</a>.  As the <a
+href='#do_phr'>PHR Filter</a> only applies to defined newsgroups, it's
+advisable to leave this enabled unless you have a PHR group where multiple
+people use the same provider, one of whom is flooding the group.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_mid_filter'>do_mid_filter</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If True, use the Message-ID checking filter.  This works in
+combination with the <a href='#refuse_messageids'>refuse_messageids</a> Regular
+Expression.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='do_supersedes_filter'>do_supersedes_filter</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Supersedes headers enable users to indicate that a new
+posting supersedes the information in a previous one.  Whilst useful, they are
+also often used for abuse purposes.  This filter checks that a message isn't
+excessively superseded. The actual limit is evaluated on the Newsgroups being
+posted to.  Also check the <a href='regex.html#supersedes_exempt'>supersedes_exempt</a>
+Regular Expression.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='drop_useless_controls'>drop_useless_controls</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Reject control messages of types sendsys, senduuname and
+version.  If <a href='#drop_ihave_sendme'>drop_ihave_sendme</a> is True,
+additionally ihave and sendme control messages will also be rejected.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='drop_ihave_sendme'></a>drop_ihave_sendme</td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If <a
+href='#drop_useless_controls'>drop_useless_controls</a> is True, then setting
+this to True will cause ihave and sendme control messages to also be
+dropped.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bad_rate_reload'>bad_rate_reload</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>After this many articles have passed through Cleanfeed, all
+the <a href='files.html#badguys'>bad_* files</a> will be re-read from disk.
+The default value causes a reload approximately every hour on a full text-only
+news server.  For a server processing less articles, the value will need to be
+dropped accordingly.</td>
+<td class='oneBod'>10000</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='low_xpost_maxgroups'>low_xpost_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Override the default <a href='#maxgroups'>maxgroups</a>
+setting for distributions that include a group considered unsuitable for broad
+cross-posting.  These groups are defined in the <a
+href='regex.html#low_xpost_groups'>low_xpost_groups</a> Regular
+Expression.</td>
+<td class='oneBod'>6</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='meow_ext_maxgroups'>meow_ext_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Meow groups date back to 1996 when the most famous Usenet
+flame-wars erupted.  More details about them can be read <a
+href='http://www.nationmaster.com/encyclopedia/Meow-Wars'>here</a>.  The actual
+Meow groups are defined in the <a href='regex.html#meow_groups'>meow groups</a>
+Regular Expression.  This parameter controls how many other groups are allowed
+in a distribution that includes a meow_group.</td>
+<td class='oneBod'>2</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='binaries_in_mod_groups'>binaries_in_mod_groups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Setting this to True will allow binaries to be posted to
+moderated newsgroups.  This is probably a bad idea and the moderators of the
+groups in question are unlikely to appreciate it.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='max_encoded_lines'>max_encoded_lines</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>A binary posting may contain up to this number of lines
+without being rejected.  Please don't set this too low as it will reject PGP
+signed messages.</td>
+<td class='oneBod'>15</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_mime_html'>block_mime_html</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Block MIME encapsulated HTML.  HTML is considered evil on
+Usenet.  MIME encapsulated HTML doubly so.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_html'>block_html</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Block text/html encoded postings.  In some groups such as
+the Microsoft hierarchy, HTML postings are considered acceptable.  The list of
+groups where it's accepted is defined in the <a
+href='regex.html#html_allowed'>html_allowed</a> Regular Expression.</td>
+<td class='oneBod'>1</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='block_multi_alt'>block_multi_alt</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Block multipart/alternate formatted MIME messages.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBodBG'><a name='active_file'>active_file</a></td>
+<td class='oneBodBG'>Local</td>
+<td class='oneBodBG'>The location of the INN active file.  This is required for
+Cleanfeed to be able to identify which Newsgroups are Moderated.  If you've
+installed from source, it should be /usr/local/news/db/active.  Please make
+sure it's set correctly, it plays an important role in filtering Moderated
+groups.</td>
+<td class='oneBodBG'></td>
+</tr>
+
+<tr>
+<td class='oneBodBG'><a name='statfile'>statfile</a></td>
+<td class='oneBodBG'>Local</td>
+<td class='oneBodBG'>Location where Cleanfeed should write it's text status file.
+For a default install, /usr/local/news/cleanfeed/log/cleanfeed.stats is
+probably a good choice.</td>
+<td class='oneBodBG'></td>
+</tr>
+
+<tr>
+<td class='oneBodBG'><a name='html_statfile'>html_statfile</a></td>
+<td class='oneBodBG'>Local</td>
+<td class='oneBodBG'>If defined, Cleanfeed will write a crude HTML status file
+to this location.  I find the text version fine, your milage may vary.</td>
+<td class='oneBodBG'></td>
+</tr>
+</table>
+
+<h2>Summary</h2>
+That's all the Cleanfeed configuration options.  There are a lot of them and
+for newcomers it must look a bit daunting.  Please don't be put off, you really
+only need to change the defaults in instances where they prove unsuitable for
+your site.  In most instances they err on the side of caution; working on a
+principle that spam and abuse getting through is better than good articles
+getting rejected.<br><br>
+In the <a href='regex.html'>next section</a> I'll cover the other aspect of
+Cleanfeed configuration, the Regular Expressions themselves.
+
+</body> </html>

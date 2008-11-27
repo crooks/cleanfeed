@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a>
+</p>
+
+<h1>Cleanfeed - Usenet Filtering</h1>
+<h2>Table Of Contents</h2>
+<table class='toc'>
+<tr>
+<td class='tocleft'>1.</td>
+<td> <a href='install.html'>Installation and Upgrading</a></td>
+<tr>
+<td class='tocleft'>2.</td>
+<td><a href="files.html">Cleanfeed Files Explained</a></td>
+</tr>
+<tr>
+<td class='tocleft'>3.</td>
+<td><a href="config.html">Configuration Parameters</a></td>
+</tr>
+<tr>
+<td class='tocleftind'>3.1.</td>
+<td><a href="regex.html">Regular Expressions</a></td>
+</tr>
+</table>
+
+<h2>Overview</h2>
+Cleanfeed is Usenet filter written in Perl.  It is designed to integrate with a
+variety of news applictions, although in recent times has been primarily tested
+against <a href="https://www.isc.org/software/inn">INN v2</a>.  In order to use
+it, INN must be compiled with Perl support:
+<table>
+<tr><td>./configure  --with-perl</td></tr>
+</table>
+Perl version 5.8 or later is also strongly recommended.
+
+<h2>Assumptions</h2>
+<ul>
+<li>
+It is assumed that the server operator already understands INN to a reasonable
+level and has it installed and running.
+</li>
+<li>
+A basic understanding of Perl will prove valuable in order to customise the
+default Cleanfeed installation.  Customisation is inevitable as no two Usenet
+servers operate with quite the same policies.
+</li>
+<li>
+A good understanding of <a href="http://perldoc.perl.org/perlre.html">Perl
+Regular Expressions</a> is essential before trying to customise the
+installation.  Getting these wrong will result in unwanted behaviour that can
+be very difficult to isolate and rectify.
+</li>
+<li>
+Many of the examples given assume Cleanfeed files have been installed to the
+default locations.  If you've chosen to put them elsewhere then you will need
+to adjust the examples accordingly.
+</li>
+</ul>
+</body>
+</html>

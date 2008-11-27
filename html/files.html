@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='files.html'>Cleanfeed Files Explained</a>
+</p>
+
+<h1>Cleanfeed - Files and their function</h1>
+<h2>Overview</h2>
+Cleanfeed consists of a primary perl script that resides in the pathfilter
+directory.  After installation it shouldn't need any customisation unless
+your site polices are in some way very different from normal.  Editing it
+is beyond the scope of these instructions.<br><br>
+Besides the main Perl script, there are a number of other files, all located
+by default in cleanfeed/etc.  The majority of these are text files, one
+contains Regular Expressions and one (cleanfeed.local) is Perl.  All files can
+be viewed or modified with a standard text editor.
+
+<h2>File Descriptions</h2>
+The following table provides a brief overview of the various files.
+<table class='one'>
+<tr>
+<td class='oneHed'>Filename</td>
+<td class='oneHed'>File Type</td>
+<td class='oneHed'>Description</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_adult_paths</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>Messages containing a Path string that matches an entry in
+this file will be rejected if the distribution contains a group intended for
+adult material. Adult groups are defined in parameters adult_groups and
+not_adult_groups, but more on that in the <a href='config'>configuration
+parameters</a> section.<td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_body</td>
+<td class='oneBod'>Regex</td>
+<td class='oneBod'>A list of <a
+href="http://perldoc.perl.org/perlre.html">Perl Regular Expressions</a> for
+comparison with the message body.  Matching content will result in the message
+being rejected.  This file is only intended for simple regex matching such as
+spammed url's, email addresses or telephone numbers.  More complex filters
+should be applied in cleanfeed.local, although a filter reload will be needed
+in order to activate changes applied to that file.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_cancel_paths</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>Cleanfeed will reject cancel messages where the Path
+contains one of these plain-text strings.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_groups</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>Messages posted (or crossposted) to these groups will be
+rejected.  This file is rarely used.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_hosts</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>Messages with an NNTP-Posting_Host that matches one of the
+entries in this file will be rejected.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_hosts_central</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>Exactly the same as bad_hosts, except this file is
+maintained and published by a central resource.  If you don't want to
+use it, simply delete it and don't download the updates.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>bad_paths</td>
+<td class='oneBod'>Text</td>
+<td class='oneBod'>As with bad_adult_paths, except bad_paths applies to
+messages posted to any groups, not just adult ones.</td>
+</tr>
+
+<tr>
+<td class='oneBod'>cleanfeed</td>
+<td class='oneBod'>Perl</td>
+<td class='oneBod'>The main filtering engine<td>
+</tr>
+
+<tr>
+<td class='oneBod'>cleanfeed.local</td>
+<td class='oneBod'>Perl</td>
+<td class='oneBod'>A configuration file for customisation of Cleanfeed's
+behaviour.  Although just an example, this file provides a good starting point
+and its use for beginners is strongly recommended.</td>
+</tr>
+</table>
+
+<h2><a name='badguys'>The "bad" Guys</a></h2>
+All of the files prefixed with bad_ are automatically reloaded by cleanfeed
+after a specified number of articles have been processed by the News server.
+The actual number of articles is defined in cleanfeed.local (see the <a
+href='config.html#bad_rate_reload'>bad_rate_reload</a> option).  They can also
+be reloaded immediately by issuing INN with a filter reload instruction.
+
+<h2><a name='cleanfeed.local'>cleanfeed.local</a></h2>
+The cleanfeed.local file is constructed in Perl and enables customisation of
+the default Cleanfeed behaviour.  The sample file provided with the package
+offers a good starting point to build upon.  Changes to this file only come
+into effect when an INN filter reload instruction is issued.<br><br>
+
+The following table describes the various functions within cleanfeed.local:-
+<table class='one'>
+<tr>
+<td class='oneHed'>Function</td>
+<td class='oneHed'>Description</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_first</td>
+<td class='oneBod'>Instructions within this function are performed against
+normal (non-control) articles.  They happen very early on in the filtering
+process prior to any binary or EMP (Excessive Multi-Post) checks.</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_bot</td>
+<td class='oneBod'>Processed after the binary but before the EMP checks,
+filters within this function are intended to enhance the in-built bot signature
+scanning.</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_after_emp</td>
+<td class='oneBod'>As it's name suggests, instructions within this function are processed after
+Cleanfeed's EMP checks.  This implies that articles rejected by this function
+will still seed the EMP hashes.</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_scoring</td>
+<td class='oneBod'>This function is intended to return article scores that are appended
+to the score generated by the internal scoring filters.  If the resulting score exceeds
+a defined threshold, the article is rejected. Once again, <b>filters within this function
+should return numeric scores.</b></td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_last</td>
+<td class='oneBod'>Called last, after articles have been processed by all the
+Cleanfeed internal filters.  This is probably the best function to put general
+filters in.</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_cancel</td>
+<td class='oneBod'>This function isn't applied to normal messages, only Control Cancel ones.
+It runs after the internal Cleanfeed Cancel checks and offers a means to define local policies for
+the handling of Cancel messages.  Some operators choose not to honour Cancels at all.</td>
+</tr>
+<tr>
+<td class='oneBod'>local_filter_reject</td>
+<td class='oneBod'>The function doesn't quite fit the mould of the others.
+Instructions within it are only processed on articles that have <b>already</b>
+been rejected.  This is a good place to define log files for rejected articles.
+There are some examples in the sample cleanfeed.local.</td>
+</tr>
+<tr>
+<td class='oneBod'><a name='local_config'>local_config</a></td>
+<td class='oneBod'>Unlike all the other functions, this one doesn't contain
+any filters.  It's the place for adjusting cleanfeed's internal defaults, such
+as the bad_rate_reload parameter described above.  Details of all the
+adjustable parameters can be found in the <a href='config'>configuration
+parameters</a> section.</td>
+</tr>
+</table>
+</body> </html>

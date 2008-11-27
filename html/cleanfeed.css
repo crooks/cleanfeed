@@ -1,0 +1,68 @@
+a {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+}
+
+body {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+}
+
+h1 {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 21px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+	color: #3399FF;
+}
+
+h2 {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 19px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+	margin-left: 10px;
+	margin-bottom: 5px;
+	color: #0066CC;
+}
+
+h3 {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 17px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+	margin-left: 20px;
+}
+
+i {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 13px;
+	font-style: italic;
+	font-weight: normal;
+	text-transform: none;
+}
+
+li {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+	margin-top: 10px;
+}
+
+ul {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+}

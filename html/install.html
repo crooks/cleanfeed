@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='install.html'>Installation and Upgrading</a>
+</p>
+
+<h1>Cleanfeed - Installation and Upgrading</h1>
+If you're upgrading an existing Cleanfeed installation, please skip to to the
+<a href='#upgrade'>Upgrading Instructions</a>.
+
+<h2><a name='installation'>First Time Installation</a></h2>
+
+<ul><li>
+Download Cleanfeed from <a
+href="http://www.mixmin.net/cleanfeed/cleanfeed.tar.gz">here</a> to the homedir
+of the news account.  If you're using the INN defaults, it will be
+/usr/local/news.  This location is only a recommendation, you can put cleanfeed
+in any directory providing it's accessible by the news account.  Extracting the
+tarball will create the following directories and files:
+
+<table class='list'>
+<tr><td>cleanfeed/cleanfeed</td></tr>
+<tr><td>cleanfeed/etc/</td></tr>
+<tr><td>cleanfeed/etc/bad_adult_paths</td></tr>
+<tr><td>cleanfeed/etc/bad_body</td></tr>
+<tr><td>cleanfeed/etc/bad_cancel_paths</td></tr>
+<tr><td>cleanfeed/etc/bad_groups</td></tr>
+<tr><td>cleanfeed/etc/bad_hosts</td></tr>
+<tr><td>cleanfeed/etc/bad_hosts_central</td></tr>
+<tr><td>cleanfeed/etc/bad_paths</td></tr>
+<tr><td>cleanfeed/etc/cleanfeed.local</td></tr>
+<tr><td>cleanfeed/logs/</td></tr>
+</table>
+</li>
+<li>
+Move the cleanfeed file to INN's filter directory.  The location of this is
+defined in inn.conf, (look for the pathfilter option).  By default this is
+/usr/local/news/bin/filter.  Rename the cleanfeed file to filter_innd.pl.  This
+will overwrite the example filter file supplied with INN so you might want to
+take a copy of it first.
+<table class='list'>
+<tr><td>cd /usr/local/news/bin/filter</td></tr>
+<tr><td>mv filter_innd.pl filter_innd.pl.old</td></tr>
+<tr><td>mv /usr/local/news/cleanfeed/cleanfeed filter_innd.pl</td></tr>
+</table>
+</li>
+<li>
+Open the filter_innd.pl file with your preferred text editor and check the
+$config_dir variable is pointing to the correct location of the cleanfeed.local
+file.  If it isn't, correct it and resave the file.
+</li>
+<li>
+Validate the syntax of cleanfeed and cleanfeed.local:
+<table class='list'>
+<tr><td>perl -wc /usr/local/news/bin/filter/cleanfeed</td></tr>
+<tr><td>perl -wc /usr/local/news/cleanfeed/etc/cleanfeed.local</td></tr>
+</table>
+Note, this check should be done after every Cleanfeed change, prior to
+reloading the filters.  Failure to do so will eventually result in a minor
+error and INN subsequently dropping all your filters.
+</li>
+<li>
+Finally, instruct INN to reload its Perl filters:
+<table class='list'>
+<tr><td>ctlinnd reload filter.perl meow</td></tr>
+</table>
+Replace 'meow' with a reason for the reload if you want the resulting log
+messages to be more informative.  Check the INN logs to make sure the reload
+didn't result in any errors.  If not, congratulations!  Cleanfeed is now
+running and it's time to look at some customisation.
+</li>
+</ul>
+<h2><a name='upgrade'>Upgrading an Existing Installation</a></h2>
+If you already have Cleanfeed installed and running, it's likely that you won't
+want to download the entire tarball as extracting it will overwrite all the
+files, including those you may have customised.
+
+<ul>
+<li>Download the individual cleanfeed Perl file from <a
+href='http://www.mixmin.net/cleanfeed/cleanfeed'>www.mixmin.net/cleanfeed/cleanfeed</a>
+to the binfilter directory.</li>
+<li>Rename it to filter_innd.pl (Backup the old filter_innd.pl first if you want to retain it).</li>
+<li>Do a syntax check (perl -wc filter_innd.pl)</li>
+<li>Reload the filter (ctlinnd reload filter.perl <i>reason</i>).
+<li>Check the INN logfiles for any errors</li>
+</ul>
+That's it, the new version should be installed and running.
+</body>
+</html>
