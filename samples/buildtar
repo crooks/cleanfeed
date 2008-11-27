@@ -1,0 +1,66 @@
+#!/bin/bash
+# vim: tabstop=4 expandtab shiftwidth=4 autoindent
+
+# This file will build the cleanfeed tarball based on the svn samples files
+# and the cleanfeed file in /var/www/cleanfeed.  This is kind of messy but it
+# works for now.
+
+BASEDIR='/usr/local/news/tmp'
+BUILDDIR="${BASEDIR}/cleanfeed"
+SAMPLESOURCE='/usr/local/news/dev/cleanfeed/trunk/samples'
+CFSOURCE='/var/www/cleanfeed'
+DESTFILE="/var/www/cleanfeed/cleanfeed.tar"
+
+# Check if the build directory exists.  If it does then empty it, else create
+# it along with the required subdirs which cannot exist without a parent.
+if [ -d $BUILDDIR ]; then
+    echo "Using existing $BUILDDIR"
+    find "$BUILDDIR" -type f -exec rm {} \;
+    if [ -d ${BUILDDIR}/etc ]; then
+        echo "Using existing ${BUILDDIR}/etc"
+        find "${BUILDDIR}/etc" -type f -exec rm {} \;
+    else
+        echo "Creating ${BUILDDIR}/etc"
+        mkdir ${BUILDDIR}/etc
+    fi
+
+    if [ -d ${BUILDDIR}/log ]; then
+        echo "Using existing ${BUILDDIR}/log"
+        find "${BUILDDIR}/log" -type f -exec rm {} \;
+    else
+        echo "Creating ${BUILDDIR}/log"
+        mkdir ${BUILDDIR}/log
+    fi
+
+else
+    echo "Creating $BUILDDIR and its subdirectories."
+    mkdir $BUILDDIR
+    mkdir $BUILDDIR/etc
+    mkdir $BUILDDIR/log
+fi
+
+
+echo "Copying files from ${SAMPLESOURCE}/bad_* to ${BUILDDIR}/etc"
+cp ${SAMPLESOURCE}/bad_* ${BUILDDIR}/etc
+
+echo "Copying file from ${SAMPLESOURCE}/cleanfeed.local to ${BUILDDIR}/etc"
+cp ${SAMPLESOURCE}/cleanfeed.local ${BUILDDIR}/etc
+
+echo "Copying file from ${CFSOURCE}/cleanfeed to $BUILDDIR"
+cp ${CFSOURCE}/cleanfeed $BUILDDIR
+
+if [ -f $DESTFILE ]; then
+    echo "Deleting old $DESTFILE"
+    rm $DESTFILE
+fi
+
+if [ -f ${DESTFILE}.gz ]; then
+    echo "Deleting old ${DESTFILE}.gz"
+    rm $DESTFILE.gz
+fi
+
+cd $BASEDIR
+echo "Creating $DESTFILE"
+tar -cf $DESTFILE cleanfeed
+echo "Compressing $DESTFILE"
+gzip $DESTFILE
