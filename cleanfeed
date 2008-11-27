@@ -226,10 +226,8 @@ sub get_config {
     not_adult_groups => 'sexual\.abuse|^soc.sex|^fr\.soc\.homosexualite'.
         '|^alt\.(?:support|teens|answers)',
 
-    faq_groups => '\.answers$|^news\.announce\.newgroups$',
+    faq_groups => '\.answers$|^news\.announce\.newgroups$'
 
-    # used to form domain names for filtering - depreciated!
-    badguys => ''
     );
 
     ### List of group patterns that don't allow outside crossposts.
@@ -276,7 +274,7 @@ sub get_config {
                     phl_exempt phl_exclude supersedes_exempt
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
-                    adult_groups not_adult_groups faq_groups badguys
+                    adult_groups not_adult_groups faq_groups 
                     image_allowed image_extensions)) {
                 if (defined $config_append{$_}) {
                     $config{$_} .= "|$config_append{$_}";
