@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed - Global Bad Hosts</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='bad_hosts_central.html'>Global Bad Hosts</a>
+</p>
+
+<h1>Cleanfeed - Global Bad Hosts</h1>
+<h2>Overview</h2>
+As described on the <a href='files.html#bad_hosts_central'>files page</a> this
+file is identical in function to <a href='files.html#bad_hosts'>bad_hosts</a>
+except that it is intended to be downloaded from a central resource rather than
+maintained locally.  If you choose not to use it, simply ignore these
+instructions, your Cleanfeed will work fine without it.
+
+<h2>How It Works</h2>
+The bad_hosts_central file is generated automatically by a process that runs on
+news.mixmin.net.  It scans the logfiles produced by its local Cleanfeed and
+identifies problem hosts that are generating lots of rejected messages.  If a
+threshold number of rejected messages is crossed in a day, the host gets added
+to the bad_hosts_central file for a period of time (currently 3 days).  If
+during that period the host continues to exceed the reject threshold, the period of time
+it stays listed keeps rolling forward.
+
+<h2>Downloading the file</h2>
+The bad_hosts_central file is available via FTP or HTTP from
+<a href='http://www.mixmin.net/cleanfeed/bad_hosts_central'>
+www.mixmin.net/cleanfeed/bad_hosts_central</a>
+
+The recommended method for obtaining it is via a cron entry like the following:-
+<table class='list'>
+<tr><td>
+00 06,18 * * * wget -qNP /usr/local/news/cleanfeed/etc
+http://www.mixmin.net/cleanfeed/bad_hosts_central
+</td></tr>
+</table>
+Make sure that <a href='config.html#bad_rate_reload'>bad_rate_reload</a> is set at a
+sensible figure for the server you operate or the downloaded file may not be read by
+Cleanfeed for a long period of time.  Conversely don't set it too low or Cleanfeed
+will be forever rereading its bad_* files which isn't good for performance.
+
+<h2>NNTP-Posting-Host Issue</h2>
+Some News providers choose to put information other than the posting host in
+this header.  In some instances it's an encrypted or hashed version of the
+actual posting host which is completely compatible with the process that
+generates the bad_hosts_central file. In one instance that I'm aware of, a
+major provider is putting their organisation name in the NNTP-Posting-Host
+header.  This will result in them being frequently being listed as a bad host
+as every message originating from their service appears to come from a single
+source.  <b>Please don't misuse the headers in this manner!</b>
+</body>
+</html>
