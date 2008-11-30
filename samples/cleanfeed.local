@@ -77,9 +77,8 @@ sub local_filter_bot {
 
 sub local_filter_last {
     my $localpost = 0;
-    $localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.mixmin\.net/;
+    #$localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.mydomain/;
     $localpost = 1 if $hdr{Path} =~ /^not\-for\-mail$/;
-    $localpost = 1 if $hdr{'X-Complaints-To'} =~ /abuse\@mixmin\.net/;
 
     #This should be done in filter_nnrpd.pl but works for now.
     if ($localpost) {
@@ -105,8 +104,7 @@ sub local_filter_reject {
 
     # Create logfiles for rejected articles I want to monitor.
     saveart('local.reject', $vr)
-        if $hdr{Path} =~ /^not\-for\-mail$/ or
-           $hdr{Path} =~ /^news\.mixmin\.net!not-for-mail/;
+        if $hdr{Path} =~ /^not\-for\-mail$/;
     saveart('emp.phn', $vr) if $vr =~ /^EMP\s\(phn/;
     saveart('emp.phr', $vr) if $vr =~ /^EMP\s\(phr/;
     saveart('emp.phl', $vr) if $vr =~ /^EMP\s\(phl/;
