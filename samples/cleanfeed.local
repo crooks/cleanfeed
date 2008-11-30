@@ -79,8 +79,6 @@ sub local_filter_last {
     my $localpost = 0;
     $localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.mixmin\.net/;
     $localpost = 1 if $hdr{Path} =~ /^not\-for\-mail$/;
-    $localpost = 1 if $hdr{Path} =~ /^news\.mixmin\.net!not-for-mail/;
-    $localpost = 1 if $hdr{'Message-ID'} =~ /\@news\.mixmin\.net>$/;
     $localpost = 1 if $hdr{'X-Complaints-To'} =~ /abuse\@mixmin\.net/;
 
     #This should be done in filter_nnrpd.pl but works for now.

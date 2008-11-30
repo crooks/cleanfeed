@@ -1314,7 +1314,7 @@ sub reject {
 # other functions called by INN
 ##############################################################################
 
-# examine message-id during CHECK transaction (INN only)
+# examine message-id during CHECK and IHAVE transactions (INN only)
 sub filter_messageid {
     return '' if not $config{do_mid_filter};
     my ($id) = @_;

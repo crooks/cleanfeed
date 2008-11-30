@@ -79,7 +79,9 @@ server and its downstream peers.</td>
 <tr>
 <td class='oneBod'><a name='block_late_cancels'>block_late_cancels</a></td>
 <td class='oneBod'>Replace</td>
-<td class='oneBod'>Should Cleanfeed block cancels of already rejected articles.</td>
+<td class='oneBod'>Should Cleanfeed block cancels of already rejected articles.
+This only applies to specially formatted Message-ID's
+(&lt;cancel.[message-ID]&gt;).</td>
 <td class='oneBod'>0</td>
 </tr>
 
@@ -388,7 +390,8 @@ people use the same provider, one of whom is flooding the group.</td>
 <td class='oneBod'><a name='do_mid_filter'>do_mid_filter</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>If True, use the Message-ID checking filter.  This works in
-combination with the <a href='#refuse_messageids'>refuse_messageids</a> Regular
+combination with the <a
+href='regex.html#refuse_messageids'>refuse_messageids</a> Regular
 Expression.</td>
 <td class='oneBod'>1</td>
 </tr>
