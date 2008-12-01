@@ -126,7 +126,6 @@ sub local_filter_reject {
 
 sub local_config {
     %config_local = (
-        active_file => '/usr/local/news/db/active',
         debug_batch_directory => '/usr/local/news/cleanfeed/log',
         emp_dump_file => '/usr/local/news/tmp/empdump',
         statfile => '/usr/local/news/cleanfeed/cleanfeed.stats',

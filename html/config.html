@@ -507,11 +507,11 @@ href='regex.html#html_allowed'>html_allowed</a> Regular Expression.</td>
 <tr>
 <td class='oneBodBG'><a name='active_file'>active_file</a></td>
 <td class='oneBodBG'>Local</td>
-<td class='oneBodBG'>The location of the INN active file.  This is required for
-Cleanfeed to be able to identify which Newsgroups are Moderated.  If you've
-installed from source, it should be /usr/local/news/db/active.  Please make
-sure it's set correctly, it plays an important role in filtering Moderated
-groups.</td>
+<td class='oneBodBG'>The location of the INN active file.  If defined,
+Cleanfeed will use the active file to check if groups are Moderated instead of
+using the in-built &INN::newsgroup function.  As Cleanfeed only reads the
+active file on startup/reload, it's best to go with the internal function by
+leaving this undefined.</td>
 <td class='oneBodBG'></td>
 </tr>
 
