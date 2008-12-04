@@ -1005,7 +1005,8 @@ sub filter_art {
         # bad words and scoring filter #######################################
         if ($config{do_scoring_filter} and not $gr{reports}
             and not $gr{scoreskip}) {
-            my $score = "";
+            $score = "";
+            $scoreval = 0;
 
             #FIXME All that's MIME isn't WebTV
             #$score .= "!!!webtv" if $lch{'content-type'}
@@ -1062,6 +1063,7 @@ sub filter_art {
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
+                $score .= "***PGP" if $lch{'content-type'} =~ /multipart\/signed/;
                 $score .= "!!!!ImageLink" if $body =~ /<img src=/;
                 $score .= "!!!MimeHTML" if $body =~ /^content-base:..?http/m;
                 $score .= "!!!!!!!HTMLRefresh" if $body =~ /<meta http-equiv=.?refresh/;
@@ -1106,10 +1108,12 @@ sub filter_art {
 
             #TODO Uncomment the following after scoring testing
             #$score += local_filter_scoring() if defined &local_filter_scoring;
+            
+            $scoreval = ($score =~ tr/!//) - ($score =~ tr/*//);
 
-            return reject("Scoring filter ($score)", "Scoring filter")
-                #if $score > 7;
-                if (($score =~ tr/!//) - ($score =~ tr/*//)) > 7;
+            return reject("Scoring filter ($scoreval)", "Scoring filter")
+                if $scoreval > 7;
+                #if (($score =~ tr/!//) - ($score =~ tr/*//)) > 7;
         }
 
         if (defined &local_filter_last) {
@@ -1591,6 +1595,7 @@ sub saveart {
     if ($format != 3) {
         print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
         print LOCAL "INFO: $info\n" if $info;
+        print LOCAL "Score: $score\n" if $score;
         print LOCAL "Binary: $Cache_Is_Binary\n"
             if is_binary();
         foreach (sort keys %hdr) {
