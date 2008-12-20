@@ -1063,7 +1063,7 @@ sub filter_art {
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
-                $score .= "***PGP" if $lch{'content-type'} =~ /multipart\/signed/;
+                $score .= "***PGP" if $lch{'content-type'} =~ /^multipart\/signed/;
                 $score .= "!!!!ImageLink" if $body =~ /<img src=/;
                 $score .= "!!!MimeHTML" if $body =~ /^content-base:..?http/m;
                 $score .= "!!!!!!!HTMLRefresh" if $body =~ /<meta http-equiv=.?refresh/;
@@ -1079,6 +1079,10 @@ sub filter_art {
             $score .= "!!Phone" if $body =~ /$phone/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
+
+            #Long signatures are bad netiquette
+            $score .= "!!SigLen" if $body =~ /-- $(.*\r?\n){6}/m;
+            $score .= "!!SigLen2" if $body =~ /-- $(.*\r?\n){11}/m;
 
             # only URL
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
