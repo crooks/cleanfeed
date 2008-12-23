@@ -1080,10 +1080,6 @@ sub filter_art {
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
-            #Long signatures are bad netiquette
-            $score .= "!!SigLen" if $body =~ /^-- $(?>(.*\r?\n){6})/m;
-            $score .= "!!SigLen2" if $body =~ /^-- $(?>(.*\r?\n){11})/m;
-
             # only URL
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
 
