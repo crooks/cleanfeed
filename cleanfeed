@@ -358,7 +358,7 @@ $phone = '[89]\d{2}[\s\-_*\)]+\d{2,3}[\s\-_*]+\d{4}'.
          '|[\s\-_*0][89]\d{2,3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 
-# Renable the following is we fix the false positives in the scoring section.
+# Re-enable the following when we fix the false positives in the scoring section.
 #$site_desc = "$desc1|password";
 #$servPre = "(?:$free|cheap|unlimited|nationwide|$site_desc)";
 #$servPost = '(?:$free|minute|samples|800|900|no.?charge)';
