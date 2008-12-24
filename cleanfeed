@@ -501,6 +501,8 @@ sub filter_art {
     undef $body;
     undef $Cache_Is_Binary;
     undef $XReader;
+    undef $score;
+    undef $scoreval;
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
@@ -1002,11 +1004,15 @@ sub filter_art {
             };
         };
 
+        # Enforce Altopia policy on Path pre-loading.
+        if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
+            return reject("TOS Violation")
+                if ($hdr{Path} !~ /news\.alt\.net(!not-for-mail)?$/);
+        };
+
         # bad words and scoring filter #######################################
         if ($config{do_scoring_filter} and not $gr{reports}
             and not $gr{scoreskip}) {
-            $score = "";
-            $scoreval = 0;
 
             #FIXME All that's MIME isn't WebTV
             #$score .= "!!!webtv" if $lch{'content-type'}
