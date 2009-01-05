@@ -1094,10 +1094,24 @@ sub filter_art {
 
             if ($hdr{References}) {
                 #$score -= 3;
-                $score .= "***Refs";
+                $score .= "**Refs";
                 #$score -= 2 if $hdr{References} =~ /^<[^>]+>\s+</;
-                $score .= "**GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
-            }
+                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
+
+                if ($lines > 0) {
+                    # How much of the post is referenced?
+                    $reflines = 0;
+                    $reflines++ while $body =~ /^>/mg;
+                    $pctrefs = ($reflines / $lines) * 100;
+                    $score .= "!!PctRefs" if $pctrefs > 70 and $lines > 20;
+                    $score .= "!!!PctRefs2" if $pctrefs > 92 and $lines > 20;
+                };
+            };
+
+            # Long signatures are poor netiquette but not spam, so only
+            # give them low scores.
+            $score .= "!SigLen" if $body =~ /\n-- (\r?\n\w+){6}/;
+            $score .= "!SigLen2" if $body =~ /\n-- (\r?\n\w+){10}/;
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
