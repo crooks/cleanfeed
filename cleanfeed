@@ -998,7 +998,8 @@ sub filter_art {
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
 
         if ($config{aggressive}) {
-            if (not $gr{reports} and not $hdr{References}) {
+            if (not $gr{reports} and not $hdr{References}
+                and $Bad_Body) {
                 return reject("Body ($1)", 'Bad Body')
                     if $body =~ /($Bad_Body)/;
             };
