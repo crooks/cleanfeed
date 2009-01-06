@@ -1008,7 +1008,7 @@ sub filter_art {
         # Enforce Altopia policy on Path pre-loading.
         if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
             return reject("TOS Violation")
-                if ($hdr{Path} !~ /news\.alt\.net(!not-for-mail)?$/);
+                if ($hdr{Path} !~ /[!\.]alt\.net(!not-for-mail)?$/);
         };
 
         # bad words and scoring filter #######################################
