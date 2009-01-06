@@ -1104,15 +1104,15 @@ sub filter_art {
                     $reflines = 0;
                     $reflines++ while $body =~ /^>/mg;
                     $pctrefs = ($reflines / $lines) * 100;
-                    $score .= "!!PctRefs" if $pctrefs > 70 and $lines > 20;
-                    $score .= "!!!PctRefs2" if $pctrefs > 92 and $lines > 20;
+                    $score .= "!PctRefs" if $pctrefs > 70 and $lines > 20;
+                    $score .= "!!PctRefs2" if $pctrefs > 92 and $lines > 30;
                 };
             };
 
             # Long signatures are poor netiquette but not spam, so only
             # give them low scores.
-            $score .= "!SigLen" if $body =~ /\n-- (\r?\n\w+){6}/;
-            $score .= "!SigLen2" if $body =~ /\n-- (\r?\n\w+){10}/;
+            $score .= "!SigLen" if $body =~ /\n-- (\r?\n.*){5,}\n\w/;
+            $score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
