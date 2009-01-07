@@ -530,6 +530,9 @@ sub filter_art {
         @followups = @groups;
     }
 
+    # Count the number of groups in the distribution
+    $grpcnt = scalar @groups;
+
     trimhashes() if $now - $Last_Trim >= $config{trim_interval};
     writestats() if $now - $Last_Stats >= $config{stats_interval};
 
@@ -577,26 +580,26 @@ sub filter_art {
     }
 
     # these only count if all groups match
-    $gr{skip} = ($gr{skip} == scalar @groups);
-    $gr{md5skip} = ($gr{md5skip} == scalar @groups);
-    $gr{phnskip} = ($gr{phnskip} == scalar @groups);
-    $gr{phlskip} = ($gr{phlskip} == scalar @groups);
-    $gr{scoreskip} = ($gr{scoreskip} == scalar @groups);
-    $gr{image} = (($gr{image} + $gr{binary}) >= scalar @groups);
-    $gr{binary} = ($gr{binary} == scalar @groups);
-    $gr{reports} = ($gr{reports} == scalar @groups);
+    $gr{skip} = ($gr{skip} == $grpcnt);
+    $gr{md5skip} = ($gr{md5skip} == $grpcnt);
+    $gr{phnskip} = ($gr{phnskip} == $grpcnt);
+    $gr{phlskip} = ($gr{phlskip} == $grpcnt);
+    $gr{scoreskip} = ($gr{scoreskip} == $grpcnt);
+    $gr{image} = (($gr{image} + $gr{binary}) >= $grpcnt);
+    $gr{binary} = ($gr{binary} == $grpcnt);
+    $gr{reports} = ($gr{reports} == $grpcnt);
     $gr{binary} = 0 if $gr{bad_bin};
-    $gr{html} = ($gr{html} == scalar @groups);
-    $gr{mime_html} = ($gr{mime_html} == scalar @groups);
-    $gr{allmod} = ($gr{mod} == scalar @groups);
-    $gr{alltest} = ($gr{test} == scalar @groups);
-    $gr{alladult} = ($gr{adult} == scalar @groups);
+    $gr{html} = ($gr{html} == $grpcnt);
+    $gr{mime_html} = ($gr{mime_html} == $grpcnt);
+    $gr{allmod} = ($gr{mod} == $grpcnt);
+    $gr{alltest} = ($gr{test} == $grpcnt);
+    $gr{alladult} = ($gr{adult} == $grpcnt);
 
     # If all newsgroups are excluded from filtering, bail now
     return '' if $gr{skip};
 
     foreach (@Restricted_List) {
-        $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == scalar @groups);
+        $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == $grpcnt);
     }
 
     # checks common to all article types #####################################
@@ -1021,11 +1024,10 @@ sub filter_art {
             #    and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
-            # Followups will equal Newsgroups if no actual Followup-To header
-            # is specified on a posting.
-            $score .= "!Followup1" if scalar @followups > 2;
-            $score .= "!!Followup2" if scalar @followups > 4;
-            $score .= "!Followup3" if scalar @followups > scalar @groups;
+            # Score poor netiquette on Follow-up's
+            $score .= "!!ExpFollowup" if scalar @followups > $grpcnt;
+            $score .= "!NoFollowup" if $grpcnt > 1 and not $hdr{Followup-To};
+            $score .= "!NoFollowup2" if $grpcnt > 3 and not $hdr{Followup-To};
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
 
@@ -1082,7 +1084,7 @@ sub filter_art {
 
             #$score .= "!CR" if $body =~ /\r/;
             $score .= "!!!2CR" if $body =~ /\r\r/;
-            $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15,}/;
+            $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
