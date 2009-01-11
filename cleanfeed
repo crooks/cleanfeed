@@ -1229,10 +1229,10 @@ sub filter_art {
 
         return reject("Unwanted $1 message", 'Bad control message')
             if $config{drop_useless_controls}
-                and $control_type =~ /^(?:sendsys|senduuname|version)$/;
+                and $control_type =~ /^(sendsys|senduuname|version)$/;
         return reject("Unwanted $1 message", 'Bad control message')
             if $config{drop_ihave_sendme}
-                and $control_type =~ /^(?:ihave|sendme)$/;;
+                and $control_type =~ /^(ihave|sendme)$/;
 
     }
     ##########################################################################
