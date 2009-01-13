@@ -275,7 +275,7 @@ sub get_config {
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups 
-                    image_allowed image_extensions)) {
+                    image_allowed image_extensions meow_groups)) {
                 if (defined $config_append{$_}) {
                     $config{$_} .= "|$config_append{$_}";
                     $config{$_} =~ s/\|\|/\|/g;
