@@ -581,6 +581,7 @@ sub filter_art {
 
     # these only count if all groups match
     $gr{skip} = ($gr{skip} == $grpcnt);
+    $gr{fslskip} = ($gr{fslskip} == $grpcnt);
     $gr{md5skip} = ($gr{md5skip} == $grpcnt);
     $gr{phnskip} = ($gr{phnskip} == $grpcnt);
     $gr{phlskip} = ($gr{phlskip} == $grpcnt);
