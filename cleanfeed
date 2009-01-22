@@ -769,10 +769,15 @@ sub filter_art {
                         if not $gr{image};
                         # gr{image} is true when distro matches bin_allowed
                         # or image_allowed
-                    } else {
-                        return reject("Binary: misplaced $file_extension")
-                        if not $gr{binary};
                         # gr{binary} is true when distro matches bin_allowed
+                    } else {
+                        if ($file_extension) {
+                            return reject("Binary: misplaced $file_extension")
+                            if not $gr{binary};
+                        } else {
+                            return reject("Binary: non-binary distribution")
+                            if not $gr{binary};
+                        }; # End of $file_extension check
                     }; # End of extension()
                 }; # End of is_binary
             }; # End of moderated groups
@@ -1103,12 +1108,13 @@ sub filter_art {
                 $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
 
                 if ($lines > 0) {
-                    # How much of the post is referenced?
+                    # How much of the post is quoted?
                     $reflines = 0;
                     $reflines++ while $body =~ /^>/mg;
                     $pctrefs = ($reflines / $lines) * 100;
-                    $score .= "!PctRefs" if $pctrefs > 70 and $lines > 20;
-                    $score .= "!!PctRefs2" if $pctrefs > 92 and $lines > 30;
+                    $score .= "!PctQuote" if $pctrefs > 70 and $lines > 20;
+                    $score .= "!!PctQuote2" if $pctrefs > 92 and $lines > 30;
+                    $score .= "!!NoQuote" if $reflines == 0 and $lines >5;
                 };
             };
 
