@@ -124,6 +124,7 @@ def write_bad_hosts(filename):
     file.write('# overwritten during the next scheduled download.    #\n')
     file.write('# For manual listings, update the bad_hosts file.    #\n')
     file.write('######################################################\n\n')
+    file.write('# Last Updated: %s\n\n' % (utcnow(),))
     host_addys = dictkeys_to_list(db_hosts)
     for entry in host_addys:
         if not regcheck(entry):
