@@ -96,15 +96,17 @@ def Excluded(exclude, entry):
         if rule.startswith('/') and rule.endswith('/'):
             # Strip the first and last chars.
             rule = rule[1:-1]
-            if re.search(rule, entry):
+            if re.search(rule, entry, I):
                 excluded = True
                 break
         # If entry is not regex, do a plain-text compare.
         else:
-            if entry.find(rule) >= 0:
+            lcentry = entry.lower()
+            if lcentry.find(rule) >= 0:
                 excluded = True
                 break
     return excluded
+
 def UpdateHits(previous, current, count):
     """Use the current count (hits for a given url) to update the stored DB
     value.  As the logfiles rotate daily, we make the assumption that a current
@@ -156,6 +158,8 @@ def Main():
         hits.update(filehits)
 
     for hit in hits:
+        if Excluded(exclude, hit):
+            continue
         if hits[hit] > config.backoff_ceiling:
             count = config.backoff_ceiling
         else:

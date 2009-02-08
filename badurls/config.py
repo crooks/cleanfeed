@@ -32,6 +32,6 @@ dbfile = 'badurl.db'
 # A dictionary containing variables we need to retain between runs.
 varfile = 'vars.db'
 
-backoff_interval = 300
+backoff_interval = 60
 backoff_rate = 1
 backoff_ceiling = 1000
