@@ -864,6 +864,18 @@ sub filter_art {
             return reject(@result) if $result[0];
         }
 
+        # Check payload against bad_body and bad_url files.
+        if (not $gr{reports} and not $hdr{References}) {
+            if ($Bad_Body) {
+                return reject("Body ($1)", 'Bad Body')
+                    if $body =~ /($Bad_Body)/;
+            };
+            if ($Bad_URL) {
+                return reject("URL ($1)", 'Bad URL')
+                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/;
+            };
+        };
+
         # EMP checks #########################################################
         # create MD5 body checksum hash.
         if ($config{do_md5} and not $gr{md5skip} and not $gr{alltest}
@@ -1004,18 +1016,6 @@ sub filter_art {
         return reject('Fake multipart bot', 'Bot signature')
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
 
-        if ($config{aggressive}) {
-            if (not $gr{reports} and not $hdr{References}) {
-                if ($Bad_Body) {
-                    return reject("Body ($1)", 'Bad Body')
-                        if $body =~ /($Bad_Body)/;
-                };
-                if ($Bad_URL) {
-                    return reject("URL ($1)", 'Bad URL')
-                        if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/;
-                };
-            };
-        };
 
         # Enforce Altopia policy on Path pre-loading.
         if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
