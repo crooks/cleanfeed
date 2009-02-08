@@ -1,0 +1,186 @@
+#!/usr/bin/python
+#
+# vim: tabstop=4 expandtab shiftwidth=4 autoindent
+#
+# template.py -- This is a template for new Python programs
+#
+# Copyright (C) 2005 Steve Crook <steve@mixmin.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTIBILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+
+import config
+from operator import itemgetter
+from time import time
+import os.path
+import re
+import sys
+import shelve
+
+def SecsFromEpoch():
+    """Return the whole number of seconds since Epoch"""
+    return int(time())
+
+def BackoffInterval(then, now):
+    """How much to decrement each entry in the DB by."""
+    backoff = int((now - then) / config.backoff_interval)
+    backoff = backoff * config.backoff_rate
+    return backoff
+
+def Dict2List(dict):
+    """Take a dictionary and return a list sorted numerically by value."""
+    return sorted(dict.iteritems(), key=itemgetter(1), reverse=True)
+
+def ReadFileList(filename):
+    """Read a file and return each line as a list item."""
+    items = []
+    readlist = open(filename, 'r')
+    for line in readlist:
+        items.append(line.rstrip())
+    return items
+
+def Var2File(filename, var):
+    """Write a single variable to a file"""
+    file = open(filename, 'w')
+    file.write(var)
+    file.close()
+
+def GetFile(args, defaults):
+    """Generate a list of valid filenames, either using defaults or arguements
+    passed via the command line."""
+    if len(args) == 1:
+        filenames = defaults
+    else:
+        # Remove first item in args, it's the prog name
+        args.pop(0)
+        filenames = args
+    valid_files = []
+    for filename in filenames:
+        if os.path.isfile(filename):
+            valid_files.append(filename)
+        else:
+            sys.stdout.write("%s: Not a file\n" % (filename,))
+    return valid_files
+
+
+def File2Dict(filename, regex):
+    """Search a file for lines matching a regex.  Return the matches as a
+    dictionary, with the count as the values."""
+    hits = {}
+    file = open(filename, 'r')
+    for line in file:
+        test = regex.match(line)
+        if test:
+            foo = test.group(1)
+            if hits.has_key(foo):
+                hits[foo] += 1
+            else:
+                hits[foo] = 1
+    file.close()
+    return hits
+
+def Excluded(exclude, entry):
+    """Compare a passed entry with all the entries in our exclude file.
+    Entries will be treated as plain text unless wrapped within slashes in
+    which case they will be regarded as regex's."""
+    excluded = False
+    for rule in exclude:
+        # Entries wrapped in /.../ are regex format.
+        if rule.startswith('/') and rule.endswith('/'):
+            # Strip the first and last chars.
+            rule = rule[1:-1]
+            if re.search(rule, entry):
+                excluded = True
+                break
+        # If entry is not regex, do a plain-text compare.
+        else:
+            if entry.find(rule) >= 0:
+                excluded = True
+                break
+    return excluded
+def UpdateHits(previous, current, count):
+    """Use the current count (hits for a given url) to update the stored DB
+    value.  As the logfiles rotate daily, we make the assumption that a current
+    count of less than a previous implies that logs have rotated."""
+    # now is greater than before so increment current with their difference.
+    if count > previous:
+        current += (count - previous)
+    # count is less than before, we assume log rotation has occured.
+    elif count < previous:
+        current += count
+    # We return count as previous because we want previous to become the
+    # current count for the next run.
+    previous = count
+    if current > config.backoff_ceiling:
+        current = config.backoff_ceiling
+    return previous, current
+
+def Main():
+    # Logfiles to be read by default.  This can be overridden by command line args.
+    logfiles = ReadFileList(config.filelist)
+    # URL's to exclude from processing.  Entries can be plain-text or regex.
+    exclude = ReadFileList(config.exclude)
+
+    # The regex to match entries against.
+    regex = re.compile('((?:http://|www\.)[^\s$]{1,80})')
+
+    db = shelve.open(config.dbfile)
+    vars = shelve.open(config.varfile)
+
+    # Get the last run time from our persistent database.
+    if vars.has_key('lastrun'):
+        lastrun = vars['lastrun']
+    else:
+        # If we've never been run before, fudge the last run time.
+        lastrun = SecsFromEpoch() - config.backoff_interval
+    backoff = BackoffInterval(lastrun, SecsFromEpoch())
+
+    # We only want to reset the lastrun time if backoff is greater than zero,
+    # otherwise repeated runs more frequently than backoff_interval will result
+    # in constant lastrun resets without any backoff happening.
+    if backoff > 0:
+        vars['lastrun'] = SecsFromEpoch()
+    vars.close()
+
+    hits = {}
+    filenames = GetFile(sys.argv, logfiles)
+    for filename in filenames:
+        filehits = File2Dict(filename, regex)
+        hits.update(filehits)
+
+    for hit in hits:
+        if hits[hit] > config.backoff_ceiling:
+            count = config.backoff_ceiling
+        else:
+            count = hits[hit]
+        if db.has_key(hit):
+            previous, current = db[hit]
+            # UpdateHits returns previous and current
+            db[hit] = UpdateHits(previous, current, count)
+        else:
+            db[hit] = [count, count]
+            
+    for url in db:
+        p, c = db[url]
+        if backoff > 0:
+            c = c - backoff
+            if c <= 0:
+                del db[url]
+            else:
+                db[url] = [p, c]
+        if c > config.threshold:
+            print c, url
+
+    print "Backoff is ", backoff
+    # Close the persistent DB
+    db.close()
+
+if (__name__ == "__main__"):
+    Main()
