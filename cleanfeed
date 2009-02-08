@@ -338,9 +338,10 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 # match the whole URL including path (used by body_urls() )
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
-# URL abbreviation services (Commonly used to obfuscate spam links)
+# URL redirection services (Commonly used to obfuscate spam links).
 $shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org'.
-            'sites\.google\.com/site/|groups\.google\.com/group/';
+            '|sites\.google\.com/site/|groups\.google\.com/group/'.
+            '|6x\.to|liteurl\.com|xurl\.jp';
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
@@ -1004,10 +1005,15 @@ sub filter_art {
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
 
         if ($config{aggressive}) {
-            if (not $gr{reports} and not $hdr{References}
-                and $Bad_Body) {
-                return reject("Body ($1)", 'Bad Body')
-                    if $body =~ /($Bad_Body)/;
+            if (not $gr{reports} and not $hdr{References}) {
+                if ($Bad_Body) {
+                    return reject("Body ($1)", 'Bad Body')
+                        if $body =~ /($Bad_Body)/;
+                };
+                if ($Bad_URL) {
+                    return reject("URL ($1)", 'Bad URL')
+                        if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/;
+                };
             };
         };
 
@@ -1096,7 +1102,8 @@ sub filter_art {
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
 
             # Contains a link to a URL abbreviation service
-            $score .= "!!URLShortener" if $body =~ /$shorturl\/\S/o;
+            $score .= "!!URLShortener"
+                if $body =~ /(?:www\.|http:\/\/)\S*(?:$shorturl)/io;
 
             if ($hdr{References}) {
                 #$score -= 3;
@@ -1711,6 +1718,7 @@ sub read_hashes {
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
     read_regex('bad_body', \$Bad_Body);
+    read_regex('bad_url', \$Bad_URL);
 }
 
 sub read_hash {
