@@ -574,9 +574,6 @@ sub filter_art {
         } elsif (defined &INN::newsgroup) {
             $gr{mod}++ if INN::newsgroup($_) eq 'm';
         }
-        
-        # Reject bad groups
-        return reject("Bad group ($_)", 'Bad group') if exists $Bad_Groups{$_};
     }
 
     # these only count if all groups match
@@ -1713,7 +1710,6 @@ sub read_hashes {
     read_hash('bad_adult_paths', \%Bad_Adult_Path);
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
-    read_hash('bad_groups', \%Bad_Groups);
     read_regex('bad_body', \$Bad_Body);
 }
 
