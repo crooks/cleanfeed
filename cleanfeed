@@ -874,6 +874,10 @@ sub filter_art {
                 return reject("URL ($1)", 'Bad URL')
                     if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/;
             };
+            if ($Bad_URL_Central) {
+                return reject("URL ($1)", 'Bad URL')
+                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL_Central))/;
+            };
         };
 
         # EMP checks #########################################################
@@ -1719,6 +1723,7 @@ sub read_hashes {
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
     read_regex('bad_body', \$Bad_Body);
     read_regex('bad_url', \$Bad_URL);
+    read_regex('bad_url_central', \$Bad_URL_Central);
 }
 
 sub read_hash {
