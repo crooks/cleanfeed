@@ -868,15 +868,15 @@ sub filter_art {
         if (not $gr{reports} and not $hdr{References}) {
             if ($Bad_Body) {
                 return reject("Body ($1)", 'Bad Body')
-                    if $body =~ /($Bad_Body)/;
+                    if $body =~ /($Bad_Body)/i;
             };
             if ($Bad_URL) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/;
+                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/i;
             };
             if ($Bad_URL_Central) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL_Central))/;
+                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL_Central))/i;
             };
         };
 
@@ -1043,6 +1043,7 @@ sub filter_art {
             $score .= "!NoFollowup2" if $grpcnt > 3 and not $hdr{Followup-To};
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
+            $score .= "!FromNoLC" if $lch{from} !~ /[a-z]/o;
 
             $score .= "!SubURL" if $lch{subject} =~ /$url/o;
             $score .= "!!!!!SubStealthURL" if $lch{subject} =~ /$stealthURL/o;
