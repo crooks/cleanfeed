@@ -875,11 +875,11 @@ sub filter_art {
             };
             if ($Bad_URL) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL))/i;
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)\S*(?:$Bad_URL))/i;
             };
             if ($Bad_URL_Central) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/)\S*(?:$Bad_URL_Central))/i;
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)\S*(?:$Bad_URL_Central))/i;
             };
         };
 
@@ -1111,7 +1111,7 @@ sub filter_art {
 
             # Contains a link to a URL abbreviation service
             $score .= "!!URLShortener"
-                if $body =~ /(?:www\.|http:\/\/)\S*(?:$shorturl)/io;
+                if $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($hdr{References}) {
                 #$score -= 3;

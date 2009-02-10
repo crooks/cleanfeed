@@ -31,7 +31,6 @@ def SecsFromEpoch():
 def BackoffInterval(then, now):
     """How much to decrement each entry in the DB by."""
     backoff = int((now - then) / config.backoff_interval)
-    print "Backoff: ", now, then, config.backoff_interval
     backoff = backoff * config.backoff_rate
     return backoff
 
@@ -78,13 +77,14 @@ def File2Dict(filename, regex):
     hits = {}
     file = open(filename, 'r')
     for line in file:
-        test = regex.match(line)
+        test = regex.search(line)
         if test:
             foo = test.group(1)
-            if hits.has_key(foo):
-                hits[foo] += 1
+            bar = foo.lower()
+            if hits.has_key(bar):
+                hits[bar] += 1
             else:
-                hits[foo] = 1
+                hits[bar] = 1
     file.close()
     return hits
 
@@ -131,6 +131,13 @@ def List2Regex(list):
     regex = '|'.join(list)
     return regex.replace('||', '|')
 
+def RegexSafe(regex):
+    """Manipulate a passed fqdn to make it regex friendly"""
+    regex = regex.lower()
+    regex = regex.replace('.', '\.')
+    regex = regex.replace('-', '\-')
+    return regex
+
 def Main():
     # Logfiles to be read by default.  This can be overridden by command line args.
     logfiles = File2List(config.filelist)
@@ -138,13 +145,10 @@ def Main():
     exclude = File2List(config.exclude)
 
     # The regex to match entries against.
-    regex = re.compile('((?:http://|www\.)[^\s$]{1,80})')
+    regex = re.compile('(?:http://(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
 
     db = shelve.open(config.dbfile)
     vars = shelve.open(config.varfile)
-
-    regexlist = File2List(config.cfurl)
-    cfurl = re.compile("(?:http://|www\.)\S*(" + List2Regex(regexlist)+ ")")
 
     # Get the last run time from our persistent database.
     if vars.has_key('lastrun'):
@@ -168,8 +172,6 @@ def Main():
         hits.update(filehits)
 
     for hit in hits:
-        if Excluded(exclude, hit):
-            continue
         if hits[hit] > config.backoff_ceiling:
             count = config.backoff_ceiling
         else:
@@ -180,7 +182,7 @@ def Main():
             db[hit] = UpdateHits(previous, current, count)
         else:
             db[hit] = [count, count]
-            
+    badurl = open(config.cfbadurl, 'w')        
     for url in db:
         p, c = db[url]
         if backoff > 0:
@@ -189,11 +191,10 @@ def Main():
                 del db[url]
             else:
                 db[url] = [p, c]
-        if c > config.threshold:
-            if cfurl.match(url):
-                print c, url
-            else:
-                print c, url, "Unmatched"
+        if c > config.threshold and not Excluded(exclude, url):
+            print c, url
+            badurl.write(RegexSafe(url) + "\n")
+    badurl.close()
 
     print "Backoff is ", backoff
     # Close the persistent DB
