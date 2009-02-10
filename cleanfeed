@@ -341,7 +341,7 @@ $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
 # URL redirection services (Commonly used to obfuscate spam links).
 $shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org'.
             '|sites\.google\.com/site/|groups\.google\.com/group/'.
-            '|6x\.to|liteurl\.com|xurl\.jp';
+            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru';
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';

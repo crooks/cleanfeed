@@ -31,6 +31,7 @@ def SecsFromEpoch():
 def BackoffInterval(then, now):
     """How much to decrement each entry in the DB by."""
     backoff = int((now - then) / config.backoff_interval)
+    print "Backoff: ", now, then, config.backoff_interval
     backoff = backoff * config.backoff_rate
     return backoff
 
@@ -38,12 +39,13 @@ def Dict2List(dict):
     """Take a dictionary and return a list sorted numerically by value."""
     return sorted(dict.iteritems(), key=itemgetter(1), reverse=True)
 
-def ReadFileList(filename):
+def File2List(filename):
     """Read a file and return each line as a list item."""
     items = []
     readlist = open(filename, 'r')
     for line in readlist:
-        items.append(line.rstrip())
+        if not line.startswith('#') and len(line) > 1:
+            items.append(line.rstrip())
     return items
 
 def Var2File(filename, var):
@@ -124,17 +126,25 @@ def UpdateHits(previous, current, count):
         current = config.backoff_ceiling
     return previous, current
 
+def List2Regex(list):
+    """Take a list and convert each item to a regex component."""
+    regex = '|'.join(list)
+    return regex.replace('||', '|')
+
 def Main():
     # Logfiles to be read by default.  This can be overridden by command line args.
-    logfiles = ReadFileList(config.filelist)
+    logfiles = File2List(config.filelist)
     # URL's to exclude from processing.  Entries can be plain-text or regex.
-    exclude = ReadFileList(config.exclude)
+    exclude = File2List(config.exclude)
 
     # The regex to match entries against.
     regex = re.compile('((?:http://|www\.)[^\s$]{1,80})')
 
     db = shelve.open(config.dbfile)
     vars = shelve.open(config.varfile)
+
+    regexlist = File2List(config.cfurl)
+    cfurl = re.compile("(?:http://|www\.)\S*(" + List2Regex(regexlist)+ ")")
 
     # Get the last run time from our persistent database.
     if vars.has_key('lastrun'):
@@ -180,7 +190,10 @@ def Main():
             else:
                 db[url] = [p, c]
         if c > config.threshold:
-            print c, url
+            if cfurl.match(url):
+                print c, url
+            else:
+                print c, url, "Unmatched"
 
     print "Backoff is ", backoff
     # Close the persistent DB
