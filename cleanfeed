@@ -395,6 +395,9 @@ $Xbot = '^2\.\d\.(?:\d\d? [a-z]|\d\d?)$|newsgroup bulk mailer'
     . '|metanews \d|metapost|ng post|girlsdeluxe|usenet replayer'
     . '|express news poster|^superpost auto marketer';
 
+# We use these in the saveart function to seperate message elements.
+$CutmarkHead = "----- Begin Message Headers -----";
+$CutmarkBody = "----- End Message Headers -----\n";
 ##############################################################################
 
 get_config();
@@ -1611,7 +1614,6 @@ sub trimhashes {
 ##############################################################################
 
 sub saveart {
-#TODO: Messy!  I need to tidy up the mess I've made of this sub.
     # We currently recognise various formatting options:
     # 0: Header and body truncated if over 50 lines (Default)
     # 1: Header and full body regardless of length
@@ -1628,34 +1630,54 @@ sub saveart {
         slog('E', "Cannot open $file: $!");
         return;
     }
-    if ($format == 3 and $hdr{'NNTP-Posting-Host'}) {
+
+    # Get format 3 out of the way first as there's not much to do.
+    if ($format == 3) {
         print LOCAL "$hdr{'NNTP-Posting-Host'}\n"
-    }
-    if ($format != 3) {
-        print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
-        print LOCAL "INFO: $info\n" if $info;
-        print LOCAL "Score: $score\n" if $score;
-        print LOCAL "Binary: $Cache_Is_Binary\n"
-            if is_binary();
-        foreach (sort keys %hdr) {
-            next if $_ eq '__BODY__' or $_ eq '__LINES__';
-            print LOCAL "$_: $hdr{$_}\n"
-        }
-    }
+            if $hdr{'NNTP-Posting-Host'};
+        close LOCAL;
+        return;
+    };
+
+    # Headers common to all remaining report types.
+    print LOCAL "$CutmarkHead\n";
+    print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
+    print LOCAL "INFO: $info\n" if $info;
+    print LOCAL "Score: $score\n" if $score;
+    print LOCAL "Binary: $Cache_Is_Binary\n"
+        if is_binary();
+    foreach (sort keys %hdr) {
+        next if $_ eq '__BODY__' or $_ eq '__LINES__';
+        print LOCAL "$_: $hdr{$_}\n";
+    };
+
+    # Format 2 is headers only; just insert newline.
     if ($format == 2) {
         print LOCAL "\n";
-    }
-    if ($lines > 50 and $format == 0) {
-        print LOCAL "\n" . substr($hdr{__BODY__}, 0, 3000) . "\n\n";
-    }
-    if ($lines > 50 and $format == 1) {
-        print LOCAL "\n$hdr{__BODY__}\n";
-    }
-    if ($lines <= 50 and ($format == 0 or $format == 1)) {
-            print LOCAL "\n$hdr{__BODY__}\n";
-    }
+        close LOCAL;
+        return;
+    };
+
+    # Format 1 - Full message payload.
+    if ($format == 1) {
+        print LOCAL "$CutmarkBody\n";
+        print LOCAL "$hdr{__BODY__}\n";
+        close LOCAL;
+        return;
+    };
+
+    # Format 0 - Cropped payload
+    if ($format == 0) {
+        print LOCAL "$CutmarkBody\n";
+        print LOCAL substr($hdr{__BODY__}, 0, 3000) . "\n\n";
+        close LOCAL;
+        return;
+    };
+
+    # Undefined format, give up, go home.
     close LOCAL;
-}
+    return;
+};
 
 # See if batch file is oversized and if so, rotate it
 sub checkrotate {
