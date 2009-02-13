@@ -77,8 +77,16 @@ def File2Dict(filename, regex):
     hits = {}
     file = open(filename, 'r')
     for line in file:
+        line = line.strip()
+        onbody = False
+        if line == '----- End Message Headers -----' and not onbody:
+            onbody = True
+            continue
+        if line == '----- Begin Message Headers -----' and onbody:
+            onbody = False
+            continue
         test = regex.search(line)
-        if test:
+        if test and onbody:
             foo = test.group(1)
             bar = foo.lower()
             if hits.has_key(bar):
@@ -138,16 +146,11 @@ def RegexSafe(regex):
     regex = regex.replace('-', '\-')
     return regex
 
-def Main():
-    # Logfiles to be read by default.  This can be overridden by command line args.
-    logfiles = File2List(config.filelist)
-    # URL's to exclude from processing.  Entries can be plain-text or regex.
-    exclude = File2List(config.exclude)
-
-    # The regex to match entries against.
-    regex = re.compile('(?:http://(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
-
-    db = shelve.open(config.dbfile)
+def GetVars():
+    """We only have on persistent variable at the moment, 'lastrun'.  This sets
+    the seconds since epoch of when a last run occured.  It's used to calculate
+    the backoff rate for decrementing hit counts against each URL."""
+    # Open the vars shelve
     vars = shelve.open(config.varfile)
 
     # Get the last run time from our persistent database.
@@ -164,7 +167,21 @@ def Main():
     if backoff > 0:
         vars['lastrun'] = SecsFromEpoch()
     vars.close()
+    return backoff
 
+def Main():
+    # Logfiles to be read by default.  This can be overridden by command line args.
+    logfiles = File2List(config.filelist)
+    # URL's to exclude from processing.  Entries can be plain-text or regex.
+    exclude = File2List(config.exclude)
+
+    # The regex to match entries against.
+    regex = re.compile('(?:http://(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
+
+    # Set the backoff rate
+    backoff = GetVars()
+
+    db = shelve.open(config.dbfile)
     hits = {}
     filenames = GetFile(sys.argv, logfiles)
     for filename in filenames:
@@ -181,8 +198,12 @@ def Main():
             # UpdateHits returns previous and current
             db[hit] = UpdateHits(previous, current, count)
         else:
+            # If this is a new URL, set previous and current to the newly
+            # discovered count.
             db[hit] = [count, count]
-    badurl = open(config.cfbadurl, 'w')        
+
+    # Prepare to overwrite Cleanfeed's bad_url_central file.
+    badurl = open(config.cfbadurl, 'w')
     for url in db:
         p, c = db[url]
         if backoff > 0:

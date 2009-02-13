@@ -17,21 +17,24 @@
 # for more details.
 
 # The threshold at which we consider a URL to be excessive and blacklist it.
-threshold = 50
+threshold = 250
 
 # The file from which to read the default list of logfiles we're going to
 # process.
-filelist = 'logfile_list'
+filelist = '/usr/local/news/badurls/logfile_list'
 
 # A list of URL's to exclude from blacklisting.
-exclude = 'exclude_list'
+exclude = '/usr/local/news/badurls/exclude_list'
 
 # The filename used to store the persistent dictionary
-dbfile = 'badurl.db'
+dbfile = '/usr/local/news/badurls/badurl.db'
 
 # A dictionary containing variables we need to retain between runs.
-varfile = 'vars.db'
+varfile = '/usr/local/news/badurls/vars.db'
 
-backoff_interval = 60
+# The Cleanfeed bad_url list file
+cfbadurl = '/usr/local/news/cleanfeed/etc/bad_url_central'
+
+backoff_interval = 300
 backoff_rate = 1
 backoff_ceiling = 1000
