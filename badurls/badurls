@@ -19,10 +19,17 @@
 import config
 from operator import itemgetter
 from time import time
+from datetime import datetime
 import os.path
 import re
 import sys
 import shelve
+
+def utcnow():
+    """Just return the utc time.  Everything should work on utc."""
+    utctime = datetime.utcnow()
+    utcstamp = utctime.strftime("%Y-%m-%d %H:%M:%S")
+    return utcstamp
 
 def SecsFromEpoch():
     """Return the whole number of seconds since Epoch"""
@@ -204,6 +211,14 @@ def Main():
 
     # Prepare to overwrite Cleanfeed's bad_url_central file.
     badurl = open(config.cfbadurl, 'w')
+    badurl.write('######################################################\n')
+    badurl.write('# This file is downloaded from a central resource.   #\n')
+    badurl.write('# Do not manually edit it as your changes will be    #\n')
+    badurl.write('# overwritten during the next scheduled download.    #\n')
+    badurl.write('# For manual listings, update the bad_url file.      #\n')
+    badurl.write('######################################################\n\n')
+    badurl.write('# Last Updated: %s\n\n' % (utcnow(),))
+
     for url in db:
         p, c = db[url]
         if backoff > 0:
