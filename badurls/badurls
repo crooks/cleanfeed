@@ -39,6 +39,8 @@ def BackoffInterval(then, now):
     """How much to decrement each entry in the DB by."""
     backoff = int((now - then) / config.backoff_interval)
     backoff = backoff * config.backoff_rate
+    print "Last run was %d mins ago." % ((now - then) / 60, )
+    print "Backoff is %d" % (backoff, )
     return backoff
 
 def Dict2List(dict):
@@ -60,48 +62,16 @@ def Var2File(filename, var):
     file.write(var)
     file.close()
 
-def GetFile(args, defaults):
-    """Generate a list of valid filenames, either using defaults or arguements
-    passed via the command line."""
-    if len(args) == 1:
-        filenames = defaults
-    else:
-        # Remove first item in args, it's the prog name
-        args.pop(0)
-        filenames = args
-    valid_files = []
-    for filename in filenames:
-        if os.path.isfile(filename):
-            valid_files.append(filename)
-        else:
-            sys.stdout.write("%s: Not a file\n" % (filename,))
-    return valid_files
+def IsFile(filename):
+    """Return True is a passed filename exists and is a normal file."""
+    if os.path.isfile(filename):
+        return True
+    sys.stdout.write("%s: Not a valid file\n" % (filename,))
+    return False
 
-
-def File2Dict(filename, regex):
-    """Search a file for lines matching a regex.  Return the matches as a
-    dictionary, with the count as the values."""
-    hits = {}
-    file = open(filename, 'r')
-    for line in file:
-        line = line.strip()
-        onbody = False
-        if line == '----- End Message Headers -----' and not onbody:
-            onbody = True
-            continue
-        if line == '----- Begin Message Headers -----' and onbody:
-            onbody = False
-            continue
-        test = regex.search(line)
-        if test and onbody:
-            foo = test.group(1)
-            bar = foo.lower()
-            if hits.has_key(bar):
-                hits[bar] += 1
-            else:
-                hits[bar] = 1
-    file.close()
-    return hits
+def GetSize(filename):
+    """Return the size of a given file in Bytes"""
+    return os.path.getsize(filename)
 
 def Excluded(exclude, entry):
     """Compare a passed entry with all the entries in our exclude file.
@@ -141,40 +111,67 @@ def UpdateHits(previous, current, count):
         current = config.backoff_ceiling
     return previous, current
 
-def List2Regex(list):
-    """Take a list and convert each item to a regex component."""
-    regex = '|'.join(list)
-    return regex.replace('||', '|')
-
 def RegexSafe(regex):
     """Manipulate a passed fqdn to make it regex friendly"""
     regex = regex.lower()
     regex = regex.replace('.', '\.')
     regex = regex.replace('-', '\-')
+    # This should never happen but best to be careful.
+    regex = regex.replace('||', '|')
     return regex
 
-def GetVars():
-    """We only have on persistent variable at the moment, 'lastrun'.  This sets
-    the seconds since epoch of when a last run occured.  It's used to calculate
-    the backoff rate for decrementing hit counts against each URL."""
-    # Open the vars shelve
-    vars = shelve.open(config.varfile)
-
+def SetBackoff():
+    """The seconds since epoch of when a last run occured.  It's used to
+    calculate the backoff rate for decrementing hit counts against each URL."""
     # Get the last run time from our persistent database.
-    if vars.has_key('lastrun'):
+    if 'lastrun' in vars:
         lastrun = vars['lastrun']
     else:
         # If we've never been run before, fudge the last run time.
         lastrun = SecsFromEpoch() - config.backoff_interval
     backoff = BackoffInterval(lastrun, SecsFromEpoch())
-
     # We only want to reset the lastrun time if backoff is greater than zero,
     # otherwise repeated runs more frequently than backoff_interval will result
     # in constant lastrun resets without any backoff happening.
     if backoff > 0:
         vars['lastrun'] = SecsFromEpoch()
-    vars.close()
     return backoff
+
+def GetURLs(files):
+    """Read a list of files.  Return an occurances count of each individual
+    URL contained within those files."""
+    hits = {}
+    regex = re.compile('(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
+    for filename in files:
+        if IsFile(filename):
+            print "Scanning", filename
+            #filesize = GetSize(filename)
+            file = open(filename, 'r')
+            onbody = False
+            for line in file:
+                line = line.strip()
+                # All our logfiles contain cutmarks to separate headers from
+                # bodies.
+                if line == '----- End Message Headers -----' and not onbody:
+                    onbody = True
+                    continue
+                if line == '----- Begin Message Headers -----' and onbody:
+                    onbody = False
+                    continue
+                # We only want to process message bodies, not headers.
+                if not onbody:
+                    continue
+                test = regex.search(line)
+                if test:
+                    url = test.group(1)
+                    url = url.lower()
+                    if url in hits:
+                        if hits[url] < config.backoff_ceiling:
+                            hits[url] += 1
+                    else:
+                        hits[url] = 1
+            file.close()
+    return hits
 
 def Main():
     # Logfiles to be read by default.  This can be overridden by command line args.
@@ -183,24 +180,21 @@ def Main():
     exclude = File2List(config.exclude)
 
     # The regex to match entries against.
-    regex = re.compile('(?:http://(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
+    regex = re.compile('(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{1,70})', re.I)
+
+    # Open the shelves
+    global vars
+    vars = shelve.open(config.varfile)
+    db = shelve.open(config.dbfile)
 
     # Set the backoff rate
-    backoff = GetVars()
+    backoff = SetBackoff()
 
-    db = shelve.open(config.dbfile)
-    hits = {}
-    filenames = GetFile(sys.argv, logfiles)
-    for filename in filenames:
-        filehits = File2Dict(filename, regex)
-        hits.update(filehits)
+    hits = GetURLs(logfiles)
 
     for hit in hits:
-        if hits[hit] > config.backoff_ceiling:
-            count = config.backoff_ceiling
-        else:
-            count = hits[hit]
-        if db.has_key(hit):
+        count = hits[hit]
+        if hit in db:
             previous, current = db[hit]
             # UpdateHits returns previous and current
             db[hit] = UpdateHits(previous, current, count)
@@ -223,17 +217,17 @@ def Main():
         p, c = db[url]
         if backoff > 0:
             c = c - backoff
+            p = p - backoff
             if c <= 0:
                 del db[url]
             else:
                 db[url] = [p, c]
-        if c > config.threshold and not Excluded(exclude, url):
-            print c, url
+        if not Excluded(exclude, url) and c > config.threshold:
             badurl.write(RegexSafe(url) + "\n")
+            print p, c, url
+    # Close the file and shelves
     badurl.close()
-
-    print "Backoff is ", backoff
-    # Close the persistent DB
+    vars.close()
     db.close()
 
 if (__name__ == "__main__"):

@@ -339,7 +339,7 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
 # URL redirection services (Commonly used to obfuscate spam links).
-$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org'.
+$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org|urlbrief\.com'.
             '|sites\.google\.com/site/|groups\.google\.com/group/'.
             '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru';
 
