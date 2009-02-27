@@ -875,11 +875,11 @@ sub filter_art {
             };
             if ($Bad_URL) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)\S*(?:$Bad_URL))/i;
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
             };
             if ($Bad_URL_Central) {
                 return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)\S*(?:$Bad_URL_Central))/i;
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
             };
         };
 
