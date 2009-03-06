@@ -90,6 +90,8 @@ sub get_config {
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
     max_encoded_lines => 15,    # number of encoded binary lines to allow
+    max_base64_lines => 200,    # Allow x lines of content containing Base64
+                                # in non-binary groups
 
     block_mime_html => 1,       # block MIME encapsulated HTML (attached files)
                                 #  (NOT straight or multipart/alternative)
@@ -271,7 +273,7 @@ sub get_config {
             foreach (qw(bin_allowed bad_bin md5exclude poison_groups
                     allexclude html_allowed mime_html_allowed low_xpost_groups
                     test_groups no_cancel_groups baddomainpat fsl_exclude
-                    phl_exempt phl_exclude supersedes_exempt
+                    phl_exempt phl_exclude supersedes_exempt shorturl
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups 
@@ -341,7 +343,8 @@ $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
 # URL redirection services (Commonly used to obfuscate spam links).
 $shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org|urlbrief\.com'.
             '|sites\.google\.com/site/|groups\.google\.com/group/'.
-            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru';
+            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru|beam\.to|doiop\.com'.
+            '|kickme\.to|end\.at|has\.it';
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
@@ -504,6 +507,7 @@ sub filter_art {
     $now = time;
     undef $body;
     undef $Cache_Is_Binary;
+    undef $Cache_Is_Base64;
     undef $XReader;
     undef $score;
     undef $scoreval;
@@ -756,9 +760,8 @@ sub filter_art {
                 /mx;
 
         # binaries in non-binary newsgroups
-        if ($config{block_binaries}
-            and $lines > $config{max_encoded_lines}) {
-                unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
+        if ($config{block_binaries}) {
+            unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 # We're only interested in binaries
                 if (is_binary()) {
                     # Try to get the file extension
@@ -781,8 +784,12 @@ sub filter_art {
                         }; # End of $file_extension check
                     }; # End of extension()
                 }; # End of is_binary
+                if (is_base64()) {
+                    return reject("Binary: non-binary distribution")
+                    if not $gr{binary};
+                }; # End of is_base64
             }; # End of moderated groups
-        }; # End of max encoded lines
+        }; # End of block binaries
 
         # mime-encapsulated HTML (attached *.html file)
         return reject('Attached HTML file')
@@ -897,7 +904,7 @@ sub filter_art {
                     and (($config{fuzzy_max_length}
                             and $lines < $config{fuzzy_max_length})
                         or not $config{fuzzy_max_length})
-                    and not is_binary()) {
+                    and not is_binary() and not is_base64()) {
                 $mbody = lc $hdr{__BODY__};
                 $mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
                 $mbody =~ s/\r{3}.*$//mg;
@@ -913,7 +920,7 @@ sub filter_art {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
                 and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
-                and not is_binary() and not $gr{alltest}
+                and not is_binary() and not is_base64() and not $gr{alltest}
                 and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
                 and not ($gr{binary} and $lines > 100
                         and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
@@ -1279,19 +1286,6 @@ sub is_binary {
         return $Cache_Is_Binary;
     }
 
-    if ($hdr{__BODY__} =~ /
-            (?:
-                ^[ \t|>]*
-                (?>
-                    [A-Za-z0-9\+\/]{59,76}
-                )
-                \s*\r?\n
-            ){$config{max_encoded_lines}}
-        /mox) {
-        $Cache_Is_Binary = 'Base64';
-        return $Cache_Is_Binary;
-    }
-
     if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
         local $_ = $1;
         if (/line=/ and /size=/ and /name=/) {
@@ -1303,6 +1297,32 @@ sub is_binary {
     $Cache_Is_Binary = 0;
     return 0;
 }
+
+# Added to Cleanfeed 19th Feb 2009 to enable base64 line limits to be set
+# independently of other encodings.  This helps prevent PGP content being
+# rejected as binary.
+#TODO: This check is not ideal, it doesn't match the number of base64 lines,
+#      just the total number of lines.  This is because Cleanfeed dies when
+#      trying to match 100's of lines in a Regex.
+sub is_base64 {
+    return 0 unless $lines > $config{max_base64_lines};
+    return $Cache_Is_Base64 if defined $Cache_Is_Base64;
+    if ($hdr{__BODY__} =~ /
+            (?:
+                ^[ \t|>]*
+                (?>
+                    [A-Za-z0-9\+\/]{59,76}
+                )
+                \s*\r?\n
+            ){$config{max_encoded_lines}}
+        /mox) {
+        $Cache_Is_Base64 = 'Base64';
+        return $Cache_Is_Base64;
+    };
+    # Message is not Base64
+    $Cache_Is_Base64 = 0;
+    return 0;
+};
 
 # Useful for groups where pictures are accepted, but not other binary formats.
 sub extension {
@@ -1646,6 +1666,8 @@ sub saveart {
     print LOCAL "Score: $score\n" if $score;
     print LOCAL "Binary: $Cache_Is_Binary\n"
         if is_binary();
+    print LOCAL "Binary: $Cache_Is_Base64\n"
+        if is_base64();
     foreach (sort keys %hdr) {
         next if $_ eq '__BODY__' or $_ eq '__LINES__';
         print LOCAL "$_: $hdr{$_}\n";
