@@ -1030,12 +1030,11 @@ sub filter_art {
         return reject('Fake multipart bot', 'Bot signature')
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
 
-
         # Enforce Altopia policy on Path pre-loading.
-        if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
-            return reject("TOS Violation")
-                if ($hdr{Path} !~ /[!\.]alt\.net(!not-for-mail)?$/);
-        };
+        #if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
+        #    return reject("TOS Violation")
+        #        if ($hdr{Path} !~ /[!\.]alt\.net(!not-for-mail)?$/);
+        #};
 
         # bad words and scoring filter #######################################
         if ($config{do_scoring_filter} and not $gr{reports}
