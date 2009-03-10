@@ -506,6 +506,7 @@ sub setup_stuff {
 sub filter_art {
     $now = time;
     undef $body;
+    undef $body_has_url;
     undef $Cache_Is_Binary;
     undef $Cache_Is_Base64;
     undef $XReader;
@@ -876,22 +877,6 @@ sub filter_art {
             return reject(@result) if $result[0];
         }
 
-        # Check payload against bad_body and bad_url files.
-        if (not $gr{reports} and not $hdr{References}) {
-            if ($Bad_Body) {
-                return reject("Body ($1)", 'Bad Body')
-                    if $body =~ /($Bad_Body)/i;
-            };
-            if ($Bad_URL) {
-                return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
-            };
-            if ($Bad_URL_Central) {
-                return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
-            };
-        };
-
         # EMP checks #########################################################
         # create MD5 body checksum hash.
         if ($config{do_md5} and not $gr{md5skip} and not $gr{alltest}
@@ -1032,6 +1017,28 @@ sub filter_art {
         return reject('Fake multipart bot', 'Bot signature')
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
 
+        # Set a flag if the message body contains a URL.  This means later,
+        # more complex tests can be bypassed on many messages.
+        if ($body =~ /http:\/\/|www\./i) {
+            $body_has_url = 1;
+        };
+
+        # Check payload against bad_body and bad_url files.
+        if (not $gr{reports} and not $hdr{References}) {
+            if ($Bad_Body) {
+                return reject("Body ($1)", 'Bad Body')
+                    if $body =~ /($Bad_Body)/i;
+            };
+            if ($Bad_URL and $body_has_url) {
+                return reject("URL ($1)", 'Bad URL')
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
+            };
+            if ($Bad_URL_Central and $body_has_url) {
+                return reject("URL ($1)", 'Bad URL')
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
+            };
+        };
+
         # Enforce Altopia policy on Path pre-loading.
         #if ($hdr{Path} =~ /news\.alt\.net!.*[!\.]alt\.net/) {
         #    return reject("TOS Violation")
@@ -1119,7 +1126,8 @@ sub filter_art {
 
             # Contains a link to a URL abbreviation service
             $score .= "!!!URLShortener"
-                if $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
+                if $body_has_url
+                    and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($hdr{References}) {
                 #$score -= 3;
