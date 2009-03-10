@@ -569,7 +569,7 @@ sub filter_art {
             and /$config{spam_report_groups}/o;
         $gr{low_xpost}++ if $config{low_xpost_groups}
             and /$config{low_xpost_groups}/o;
-        $gr{meow}++ if $config{meow_ext_maxgroups}
+        $gr{meow}++ if $config{meow_groups}
             and /$config{meow_groups}/o;
         $gr{no_cancel}++ if $config{no_cancel_groups}
             and /$config{no_cancel_groups}/o;
@@ -712,8 +712,10 @@ sub filter_art {
                 and scalar @followups > $config{low_xpost_maxgroups};
 
         return reject('Too many newsgroups (meow)', 'Too many newsgroups')
-            if $gr{meow} and $gr{meow} != scalar @groups
-                and scalar @followups > $config{meow_ext_maxgroups};
+            if $gr{meow}
+                #and $gr{meow} != scalar @groups
+                and $config{meow_ext_maxgroups}
+                and (scalar @followups - $gr{meow}) > $config{meow_ext_maxgroups};
 
         return reject('Too many test groups in crosspost',
             'Too many newsgroups') if $gr{test} > 2;
