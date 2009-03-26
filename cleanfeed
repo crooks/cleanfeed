@@ -1031,6 +1031,11 @@ sub filter_art {
         # bot checks, the second part ########################################
         return reject('Fake multipart bot', 'Bot signature')
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
+        #
+
+        # Reject bad From headers.
+        return reject("From ($1)", 'Bad From')
+            if $Bad_From and $hdr{From} =~/($Bad_From)/i;
 
         # Set a flag if the message body contains a URL.  This means later,
         # more complex tests can be bypassed on many messages.
@@ -1791,6 +1796,7 @@ sub read_hashes {
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
     read_regex('bad_body', \$Bad_Body);
+    read_regex('bad_from', \$Bad_From);
     read_regex('bad_url', \$Bad_URL);
     read_regex('bad_url_central', \$Bad_URL_Central);
 }
