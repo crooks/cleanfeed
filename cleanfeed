@@ -164,7 +164,8 @@ sub get_config {
     ### groups where we restrict crossposts even more than normal
     low_xpost_groups => 'test|jobs|forsale',
 
-    ### groups where we restrict crossposts whith other groups
+    ### Groups where we restrict crossposts with other groups as a result of
+    ### the meow wars.  (<4curm4$r1@decaxp.harvard.edu>)
     meow_groups => '^alt\.fan\.karl-malden\.nose|^alt\.flame|^alt\.troll'.
         '|^alt\.alien\.vampire\.flonk\.flonk\.flonk|^alt\.romath'.
         '|^alt\.snuh|^alt\.fan\.natasha',
@@ -538,26 +539,26 @@ sub filter_art {
     } else {
         @followups = @groups;
     }
+    # Create a merged array of groups and followups with no duplicates.
+    # This is useful in instances where we consider follow-up groups to be
+    # part of the distribution.
+    my %merge = ();
+    my @grpfup = grep { ! $merge{ $_ }++ } (@groups, @followups);
 
     # Count the number of groups in the distribution
     $grpcnt = scalar @groups;
+    $fupcnt = scalar @followups;
+    $grpfupcnt = scalar @grpfup;
 
     trimhashes() if $now - $Last_Trim >= $config{trim_interval};
     writestats() if $now - $Last_Stats >= $config{stats_interval};
 
-    # check out the newsgroups the article is posted to ######################
+    # Check out the Newsgroups to which the article is posted
     %gr = ();
     for (@groups) {
         foreach my $item (@Restricted_List) {
             $gr{'rg_'.$item}++ if /$Restricted_Groups{$item}/;
         }
-        $gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
-        $gr{fslskip}++ if $config{fslexclude} and /$config{fslexclude}/o;
-        $gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
-        $gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
-        $gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
-        $gr{scoreskip}++ if $config{score_exclude} and /$config{score_exclude}/o;
-        $gr{phrinc}++ if $config{flood_groups} and /$config{flood_groups}/o;
         $gr{binary}++ if $config{bin_allowed} and /$config{bin_allowed}/o;
         $gr{image}++ if $config{image_allowed} and /$config{image_allowed}/o;
         $gr{bad_bin}++ if $config{bad_bin} and /$config{bad_bin}/o;
@@ -568,10 +569,6 @@ sub filter_art {
             and /$config{poison_groups}/o;
         $gr{reports}++ if $config{spam_report_groups}
             and /$config{spam_report_groups}/o;
-        $gr{low_xpost}++ if $config{low_xpost_groups}
-            and /$config{low_xpost_groups}/o;
-        $gr{meow}++ if $config{meow_groups}
-            and /$config{meow_groups}/o;
         $gr{no_cancel}++ if $config{no_cancel_groups}
             and /$config{no_cancel_groups}/o;
         $gr{test}++ if /$config{test_groups}/o;
@@ -585,13 +582,23 @@ sub filter_art {
         }
     }
 
-    # these only count if all groups match
-    $gr{skip} = ($gr{skip} == $grpcnt);
-    $gr{fslskip} = ($gr{fslskip} == $grpcnt);
-    $gr{md5skip} = ($gr{md5skip} == $grpcnt);
-    $gr{phnskip} = ($gr{phnskip} == $grpcnt);
-    $gr{phlskip} = ($gr{phlskip} == $grpcnt);
-    $gr{scoreskip} = ($gr{scoreskip} == $grpcnt);
+    # As above but check Newsgroups and Followup-To headers
+    for (@grpfup) {
+        $gr{skip}++ if $config{allexclude} and /$config{allexclude}/o;
+        $gr{fslskip}++ if $config{fslexclude} and /$config{fslexclude}/o;
+        $gr{md5skip}++ if $config{md5exclude} and /$config{md5exclude}/o;
+        $gr{phnskip}++ if $config{phn_exclude} and /$config{phn_exclude}/o;
+        $gr{phlskip}++ if $config{phl_exclude} and /$config{phl_exclude}/o;
+        $gr{scoreskip}++ if $config{score_exclude}
+            and /$config{score_exclude}/o;
+        $gr{phrinc}++ if $config{flood_groups} and /$config{flood_groups}/o;
+        $gr{low_xpost}++ if $config{low_xpost_groups}
+            and /$config{low_xpost_groups}/o;
+        $gr{meow}++ if $config{meow_groups}
+            and /$config{meow_groups}/o;
+    };
+
+    # These only count if all Newsgroups match
     $gr{image} = (($gr{image} + $gr{binary}) >= $grpcnt);
     $gr{binary} = ($gr{binary} == $grpcnt);
     $gr{reports} = ($gr{reports} == $grpcnt);
@@ -601,6 +608,14 @@ sub filter_art {
     $gr{allmod} = ($gr{mod} == $grpcnt);
     $gr{alltest} = ($gr{test} == $grpcnt);
     $gr{alladult} = ($gr{adult} == $grpcnt);
+
+    # Same as above but include Followup_To in addition to Newsgroups
+    $gr{skip} = ($gr{skip} == $grpfupcnt);
+    $gr{fslskip} = ($gr{fslskip} == $grpfupcnt);
+    $gr{md5skip} = ($gr{md5skip} == $grpfupcnt);
+    $gr{phnskip} = ($gr{phnskip} == $grpfupcnt);
+    $gr{phlskip} = ($gr{phlskip} == $grpfupcnt);
+    $gr{scoreskip} = ($gr{scoreskip} == $grpfupcnt);
 
     # If all newsgroups are excluded from filtering, bail now
     return '' if $gr{skip};
@@ -696,36 +711,36 @@ sub filter_art {
             if $gr{rg_net} and $hdr{Distribution} !~ /^[ \t]*4[Gg][Hh][ \t]*$/;
 
         return reject('U2 violation - excessive crossposting', 'U2 violation')
-            if $gr{rg_net} and scalar @followups > 3;
+            if $gr{rg_net} and $fupcnt > 3;
 
         return reject('bofh violation - excessive crossposting','U2 violation')
-            if $gr{rg_bofh} and scalar @followups > 3;
+            if $gr{rg_bofh} and $fupcnt > 3;
 
         return reject('bofh violation - invalid distribution', 'U2 violation')
             if $gr{rg_bofh}
                 and $hdr{Distribution} !~ /^[ \t]*[Bb][Oo][Ff][Hh][ \t]*$/;
 
         return reject('Too many newsgroups')
-            if scalar @followups > $config{maxgroups};
+            if $fupcnt > $config{maxgroups};
 
         return reject('Too many newsgroups (low_xpost)', 'Too many newsgroups')
             if $gr{low_xpost}
-                and scalar @followups > $config{low_xpost_maxgroups};
+                and $fupcnt > $config{low_xpost_maxgroups};
 
         return reject('Too many newsgroups (meow)', 'Too many newsgroups')
             if $gr{meow}
                 #and $gr{meow} != scalar @groups
                 and $config{meow_ext_maxgroups}
-                and (scalar @followups - $gr{meow}) > $config{meow_ext_maxgroups};
+                and ($fupcnt - $gr{meow}) > $config{meow_ext_maxgroups};
 
         return reject('Too many test groups in crosspost',
             'Too many newsgroups') if $gr{test} > 2;
 
         return reject('Excessively crossposted test article',
-            'Too many newsgroups') if $gr{test} and scalar @followups > 4;
+            'Too many newsgroups') if $gr{test} and $fupcnt > 4;
 
         return reject('Adult group ECP', 'Too many newsgroups')
-            if scalar @followups > 6 and $gr{adult} > scalar @groups / 2;
+            if $fupcnt > 6 and $gr{adult} > $grpcnt / 2;
 
         return reject('Poison newsgroup') if $gr{poison};
 
@@ -1056,7 +1071,7 @@ sub filter_art {
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
             # Score poor netiquette on Follow-up's
-            $score .= "!!ExpFollowup" if scalar @followups > $grpcnt;
+            $score .= "!!ExpFollowup" if $fupcnt > $grpcnt;
             $score .= "!NoFollowup" if $grpcnt > 1 and not $hdr{Followup-To};
             $score .= "!NoFollowup2" if $grpcnt > 3 and not $hdr{Followup-To};
 
