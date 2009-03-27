@@ -1795,8 +1795,8 @@ sub read_hashes {
     read_hash('bad_adult_paths', \%Bad_Adult_Path);
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
+    read_hash('bad_from', \$Bad_From);
     read_regex('bad_body', \$Bad_Body);
-    read_regex('bad_from', \$Bad_From);
     read_regex('bad_url', \$Bad_URL);
     read_regex('bad_url_central', \$Bad_URL_Central);
 }
