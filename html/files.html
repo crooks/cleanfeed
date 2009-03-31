@@ -46,7 +46,7 @@ parameters</a> section.<td>
 </tr>
 
 <tr>
-<td class='oneBod'>bad_body</td>
+<td class='oneBod'><a name='bad_body'>bad_body</a></td>
 <td class='oneBod'>Regex</td>
 <td class='oneBod'>A list of <a
 href="http://perldoc.perl.org/perlre.html">Perl Regular Expressions</a> for
@@ -58,6 +58,24 @@ in order to activate changes applied to that file.</td>
 </tr>
 
 <tr>
+<td class='oneBod'><a name='bad_url'>bad_url</a></td>
+<td class='oneBod'>Regex</td>
+<td class='oneBod'>This works exactly like <a href="#bad_body">bad_body</a> but
+will only match url's.  This is achieved by prefixing all the filters in this
+file with "http://" or "www.".  This file is intended to offer concenience over
+using bad_body whilst also removing the risk of filtering your entire feed by
+mistake.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bad_url_central'>bad_url_central</a></td>
+<td class='oneBod'>Regex</td>
+<td class='oneBod'>Identical functionality to <a href='#bad_url'>bad_url</a>.
+The "_central" suffix implies that the file can be downloaded from a central
+register of spammed url's.</td>
+</tr>
+
+<tr>
 <td class='oneBod'>bad_cancel_paths</td>
 <td class='oneBod'>Text</td>
 <td class='oneBod'>Cleanfeed will reject cancel messages where the Path
@@ -65,10 +83,11 @@ contains one of these plain-text strings.</td>
 </tr>
 
 <tr>
-<td class='oneBod'>bad_groups</td>
-<td class='oneBod'>Text</td>
-<td class='oneBod'>Messages posted (or crossposted) to these groups will be
-rejected.  This file is rarely used.</td>
+<td class='oneBod'>bad_from</td>
+<td class='oneBod'>Regex</td>
+<td class='oneBod'>Messages will be rejected if the From header matches a
+Regular Expression defined in this file.  Use with caution, these aren't sanity
+checked.  If you tell Cleanfeed to filter every message, it will!</td>
 </tr>
 
 <tr>
