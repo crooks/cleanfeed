@@ -359,7 +359,7 @@ $pics = 'pi(?:c|x)';
 $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
          'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
 # US Phone 800-123-1234  UK Phone 09096-400141
-$phone = '[89]\d{2}[\s\-_*\)]+\d{2,3}[\s\-_*]+\d{4}'.
+$phone = '[89]\d{2}[\.\s\-_*\)]+\d{2,3}[\.\s\-_*]+\d{4}'.
          '|[\s\-_*0][89]\d{2,3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 
@@ -1049,14 +1049,6 @@ sub filter_art {
                 return reject("Body ($1)", 'Bad Body')
                     if $body =~ /($Bad_Body)/i;
             };
-            if ($Bad_URL and $body_has_url) {
-                return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
-            };
-            if ($Bad_URL_Central and $body_has_url) {
-                return reject("URL ($1)", 'Bad URL')
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
-            };
         };
 
         # Enforce Altopia policy on Path pre-loading.
@@ -1106,7 +1098,7 @@ sub filter_art {
                 $score .= "!MID1Pt" while $lch{'message-id'} =~ /$one_point_words/go;
                 $score .= "!!MID2Pt" while $lch{'message-id'} =~ /$two_point_words/go;
                 $score .= "!Org1Pt" while $lch{organization} =~ /$one_point_words/go;
-                $score .= "!Org2Pt" while $lch{organization} =~ /$two_point_words/go;
+                $score .= "!!Org2Pt" while $lch{organization} =~ /$two_point_words/go;
 
                 local $_ = $lch{subject};
                 tr/a-z0-9 //cd;
@@ -1148,6 +1140,15 @@ sub filter_art {
             $score .= "!!!URLShortener"
                 if $body_has_url
                     and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
+
+            if ($Bad_URL and $body_has_url) {
+                $score .= "!!!!bad_url"
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
+            };
+            if ($Bad_URL_Central and $body_has_url) {
+                $score .= "!!!!bad_url_cen"
+                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
+            };
 
             if ($hdr{References}) {
                 #$score -= 3;
