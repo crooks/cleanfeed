@@ -1128,7 +1128,7 @@ sub filter_art {
 
             #$score .= "!CR" if $body =~ /\r/;
             $score .= "!!!2CR" if $body =~ /\r\r/;
-            $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\W*\r?\n){15}/;
+            $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
