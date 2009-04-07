@@ -509,7 +509,6 @@ sub filter_art {
     undef $body;
     undef $body_has_url;
     undef $Cache_Is_Binary;
-    undef $Cache_Is_Base64;
     undef $XReader;
     undef $score;
     undef $scoreval;
@@ -802,10 +801,6 @@ sub filter_art {
                         }; # End of $file_extension check
                     }; # End of extension()
                 }; # End of is_binary
-                if (is_base64()) {
-                    return reject("Binary: non-binary distribution")
-                    if not $gr{binary};
-                }; # End of is_base64
             }; # End of moderated groups
         }; # End of block binaries
 
@@ -906,7 +901,7 @@ sub filter_art {
                     and (($config{fuzzy_max_length}
                             and $lines < $config{fuzzy_max_length})
                         or not $config{fuzzy_max_length})
-                    and not is_binary() and not is_base64()) {
+                    and not is_binary()) {
                 $mbody = lc $hdr{__BODY__};
                 $mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
                 $mbody =~ s/\r{3}.*$//mg;
@@ -922,7 +917,7 @@ sub filter_art {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
                 and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
-                and not is_binary() and not is_base64() and not $gr{alltest}
+                and not is_binary() and not $gr{alltest}
                 and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
                 and not ($gr{binary} and $lines > 100
                         and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
@@ -1035,20 +1030,22 @@ sub filter_art {
 
         # Reject bad From headers.
         return reject("From ($1)", 'Bad From')
-            if $Bad_From and $hdr{From} =~/($Bad_From)/i;
+            if $Bad_From and $hdr{From} =~ $Bad_From_RE;
+
+        # Reject bad Subject headers.
+        return reject("Subject ($1)", 'Bad Subject')
+            if $Bad_Subject and $hdr{Subject} =~ $Bad_Subject_RE;
 
         # Set a flag if the message body contains a URL.  This means later,
         # more complex tests can be bypassed on many messages.
-        if ($body =~ /http:\/\/|www\./i) {
+        if ($body =~ /http:\/\/|www\./io) {
             $body_has_url = 1;
         };
 
         # Check payload against bad_body and bad_url files.
-        if (not $gr{reports} and not $hdr{References}) {
-            if ($Bad_Body) {
-                return reject("Body ($1)", 'Bad Body')
-                    if $body =~ /($Bad_Body)/i;
-            };
+        if (not $gr{reports} and not $hdr{References} and $body_has_url) {
+            return reject("Body ($1)", 'Bad Body')
+               if $Bad_Body and $body =~ $Bad_Body_RE;
         };
 
         # Enforce Altopia policy on Path pre-loading.
@@ -1142,12 +1139,10 @@ sub filter_art {
                     and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($Bad_URL and $body_has_url) {
-                $score .= "!!!!!bad_url"
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i;
+                $score .= "!!!!!bad_url" if $body =~ $Bad_URL_RE;
             };
             if ($Bad_URL_Central and $body_has_url) {
-                $score .= "!!!!!bad_url_cen"
-                    if $body =~ /((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i;
+                $score .= "!!!!!bad_url_cen" if $body =~ $Bad_URL_Central_RE;
             };
 
             if ($hdr{References}) {
@@ -1324,19 +1319,10 @@ sub is_binary {
         }
     }
 
-    $Cache_Is_Binary = 0;
-    return 0;
-}
-
-# Added to Cleanfeed 19th Feb 2009 to enable base64 line limits to be set
-# independently of other encodings.  This helps prevent PGP content being
-# rejected as binary.
 #TODO: This check is not ideal, it doesn't match the number of base64 lines,
 #      just the total number of lines.  This is because Cleanfeed dies when
 #      trying to match 100's of lines in a Regex.
-sub is_base64 {
     return 0 unless $lines > $config{max_base64_lines};
-    return $Cache_Is_Base64 if defined $Cache_Is_Base64;
     if ($hdr{__BODY__} =~ /
             (?:
                 ^[ \t|>]*
@@ -1346,11 +1332,11 @@ sub is_base64 {
                 \s*\r?\n
             ){$config{max_encoded_lines}}
         /mox) {
-        $Cache_Is_Base64 = 'Base64';
-        return $Cache_Is_Base64;
+        $Cache_Is_Binary = 'Base64';
+        return $Cache_Is_Binary;
     };
-    # Message is not Base64
-    $Cache_Is_Base64 = 0;
+    # Message is not binary
+    $Cache_Is_Binary = 0;
     return 0;
 };
 
@@ -1696,8 +1682,6 @@ sub saveart {
     print LOCAL "Score: $score\n" if $score;
     print LOCAL "Binary: $Cache_Is_Binary\n"
         if is_binary();
-    print LOCAL "Binary: $Cache_Is_Base64\n"
-        if is_base64();
     foreach (sort keys %hdr) {
         next if $_ eq '__BODY__' or $_ eq '__LINES__';
         print LOCAL "$_: $hdr{$_}\n";
@@ -1796,11 +1780,25 @@ sub read_hashes {
     read_hash('bad_adult_paths', \%Bad_Adult_Path);
     read_hash('bad_hosts', \%Bad_Hosts);
     read_hash('bad_hosts_central', \%Bad_Hosts_Central);
+
+    # Bad From Headers
     read_regex('bad_from', \$Bad_From);
+    $Bad_From_RE = qr/($Bad_From)/i if $Bad_From;
+    # Bad Subject Headers
+    read_regex('bad_subject', \$Bad_Subject);
+    $Bad_Subject_RE = qr/($Bad_Subject)/i if $Bad_Subject;
+    # Bad Body
     read_regex('bad_body', \$Bad_Body);
+    $Bad_Body_RE = qr/($Bad_Body)/ if $Bad_Body;
+    # Bad URL's in Body
     read_regex('bad_url', \$Bad_URL);
+    $Bad_URL_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i
+        if $Bad_URL;
+    # Bad URL's in Body (Central Resource)
     read_regex('bad_url_central', \$Bad_URL_Central);
-}
+    $Bad_URL_Central_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i
+        if $Bad_URL_Central;
+};
 
 sub read_hash {
     my ($file, $hash) = @_;
