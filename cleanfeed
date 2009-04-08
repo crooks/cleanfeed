@@ -191,6 +191,12 @@ sub get_config {
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters'.
         '\.marketplace|\.ebay|\.forsale',
+
+    ### These hosts create random NNTP-Posting-Host headers, rendering them
+    ### useless for hashing purposes.  In these instances the NPH filter will
+    ### use the Path header instead, (if phn_aggressive is true).  The PHL
+    ### filter will ignore these articles.
+    bad_nph_hosts => 'newsdawg\.com',
     
     ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
     phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
@@ -274,7 +280,7 @@ sub get_config {
             foreach (qw(bin_allowed bad_bin md5exclude poison_groups
                     allexclude html_allowed mime_html_allowed low_xpost_groups
                     test_groups no_cancel_groups baddomainpat fsl_exclude
-                    phl_exempt phl_exclude supersedes_exempt shorturl
+                    phl_exempt phl_exclude supersedes_exempt bad_nph_hosts
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups 
@@ -342,10 +348,10 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
 # URL redirection services (Commonly used to obfuscate spam links).
-$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org|urlbrief\.com'.
-            '|sites\.google\.com/site/|groups\.google\.com/group/'.
-            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru|beam\.to|doiop\.com'.
-            '|kickme\.to|end\.at|has\.it|hotshorturl\.com';
+#$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org|urlbrief\.com'.
+#            '|sites\.google\.com/site/|groups\.google\.com/group/'.
+#            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru|beam\.to|doiop\.com'.
+#            '|kickme\.to|end\.at|has\.it|hotshorturl\.com';
 
 # Regexps for matching MIME headers
 $ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
@@ -916,37 +922,43 @@ sub filter_art {
         if (not $gr{reports}) {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
-                and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
-                and not is_binary() and not $gr{alltest}
-                and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
-                and not ($gr{binary} and $lines > 100
-                        and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
+            and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
+            and not is_binary() and not $gr{alltest}
+            and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
+            and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o
+            and not ($gr{binary} and $lines > 100
+                and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
                     return reject('EMP (phl)', 'EMP')
                         if $PHLhistory->add("$hdr{'NNTP-Posting-Host'} $lines");
-            }
+            }; # End of PHL filter
 
             # create posting-host/newsgroups hash
             if ($config{do_phn} and not $gr{allmod}
-                and not $gr{phrinc} and not $gr{phnskip} and not $gr{alltest}
-                and not ($gr{binary} and $lines > 100)) {
-                    if ($hdr{'NNTP-Posting-Host'}) {
-                        if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
-                            return reject('EMP (phn nph)', 'EMP')
-                                if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
-                        }
-                    }
-                    elsif ($config{phn_aggressive}) {
-                        my $server;
-                        $server = lc "$hdr{Path}";
-                        $server =~ s/(![^\.]+)+$//;
-                        my $exc_count = ($server =~ tr/!//);
-                        if ($exc_count > 1) {
-                            $server =~ s/.*!//;
-                            return reject('EMP (phn path)', 'EMP')
-                                if $PHNhistory->add("$server $hdr{Newsgroups}");
-                        }
-                    }
-            }
+            and not $gr{phrinc} and not $gr{phnskip} and not $gr{alltest}
+            and not ($gr{binary} and $lines > 100)) {
+                if ($hdr{'NNTP-Posting-Host'}
+                and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
+                    if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
+                        return reject('EMP (phn nph)', 'EMP')
+                            if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
+                    };
+                } elsif ($config{phn_aggressive}) {
+                    my $server;
+                    $server = lc "$hdr{Path}";
+                    # Remove trailing entries with no . in them
+                    $server =~ s/(![^\.]+)+$//;
+                    # Count how many !'s there are.
+                    my $exc_count = ($server =~ tr/!//);
+                    # We need a couple of entries, otherwise we might
+                    # block our peers.
+                    if ($exc_count > 1) {
+                        # Strip everything to the left of the last entry.
+                        $server =~ s/.*!//;
+                        return reject('EMP (phn path)', 'EMP')
+                            if $PHNhistory->add("$server $hdr{Newsgroups}");
+                    };
+                }; # End of aggressive mode
+            }; # End of PHN filter
 
             # create from/subject/lines hash
             if ($config{do_fsl} and not $gr{fslskip} and not $gr{alltest}) {
@@ -955,24 +967,24 @@ sub filter_art {
                     $hash1 = lc "$hdr{Sender} $hdr{Subject}";
                 } else {
                     $hash1 = lc "$hdr{From} $hdr{Subject}";
-                }
+                };
                 $hash1 =~ s/\d+$//;
                 $hash1 =~ tr/a-z0-9\@\x80-\xFF//cd;
                 $hash1 = "$hash1 $lines";
                 return reject('EMP (fsl)', 'EMP') if $FSLhistory->add($hash1);
-            }
-        } # not reports groups
+            }; # End of FSL filter
+        }; # not reports groups
 
         # create high-risk newsgroups hash
         if ($config{do_phr} and $gr{phrinc}
             and not ($gr{binary} and $lines > 100)) {
             if ($hdr{'NNTP-Posting-Host'}) {
-                if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o) {
+                if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o
+                and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
                     return reject('EMP (phr nph)', 'EMP')
                         if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
                 }
-            }
-            elsif ($config{phr_aggressive}) {
+            } elsif ($config{phr_aggressive}) {
                 my $server;
                 $server = lc "$hdr{Path}";
                 $server =~ s/(![^\.]+)+$//;
@@ -983,7 +995,7 @@ sub filter_art {
                         if $PHRhistory->add("$server");
                 }
             }
-        }
+        } # End of PHR filter
 
         # Supersedes checks ##################################################
         if ($hdr{Supersedes}) {
@@ -1134,9 +1146,9 @@ sub filter_art {
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
 
             # Contains a link to a URL abbreviation service
-            $score .= "!!!URLShortener"
-                if $body_has_url
-                    and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
+            #$score .= "!!!URLShortener"
+            #    if $body_has_url
+            #        and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($Bad_URL and $body_has_url) {
                 $score .= "!!!!!bad_url" if $body =~ $Bad_URL_RE;
