@@ -149,7 +149,7 @@ def GetSize(filename):
     """Return the size of a given file in Bytes"""
     return os.path.getsize(filename)
 
-def Excluded(exclude, entry):
+def Excluded(entry):
     """Compare a passed entry with all the entries in our exclude file.
     Entries will be treated as plain text unless wrapped within slashes in
     which case they will be regarded as regex's."""
@@ -184,8 +184,10 @@ def ScanFiles(files):
     """Read a list of files.  Return an occurances count of each individual
     regex match contained within those files."""
     # The following line might need some tweeking for specific applications.
-    #regex = re.compile(config.regex)
-    regex = re.compile(config.regex, re.I | re.M)
+    if config.look_in_headers:
+        regex = re.compile(config.regex)
+    else:
+        regex = re.compile(config.regex, re.I | re.M)
     for filename in files:
         if IsFile(filename):
             print "Scanning", filename
@@ -236,7 +238,7 @@ def ScanFiles(files):
                         hits[match] = 1
             existing = DB_Exists(filename, timestamp)
             for hit in hits:
-                if hit not in existing:
+                if hit not in existing and not Excluded(hit):
                     print "Inserting ", hit
                     DB_Insert(hit, filename, hits[hit], timestamp)
                 else:
@@ -252,6 +254,7 @@ def Main():
     # Logfiles to be read by default.  This can be overridden by command line args.
     logfiles = File2List(config.filelist)
     # URL's to exclude from processing.  Entries can be plain-text or regex.
+    global exclude
     exclude = File2List(config.exclude)
 
     print "Expired: ", DB_Expire(config.expire_hours)
@@ -270,7 +273,7 @@ def Main():
 
     #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
     for hit, count in results:
-        if not Excluded(exclude, hit) and count > config.threshold:
+        if count > config.threshold:
             badurl.write(hit + "\n")
             print "%-40s %5d" % (hit, count)
             #print "%-40s  %5d  %5d  %10s  %10s" % (entry, p, c, firststamp, laststamp)
