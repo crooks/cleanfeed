@@ -16,25 +16,32 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
+# Are we checking headers or bodies?
+look_in_headers = False
+
+# The actual regular expression to search for.  The first bracketed group
+# within it is the string we're counting.
+#regex = '^NNTP\-Posting\-Host: (.*)'
+regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{10,70})[\s$]'
+
 # The threshold at which we consider a URL to be excessive and blacklist it.
-threshold = 250
+threshold = 200
+
+# Expire (delete) database date that is older than this number of hours.
+expire_hours = 168
 
 # The file from which to read the default list of logfiles we're going to
 # process.
-filelist = '/usr/local/news/badurls/logfile_list'
+filelist = '/usr/local/news/badurl/logfile_list'
 
 # A list of URL's to exclude from blacklisting.
-exclude = '/usr/local/news/badurls/exclude_list'
+exclude = '/usr/local/news/badurl/exclude_list'
 
-# The filename used to store the persistent dictionary
-dbfile = '/usr/local/news/badurls/badurl.db'
+# The number of bytes to read from the start of each logfile to generate a
+# unique hash.  More is better but the logfile must have sufficient bytes to
+# read.  Don't change this on an operational report!  A new hash will be
+# generated and a false rotation will occur.
+hashlength = 1000
 
-# A dictionary containing variables we need to retain between runs.
-varfile = '/usr/local/news/badurls/vars.db'
-
-# The Cleanfeed bad_url list file
-cfbadurl = '/usr/local/news/cleanfeed/etc/bad_url_central'
-
-backoff_interval = 300
-backoff_rate = 1
-backoff_ceiling = 1000
+# The textfile to output.
+textfile = '/usr/local/news/badurl/bad_url_central'
