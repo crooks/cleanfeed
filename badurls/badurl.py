@@ -70,17 +70,14 @@ def HasRotated(logfile, hash):
     con.commit()
     return timestamp
      
-def DB_Exists(hit, logfile, timestamp):
+def DB_Exists(logfile, timestamp):
     """Return True if our master table already contains an entry for hit and
     logfile."""
     cursor.execute('''SELECT hit FROM master
-                      WHERE hit = "%s"
-                      AND logfile = "%s"
-                      AND date = "%s"''' % (hit, logfile, timestamp))
-    exists = cursor.fetchone()
-    if exists:
-        return True
-    return False
+                      WHERE logfile = "%s"
+                      AND date = "%s"''' % (logfile, timestamp))
+    exists = [row[0] for row in cursor.fetchall()]
+    return exists
 
 def DB_Insert(hit, logfile, count, timestamp):
     """Insert a new entry into our master table."""
@@ -237,8 +234,10 @@ def ScanFiles(files):
                         hits[match] += 1
                     else:
                         hits[match] = 1
+            existing = DB_Exists(filename, timestamp)
             for hit in hits:
-                if not DB_Exists(hit, filename, timestamp):
+                if hit not in existing:
+                    print "Inserting ", hit
                     DB_Insert(hit, filename, hits[hit], timestamp)
                 else:
                     DB_Update(hit, filename, hits[hit], timestamp)
