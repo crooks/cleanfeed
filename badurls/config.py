@@ -16,6 +16,9 @@
 # or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
 # for more details.
 
+# The fully qualified name of the database file
+dbfile = '/usr/local/news/badurl/test.db'
+
 # Are we checking headers or bodies?
 look_in_headers = False
 

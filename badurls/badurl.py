@@ -251,7 +251,7 @@ def ScanFiles(files):
 
 def Main():
     global con
-    con = sqlite.connect('/usr/local/news/badurl/test.db')
+    con = sqlite.connect(config.dbfile)
     global cursor
     cursor = con.cursor()
     CheckTables()
