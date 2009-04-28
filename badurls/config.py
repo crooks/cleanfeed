@@ -27,6 +27,10 @@ regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{10,70})'
 # The threshold at which we consider a URL to be excessive and blacklist it.
 threshold = 200
 
+# Ignore hits of less than this number.  This prevents the database getting
+# cluttered by one-time offenders.
+minimum_hits = 5
+
 # Expire (delete) database date that is older than this number of hours.
 expire_hours = 168
 

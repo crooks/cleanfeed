@@ -238,6 +238,10 @@ def ScanFiles(files):
                         hits[match] = 1
             existing = DB_Exists(filename, timestamp)
             for hit in hits:
+                # If a hit is excluded or its count hasn't reached a minimal
+                # level since last rotation, ignore it.
+                if Excluded(hit) or hits[hit] < config.minimum_hits:
+                    continue
                 if hit not in existing and not Excluded(hit):
                     print "Inserting ", hit
                     DB_Insert(hit, filename, hits[hit], timestamp)
@@ -247,7 +251,7 @@ def ScanFiles(files):
 
 def Main():
     global con
-    con = sqlite.connect('test.db')
+    con = sqlite.connect('/usr/local/news/badurl/test.db')
     global cursor
     cursor = con.cursor()
     CheckTables()
