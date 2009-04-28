@@ -232,10 +232,18 @@ def ScanFiles(files):
                 test = regex.search(line)
                 if test:
                     match = test.group(1)
-                    if match in hits:
-                        hits[match] += 1
+                    # If we have configured an element boundary then use it,
+                    # otherwise just create a single-item list.
+                    if config.element_boundary:
+                        elements = match.split(config.element_boundary)
                     else:
-                        hits[match] = 1
+                        elements = [match]
+                    for element in elements:
+                        element = element.strip()
+                        if element in hits:
+                            hits[element] += 1
+                        else:
+                            hits[element] = 1
             existing = DB_Exists(filename, timestamp)
             for hit in hits:
                 # If a hit is excluded or its count hasn't reached a minimal

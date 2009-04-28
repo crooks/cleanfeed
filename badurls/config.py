@@ -50,5 +50,9 @@ exclude = '/usr/local/news/badurl/exclude_list'
 # generated and a false rotation will occur.
 hashlength = 1000
 
+# For some headers, such as Newsgroups, there are multiple hits per line.  If defined
+# this character splits a single hit into it's elements.
+element_boundary = ''
+
 # The textfile to output.
 textfile = '/usr/local/news/badurl/bad_url_central'
