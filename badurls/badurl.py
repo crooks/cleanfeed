@@ -285,7 +285,7 @@ def Main():
 
     #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
     for hit, count in results:
-        if count > config.threshold:
+        if count > config.threshold and not Excluded(hit):
             badurl.write(hit + "\n")
             print "%-40s %5d" % (hit, count)
             #print "%-40s  %5d  %5d  %10s  %10s" % (entry, p, c, firststamp, laststamp)
