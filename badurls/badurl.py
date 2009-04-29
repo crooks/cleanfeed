@@ -81,27 +81,27 @@ def DB_Exists(logfile, timestamp):
 
 def DB_Insert(hit, logfile, count, timestamp):
     """Insert a new entry into our master table."""
-    items = { 'hit'     :   hit,
+    items = { 'hit'     :   hit.replace("'","''"),
               'logfile' :   logfile,
               'count'   :   count,
               'date'    :   timestamp }
     cursor.execute('''INSERT INTO master (hit, logfile, count, date)
                         VALUES (
-                        "%(hit)s",
-                        "%(logfile)s",
+                        '%(hit)s',
+                        '%(logfile)s',
                         %(count)s,
-                        "%(date)s")''' % items)
+                        '%(date)s')''' % items)
     con.commit()
 
 def DB_Update(hit, logfile, count, timestamp):
-    items = { 'hit'     :   hit,
+    items = { 'hit'     :   hit.replace("'","''"),
               'logfile' :   logfile,
               'count'   :   count,
               'date'    :   timestamp }
     cursor.execute('''UPDATE master SET count = %(count)s
-                      WHERE hit = "%(hit)s"
-                      AND logfile = "%(logfile)s"
-                      AND date = "%(date)s"''' % items)
+                      WHERE hit = '%(hit)s'
+                      AND logfile = '%(logfile)s'
+                      AND date = '%(date)s' ''' % items)
     con.commit()
 
 def DB_Read():
@@ -132,10 +132,11 @@ def hours_ago(past_hours):
 def File2List(filename):
     """Read a file and return each line as a list item."""
     items = []
-    readlist = open(filename, 'r')
-    for line in readlist:
-        if not line.startswith('#') and len(line) > 1:
-            items.append(line.rstrip())
+    if IsFile(filename):
+        readlist = open(filename, 'r')
+        for line in readlist:
+            if not line.startswith('#') and len(line) > 1:
+                items.append(line.rstrip())
     return items
 
 def IsFile(filename):

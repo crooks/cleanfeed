@@ -17,7 +17,7 @@
 # for more details.
 
 # The fully qualified name of the database file
-dbfile = '/usr/local/news/badurl/test.db'
+dbfile = '/usr/local/news/bads/badurl/test.db'
 
 # Are we checking headers or bodies?
 look_in_headers = False
@@ -39,10 +39,10 @@ expire_hours = 168
 
 # The file from which to read the default list of logfiles we're going to
 # process.
-filelist = '/usr/local/news/badurl/logfile_list'
+filelist = '/usr/local/news/bads/badurl/logfile_list'
 
 # A list of URL's to exclude from blacklisting.
-exclude = '/usr/local/news/badurl/exclude_list'
+exclude = '/usr/local/news/bads/badurl/exclude_list'
 
 # The number of bytes to read from the start of each logfile to generate a
 # unique hash.  More is better but the logfile must have sufficient bytes to
@@ -55,4 +55,4 @@ hashlength = 1000
 element_boundary = ''
 
 # The textfile to output.
-textfile = '/usr/local/news/badurl/bad_url_central'
+textfile = '/usr/local/news/bads/badurl/bad_url_central'
