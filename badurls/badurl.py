@@ -233,7 +233,7 @@ def ScanFiles(files):
                     continue
                 test = regex.search(line)
                 if test:
-                    match = test.group(1)
+                    match = test.group(1).lower()
                     # If we have configured an element boundary then use it,
                     # otherwise just create a single-item list.
                     if config.element_boundary:
