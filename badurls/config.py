@@ -56,3 +56,7 @@ element_boundary = ''
 
 # The textfile to output.
 textfile = '/usr/local/news/bads/badurl/bad_url_central'
+
+# If we want to output regex formated entries to our text file, we should check
+# they are properly escaped.
+regex_safe = True
