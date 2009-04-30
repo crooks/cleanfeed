@@ -105,7 +105,8 @@ def DB_Update(hit, logfile, count, timestamp):
     con.commit()
 
 def DB_Read():
-    cursor.execute('SELECT hit, sum(count) FROM master GROUP BY hit')
+    cursor.execute('''SELECT hit, sum(count) as total FROM master
+                    GROUP BY hit ORDER BY total''')
     return cursor.fetchall()
 
 def DB_Expire(hours):
