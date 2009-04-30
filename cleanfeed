@@ -538,12 +538,18 @@ sub filter_art {
     }
 
     # break out newsgroups into an array
-    @groups = split(/[,\s]+/, $hdr{Newsgroups});
+    @groups = sort(split(/[,\s]+/, $hdr{Newsgroups}));
     if ($hdr{'Followup-To'}) {
         @followups = split(/[,\s]+/, $hdr{'Followup-To'});
     } else {
         @followups = @groups;
     }
+
+    # Extract the first alphanumeric group from a crosspost.  This is useful
+    # for filters on Newsgroups where spammers manipulate the distribution in
+    # order to generate non-colliding hashes.
+    my $firstgroup = $groups[0];
+
     # Create a merged array of groups and followups with no duplicates.
     # This is useful in instances where we consider follow-up groups to be
     # part of the distribution.
@@ -955,7 +961,7 @@ sub filter_art {
                         # Strip everything to the left of the last entry.
                         $server =~ s/.*!//;
                         return reject('EMP (phn path)', 'EMP')
-                            if $PHNhistory->add("$server $hdr{Newsgroups}");
+                            if $PHNhistory->add("$server $firstgroup");
                     };
                 }; # End of aggressive mode
             }; # End of PHN filter
@@ -1121,7 +1127,7 @@ sub filter_art {
             $score .= "!Lines:$lines-$hdr{Lines}" if $lines ne $hdr{Lines};
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
-            $score .= "!Google" if $lch{organization} =~ /groups\.google\.com/;
+            $score .= "!!Google" if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
