@@ -25,7 +25,7 @@ look_in_headers = False
 # The actual regular expression to search for.  The first bracketed group
 # within it is the string we're counting.
 #regex = '^NNTP\-Posting\-Host: (.*)'
-regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{10,70})'
+regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{6,70})'
 
 # The threshold at which we consider a URL to be excessive and blacklist it.
 threshold = 200
