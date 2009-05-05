@@ -124,7 +124,7 @@ sub get_config {
     bin_allowed => '^bin[a.]|\.bin[aei.]|\.bin$|^fur\.artwork'.
         '|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
-        '|^fido\.|^linux\.|^unidata\.|alt\.security\.keydist',
+        '|^fido\.|^unidata\.|alt\.security\.keydist',
 
     # Groups matching this regex will accept binary UUenc and yEnc files
     # where filename extensions match 'image_extensions'.
