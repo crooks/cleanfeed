@@ -28,7 +28,7 @@ look_in_headers = False
 regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{6,70})'
 
 # The threshold at which we consider a URL to be excessive and blacklist it.
-threshold = 200
+threshold = 500
 
 # Ignore hits of less than this number.  This prevents the database getting
 # cluttered by one-time offenders.
@@ -60,3 +60,11 @@ textfile = '/usr/local/news/bads/badurl/bad_url_central'
 # If we want to output regex formated entries to our text file, we should check
 # they are properly escaped.
 regex_safe = True
+
+text_header = """
+############################################################
+# This file is downloaded from a central resource.  Do not #
+# manually edit it as your changes will be overwritten     #
+# during the next scheduled update.  For manual listings,  #
+# update the bad_url or bad_body files.                    #
+############################################################"""

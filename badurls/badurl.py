@@ -277,12 +277,8 @@ def Main():
 
     # Prepare to overwrite Cleanfeed's bad_url_central file.
     badurl = open(config.textfile, 'w')
-    badurl.write('######################################################\n')
-    badurl.write('# This file is downloaded from a central resource.   #\n')
-    badurl.write('# Do not manually edit it as your changes will be    #\n')
-    badurl.write('# overwritten during the next scheduled download.    #\n')
-    badurl.write('# For manual listings, update the bad_hosts file.    #\n')
-    badurl.write('######################################################\n\n')
+    badurl.write(config.text_header.lstrip())
+    badurl.write('\n\n')
     badurl.write('# Last Updated: %s\n\n' % (utcnow(),))
 
     #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
