@@ -1061,7 +1061,7 @@ sub filter_art {
         };
 
         # Check payload against bad_body and bad_url files.
-        if (not $gr{reports} and not $hdr{References} and $body_has_url) {
+        if (not $gr{reports} and not $hdr{References}) {
             return reject("Body ($1)", 'Bad Body')
                if $Bad_Body and $body =~ $Bad_Body_RE;
         };
