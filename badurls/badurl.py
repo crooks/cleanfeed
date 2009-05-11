@@ -253,7 +253,10 @@ def ScanFiles(files):
                 if Excluded(hit) or hits[hit] < config.minimum_hits:
                     continue
                 if hit not in existing and not Excluded(hit):
-                    print "Inserting ", hit
+                    print "Inserting %s into %s" % (
+                        hit,
+                        filename.split('/').pop()
+                    )
                     DB_Insert(hit, filename, hits[hit], timestamp)
                 else:
                     DB_Update(hit, filename, hits[hit], timestamp)
