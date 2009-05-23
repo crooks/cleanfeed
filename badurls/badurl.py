@@ -288,9 +288,10 @@ def Main():
     for hit, count in results:
         if count > config.threshold and not Excluded(hit):
             if config.regex_safe:
-                badurl.write(RegexSafe(hit) + "\n")
+                entry = RegexSafe(hit)
             else:
-                badurl.write(hit + "\n")
+                entry = hit
+            badurl.write("%-40s # %d\n" % (entry, count))
             print "%-40s %5d" % (hit, count)
             #print "%-40s  %5d  %5d  %10s  %10s" % (entry, p, c, firststamp, laststamp)
     # Close the file and shelves

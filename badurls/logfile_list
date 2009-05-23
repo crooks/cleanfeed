@@ -1,7 +1,8 @@
-/usr/local/news/cleanfeed/log/emp.md5
-/usr/local/news/cleanfeed/log/emp.phn
-/usr/local/news/cleanfeed/log/emp.phl
-/usr/local/news/cleanfeed/log/emp.fsl
-/usr/local/news/cleanfeed/log/cf.scoring
 /usr/local/news/cleanfeed/log/cf.binary
 /usr/local/news/cleanfeed/log/cf.hosts
+/usr/local/news/cleanfeed/log/cf.path
+/usr/local/news/cleanfeed/log/cf.scoring
+/usr/local/news/cleanfeed/log/emp.fsl
+/usr/local/news/cleanfeed/log/emp.md5
+/usr/local/news/cleanfeed/log/emp.phl
+/usr/local/news/cleanfeed/log/emp.phn
