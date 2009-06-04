@@ -586,7 +586,8 @@ sub filter_art {
         $gr{adult}++ if /$config{adult_groups}/o
             and not /$config{not_adult_groups}/o;
         $gr{faq}++ if /$config{faq_groups}/o;
-            if ($config{active_file}) {
+        $gr{localhier}++ if /^local\./;
+        if ($config{active_file}) {
             $gr{mod}++ if $Moderated{$_};
         } elsif (defined &INN::newsgroup) {
             $gr{mod}++ if INN::newsgroup($_) eq 'm';
