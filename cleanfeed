@@ -192,10 +192,10 @@ sub get_config {
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters'.
         '\.marketplace|\.ebay|\.forsale',
 
-    ### These hosts create random NNTP-Posting-Host headers, rendering them
-    ### useless for hashing purposes.  In these instances the NPH filter will
-    ### use the Path header instead, (if phn_aggressive is true).  The PHL
-    ### filter will ignore these articles.
+    # These hosts create unlinkable NNTP-Posting-Host headers, rendering them
+    # useless for hashing purposes.  In these instances the NPH and PHR filter
+    # will use the Path header instead, (if phn_aggressive is true).  The PHL
+    # filter will ignore posts from these hosts.
     bad_nph_hosts => 'newsdawg\.com',
     
     ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
@@ -545,10 +545,10 @@ sub filter_art {
         @followups = @groups;
     }
 
-    # Extract the first alphanumeric group from a crosspost.  This is useful
-    # for filters on Newsgroups where spammers manipulate the distribution in
-    # order to generate non-colliding hashes.
-    my $firstgroup = $groups[0];
+    # Produce a Newsgroups string sorted alphanumerically.  This is
+    # useful for filters on Newsgroups where spammers manipulate the
+    # distribution in order to generate non-colliding hashes.
+    my $sortgrps = join(',', @groups);
 
     # Create a merged array of groups and followups with no duplicates.
     # This is useful in instances where we consider follow-up groups to be
@@ -947,7 +947,7 @@ sub filter_art {
                 and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
                     if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
                         return reject('EMP (phn nph)', 'EMP')
-                            if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $hdr{Newsgroups}");
+                            if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $sortgrps");
                     };
                 } elsif ($config{phn_aggressive}) {
                     my $server;
@@ -962,7 +962,7 @@ sub filter_art {
                         # Strip everything to the left of the last entry.
                         $server =~ s/.*!//;
                         return reject('EMP (phn path)', 'EMP')
-                            if $PHNhistory->add("$server $firstgroup");
+                            if $PHNhistory->add("$server $sortgrps");
                     };
                 }; # End of aggressive mode
             }; # End of PHN filter
