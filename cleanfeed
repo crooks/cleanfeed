@@ -985,19 +985,20 @@ sub filter_art {
         # create high-risk newsgroups hash
         if ($config{do_phr} and $gr{phrinc}
             and not ($gr{binary} and $lines > 100)) {
-            if ($hdr{'NNTP-Posting-Host'}) {
-                if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o
-                and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
+            if ($hdr{'NNTP-Posting-Host'}
+            and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
+                if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phr_exempt})/o) {
                     return reject('EMP (phr nph)', 'EMP')
                         if $PHRhistory->add("$hdr{'NNTP-Posting-Host'}");
                 }
             } elsif ($config{phr_aggressive}) {
                 my $server;
                 $server = lc "$hdr{Path}";
-                $server =~ s/(![^\.]+)+$//;
-                my $exc_count = ($server =~ tr/!//);
+                $server =~ s/(![^\.]+)+$//; # Strip right-most non-FQDN's
+                my $exc_count = ($server =~ tr/!//); # Count Path entries
+                # We (probably) don't want to filter our immediate peers.
                 if ($exc_count > 1) {
-                    $server =~ s/.*!//;
+                    $server =~ s/.*!//; # Strip all but the right-most entry.
                     return reject('EMP (phr path)', 'EMP')
                         if $PHRhistory->add("$server");
                 }
