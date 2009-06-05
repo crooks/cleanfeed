@@ -1,12 +1,17 @@
 #!/bin/bash
 
+##############################################################################
+# This script should be executed by the holder of the Cleanfeed signing key. #
+##############################################################################
+
 # Export the working copy from the repository to the web server and create a
 # diff file against it.
 
 SOURCE='svn+ssh://cleanfeed@drooper.mixmin.net/home/cleanfeed/svn-repository/cleanfeed/trunk'
 DESTDIR='/tmp'
 ORIGINAL='/crypt/home/crooks/cleanfeed/branches/cleanfeed-20020501/cleanfeed'
-WEBDIR='news@drooper:/var/www/cleanfeed'
+WEBUSER='news@drooper'
+WEBDIR='/var/www/cleanfeed'
 
 # Export the repository
 echo "Exporting Cleanfeed"
@@ -21,6 +26,6 @@ echo "Create Diff file"
 diff -uN -Eb $ORIGINAL ${DESTDIR}/cleanfeed > ${DESTDIR}/cleanfeed.diff
 
 # Copy it to the webserver
-scp ${DESTDIR}/cleanfeed.asc ${WEBDIR}
-scp ${DESTDIR}/cleanfeed.diff ${WEBDIR}
-scp ${DESTDIR}/cleanfeed ${WEBDIR}
+scp ${DESTDIR}/cleanfeed.asc ${WEBUSER}:${WEBDIR}
+scp ${DESTDIR}/cleanfeed.diff ${WEBUSER}:${WEBDIR}
+scp ${DESTDIR}/cleanfeed ${WEBUSER}:${WEBDIR}

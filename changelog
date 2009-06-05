@@ -1,0 +1,32 @@
+# vim: tabstop=2 expandtab shiftwidth=4 autoindent syntax=off
+
+* Added a bad_nph_hosts parameter.  This is designed to prevent useless hashing
+  of NNTP-Posting-Hosts from services that place unlinkable content in this
+  header.  More details at
+  http://www.mixmin.net/cleanfeed/regex.html#bad_nph_hosts.
+
+* The binary base64 filter has been reworked, without change in functionality.
+
+* The groups array (%gr) now includes a localhier entry which counts groups
+  matching ^local\. entries.  This is currently unused by default but can be
+  useful in local configurations.
+
+* Add a sortgrps string variable containing the Newsgroups entries in
+  alphanumeric order.  This is then used in PHN and PHR filters instead of
+  $hdr{Newsgroups}.  It prevents distros of alt.foo,alt.bar and alt.bar,alt.foo
+  from producing different hashes.
+
+* Regexs compiled from bad_* files are now precompiled to improve performance.
+  Recompilation occurs during periodic reloading of these files.
+  Examples are: bad_from, bad_subject, bad_body, bad_url
+
+* Within the scoring filter, two-point words were only scoring one in the
+  Organization header.
+
+* Posts originating at Google now score two points instead of one.  These are
+  identified by the included Injection-Info header.
+
+* bad_url and bad_url_central are now part of the scoring filter rather than
+  independent filters.  Instead of instant rejects, they score five points,
+  (seven required for a reject).  This (helps) prevent filtering any casual
+  mention of such URL's.  For complete rejection of a URL, use bad_body instead.
