@@ -227,9 +227,20 @@ enabled.</td>
 
 <tr>
 <td class='oneBod'><a name='shorturl'>shorturl</a></td>
-<td class='oneBod'>This is a list of url's that offer url shortening or redirection
-services.  These are frequently used to obfuscate spam url's.  The regex is checked
-within the scoring section Cleanfeed.
+<td class='oneBod'>This is a list of url's that offer url shortening or
+redirection services.  These are frequently used to obfuscate spam url's.  The
+regex is checked within the scoring section Cleanfeed.
+</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bad_nph_hosts'>bad_nph_hosts</a></td>
+<td class='oneBod'>This regex matches against the NNTP-Posting-Host header.
+When a match occurs, the posting host will not be used to seed the NPH or PHR
+filters.  In these instances, if phr_aggressive or phn_aggressive is True, the
+right-most FQDN in the Path header will be used instead.  This protects against
+floods from services, (such as newsguy.com) that place unlinkable data in the
+NNTP-Posting-Host header.
 </td>
 </tr>
 
