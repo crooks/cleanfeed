@@ -131,8 +131,8 @@ sub get_config {
     image_allowed => '\.pictures',
 
     # Extensions on image files that are allowed in 'image_allowed' groups.
-    # These are not case sensitive
-    image_extensions => 'jpe?g|png|gif',
+    # These are not case sensitive.
+    image_extensions => 'jpe?g|png|gif|icon?',
 
     ### no binaries allowed even if bin_allowed matches
     bad_bin => '\.d$|^alt\.chello',
@@ -221,7 +221,7 @@ sub get_config {
 
     ### groups expected to contain bodies and/or subject lines from spam
     spam_report_groups => '^(?:news|de)\.admin\.net-abuse'.
-        '|news\.lists\.filters|\.nocem|\.spamtrap'.
+        '|news\.lists\.filters|\.nocem|\.spamtrap$'.
         '|^fr\.usenet\.abus\.rapports|^nl\.internet\.misbruik\.rapport$',
 
     adult_groups => 'personals|sex|nud[ei]|erot|xxx|lolita'.
@@ -235,7 +235,7 @@ sub get_config {
     not_adult_groups => 'sexual\.abuse|^soc.sex|^fr\.soc\.homosexualite'.
         '|^alt\.(?:support|teens|answers)',
 
-    faq_groups => '\.answers$|^news\.announce\.newgroups$'
+    faq_groups => '\.faqs?$|\.answers$|^news\.announce\.newgroups$'
 
     );
 
@@ -1048,9 +1048,14 @@ sub filter_art {
             if $hdr{Subject} =~ m#\[(\d+)/(\d+)\]$# and $1 > $2;
         #
 
-        # Reject bad From headers.
-        return reject("From ($1)", 'Bad From')
-            if $Bad_From and $hdr{From} =~ $Bad_From_RE;
+        # Reject bad From headers.  We also check Sender and Reply-To headers
+        # against the same Regular Expression.
+        if ($Bad_From) {
+            return reject("From ($1)", 'Bad From')
+                if $hdr{From} =~ $Bad_From_RE
+                or $hdr{Sender} =~ $Bad_From_RE
+                or $hdr{'Reply-To'} =~ $Bad_From_RE;
+        };
 
         # Reject bad Subject headers.
         return reject("Subject ($1)", 'Bad Subject')
