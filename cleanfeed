@@ -221,7 +221,7 @@ sub get_config {
 
     ### groups expected to contain bodies and/or subject lines from spam
     spam_report_groups => '^(?:news|de)\.admin\.net-abuse'.
-        '|news\.lists\.filters|\.nocem|\.spamtrap$'.
+        '|news\.lists\.filters|\.nocem|\.spamtrap$|\.spam\.sightings'.
         '|^fr\.usenet\.abus\.rapports|^nl\.internet\.misbruik\.rapport$',
 
     adult_groups => 'personals|sex|nud[ei]|erot|xxx|lolita'.
