@@ -1051,10 +1051,12 @@ sub filter_art {
         # Reject bad From headers.  We also check Sender and Reply-To headers
         # against the same Regular Expression.
         if ($Bad_From) {
-            return reject("From ($1)", 'Bad From')
-                if $hdr{From} =~ $Bad_From_RE
-                or $hdr{Sender} =~ $Bad_From_RE
-                or $hdr{'Reply-To'} =~ $Bad_From_RE;
+            return reject("Reply-To ($1)", 'Bad originator (Reply-To)')
+                if $hdr{'Reply-To'} =~ $Bad_From_RE;
+            return reject("Sender ($1)", 'Bad originator (Sender)')
+                if $hdr{Sender} =~ $Bad_From_RE;
+            return reject("From ($1)", 'Bad originator (From)')
+                if $hdr{From} =~ $Bad_From_RE;
         };
 
         # Reject bad Subject headers.
