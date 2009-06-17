@@ -27,6 +27,7 @@ look_in_headers = False
 #regex = '^NNTP\-Posting\-Host: (.*)'
 #regex = '^Path: .*(?:!([\w\-]+(\.[\w\-]+)+)+)'
 #regex = '^From: .*?([\w\._%+-]+\@[\w\.\-]+)'
+#regex = '^Subject: \s*(?:Re:\s*)?([\x20-\x7e]+)'
 regex = '(?:http:\/\/(?:www\.)?|www\.)([\w\.\-]{6,70})'
 
 # The threshold at which we consider a URL to be excessive and blacklist it.
