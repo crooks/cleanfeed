@@ -586,7 +586,6 @@ sub filter_art {
         $gr{adult}++ if /$config{adult_groups}/o
             and not /$config{not_adult_groups}/o;
         $gr{faq}++ if /$config{faq_groups}/o;
-        $gr{localhier}++ if /^local\./;
         if ($config{active_file}) {
             $gr{mod}++ if $Moderated{$_};
         } elsif (defined &INN::newsgroup) {
@@ -608,6 +607,7 @@ sub filter_art {
             and /$config{low_xpost_groups}/o;
         $gr{meow}++ if $config{meow_groups}
             and /$config{meow_groups}/o;
+        $gr{localhier}++ if /^local\./;
     };
 
     # These only count if all Newsgroups match
@@ -628,6 +628,7 @@ sub filter_art {
     $gr{phnskip} = ($gr{phnskip} == $grpfupcnt);
     $gr{phlskip} = ($gr{phlskip} == $grpfupcnt);
     $gr{scoreskip} = ($gr{scoreskip} == $grpfupcnt);
+    $gr{alllocal} = ($gr{localhier} == $grpfupcnt);
 
     # If all newsgroups are excluded from filtering, bail now
     return '' if $gr{skip};
