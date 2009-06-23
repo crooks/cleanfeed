@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed - Newsgroup Counters and Flags</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='config.html'>Configuration Parameters</a> &gt;
+<a href='groups.html'>Newsgroup Counters and Flags</a>
+</p>
+
+<h1>Cleanfeed - Newsgroup Counters and Flags</h1>
+<h2>Overview</h2>
+Usenet is comprised of thousands of newsgroups so it's not surprising that
+Cleanfeed includes many parameters related to the newsgroups within a posting,
+(known as the distribution).  Some are simple <a
+href="http://www.perltutorial.org/perl-scalar-variables.aspx">Scalar
+Variables</a>, others are <a
+href="http://www.perltutorial.org/perl-array.aspx">Arrays</a> but the majority
+reside within a <a href="http://www.perltutorial.org/perl-hash.aspx">Hash</a>.
+
+<h2>Scalar Variables</h2>
+The following table contains the name, type and a description of each scalar
+related to newsgroup distribution.
+<table class='one'>
+<tr>
+<td class='oneHed'>Scalar</td>
+<td class='oneHed'>Description</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='sortgrps'>sortgrps</a></td>
+<td class='oneBod'>A comma seperated list of Newsgroups within the
+distribution, sorted in alphanumeric order.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='grpcnt'>grpcnt</a></td>
+<td class='oneBod'>A count of the number of Newsgroups within the
+distribution.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='fupcnt'>fupcnt</a></td>
+<td class='oneBod'>A count of the number of groups specified within the
+Followup-To header.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='grpfupcnt'>grpfupcnt</a></td>
+<td class='oneBod'>A count of the <b>unique</b> groups specified within both
+the Newsgroups and Followup-To headers.</td>
+</tr>
+</table>
+
+<h2><a name='arrays'>Arrays</a></h2>
+The names and functions of each distribution related array.
+<table class='one'>
+<tr>
+<td class='oneHed'>Array</td>
+<td class='oneHed'>Description</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='groups'>groups</a></td>
+<td class='oneBod'>A list of all the groups contained within the Newsgroups
+header.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='followups'>followups</a></td>
+<td class='oneBod'>A list of all the groups contained within the Followup-To
+header. If no Followup-To header is specified, this list will have identical
+content to <a href='#groups'>groups</a></td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='grpfup'>grpfup</a></td>
+<td class='oneBod'>A list of all the <b>unique</b> groups contained within both
+Newsgroups and Followup-To headers. This is useful in instances where
+Followup-To groups are considered a part of the distribution.</td>
+</tr>
+</table>
+
+<h2>The "gr" Hash</h2>
+<p>The gr (short for group) hash identifies various characteristics about the
+distribution of the posting.  In the following table, <b>Type</b> can be Flag
+or Counter.  A Flag is either True or False whilst a Counter holds a positive
+integer. Due to Perl's True/False handling, a Counter can also be used as a
+Flag as any non-zero value will equate to True.</p>
+<p>The <b>Source</b> column indicates which of the <a href='#arrays'>Arrays</a>
+is used to populate the Flag or Counter.</p>
+<table class='one'>
+<tr>
+<td class='oneHed'>Key</td>
+<td class='oneHed'>Type</td>
+<td class='oneHed'>Source</td>
+<td class='oneHed'>Description</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='binary'>binary</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>True if all the groups in the distribution match <a
+href='regex.html#bin_allowed'>config{bin_allowed}</a>. If this flag returns
+False and a message contains binary content, it will be rejected.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='image'>image</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>True if all the groups in the distribution match <a
+href='regex.html#bin_allowed'>config{bin_allowed}</a> or <a
+href='regex.html#image_allowed'>config{image_allowed}</a>. The distinction
+between this flag and <a href='#binary'>binary</a> is that binary groups allow
+any type of binary whilst image groups only allow images, such as jpeg, png and
+gif files.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='bad_bin'>bad_bin</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>A count of groups that match the <a
+href='regex.html#bad_bin'>config{bad_bin}</a> regular expression.  Although a
+Counter, this is usually treated as a Flag to indicate if any of the groups in
+the distribution that match <a
+href='regex.html#bin_allowed'>config{bin_allowed}</a> are in fact non-binary
+groups.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='html'>html</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>True if all groups in the distribution allow HTML content.
+These groups are identified in <a
+href='regex.html#html_allowed'>config{html_allowed}</a>.  In general terms,
+html content is unwelcome on Usenet, the exception being the microsoft
+hierarchy.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='mime_html'>mime_html</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>True if all groups in the distribution allow HTML content.
+These groups are identified in <a
+href='regex.html#mime_html_allowed'>config{mime_html_allowed}</a>.  By default
+Cleanfeed doesn't allow MIME HTML in any groups.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='poison'>poison</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Count the number of poison groups in the distribution.  In
+general any count above zero is cause to reject the message.  Poison groups are
+defined in <a href='regex.html#poison_groups'>config{poison_groups}</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='reports'>reports</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Returns True if all the groups in the distribution match <a
+href='regex.html#spam_report_groups'>config{spam_report_groups}</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='no_cancel'>no_cancel</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Count the number of groups in the distribution where cancels
+are not permitted. These groups are defined in  <a
+href='regex.html#no_cancel_groups'>config{no_cancel_groups}</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='test'>test</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Count the number of test groups in the distribution.  Test
+groups are defined in  <a
+href='regex.html#test_groups'>config{test_groups}</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='alltest'>alltest</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Return True if all the groups in the distribution match <a
+href='regex.html#test_groups'>config{test_groups}</a>. This is closely related to the <a
+href='#test'>test</a> counter.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='adult'>adult</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Count the number of groups in the distribution that are
+considered suitable for adult material.  These groups are extracted from the <a
+href='regex.html#adult_groups'>config{adult_groups}</a> and <a
+href='regex.html#not_adult_groups'>config{not_adult_groups}</a> regular
+expressions.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='alladult'>alladult</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Return True if all the groups in the distribution are
+suitable for adult material.  This is closely related to the <a
+href='#adult'>adult</a> counter.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='faq'>faq</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>FAQ (Frequently Asked Questions) groups are given special
+consideration as they often contain frequently reposted material. Matching
+groups are specified in <a
+href='regex.html#faq_groups'>config{faq_groups}</a>.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='localhier'>localhier</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@grpfup</td>
+<td class='oneBod'>The local hierarchy is used for matters relating to a
+specific news service (or server).  It is usually not propagated beyond that
+service.  This parameter maintains a count of all the local.* groups within a
+distribution.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='mod'>mod</a></td>
+<td class='oneBod'>Counter</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>In this context, mod is an abreviation of moderated.  Moderated Newsgroups
+are granted special treatment as a human (or a bot) is required to authorize each submitted message prior to its being posted.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='allmod'>allmod</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@groups</td>
+<td class='oneBod'>Return True if all the groups in the distribution are
+moderatd.  This is closely related to the <a href='#mod'>mod</a> counter.</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='alllocal'>alllocal</a></td>
+<td class='oneBod'>Flag</td>
+<td class='oneBod'>@grpfup</td>
+<td class='oneBod'>Return True if all the groups in the distribution are in the
+local hierarchy.  This is closely related to the <a
+href='#localhier'>localhier</a> counter.</td>
+</tr>
+
+</body> </html>
