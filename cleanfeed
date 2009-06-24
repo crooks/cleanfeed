@@ -1093,7 +1093,7 @@ sub filter_art {
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
             # Score poor netiquette on Follow-up's
-            $score .= "!!ExpFollowup" if $fupcnt > $grpcnt;
+            $score .= "!!ExpFollowup" if $grpfupcnt > $grpcnt;
             $score .= "!NoFollowup" if $grpcnt > 1 and not $hdr{Followup-To};
             $score .= "!NoFollowup2" if $grpcnt > 3 and not $hdr{Followup-To};
 
