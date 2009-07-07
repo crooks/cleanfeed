@@ -47,6 +47,9 @@ filelist = '/usr/local/news/bads/badurl/logfile_list'
 # A list of URL's to exclude from blacklisting.
 exclude = '/usr/local/news/bads/badurl/exclude_list'
 
+# A list of URL's to manually include.
+include = '/usr/local/news/bads/badurl/include_list'
+
 # The number of bytes to read from the start of each logfile to generate a
 # unique hash.  More is better but the logfile must have sufficient bytes to
 # read.  Don't change this on an operational report!  A new hash will be

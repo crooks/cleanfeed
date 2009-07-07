@@ -273,6 +273,7 @@ def Main():
     # URL's to exclude from processing.  Entries can be plain-text or regex.
     global exclude
     exclude = File2List(config.exclude)
+    include = File2List(config.include)
 
     print "Expired: ", DB_Expire(config.expire_hours)
     ScanFiles(logfiles)
@@ -284,9 +285,17 @@ def Main():
     badurl.write('\n\n')
     badurl.write('# Last Updated: %s\n\n' % (utcnow(),))
 
+    # First, process the entries in our manual include file.
+    for hit in include:
+        entry = RegexSafe(hit)
+        badurl.write("%-40s # Manually included\n" % (entry,))
+        print "%-40s Manually included" % (hit,)
+
     #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
     for hit, count in results:
-        if count > config.threshold and not Excluded(hit):
+        if count > config.threshold and \
+          not Excluded(hit) and \
+          hit not in include:
             if config.regex_safe:
                 entry = RegexSafe(hit)
             else:
@@ -294,6 +303,7 @@ def Main():
             badurl.write("%-40s # %d\n" % (entry, count))
             print "%-40s %5d" % (hit, count)
             #print "%-40s  %5d  %5d  %10s  %10s" % (entry, p, c, firststamp, laststamp)
+        
     # Close the file and shelves
     badurl.close()
 
