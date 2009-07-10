@@ -514,6 +514,7 @@ sub filter_art {
     $now = time;
     undef $body;
     undef $body_has_url;
+    undef $file_extension;
     undef $Cache_Is_Binary;
     undef $XReader;
     undef $score;
@@ -918,6 +919,7 @@ sub filter_art {
                     and not is_binary()) {
                 $mbody = lc $hdr{__BODY__};
                 $mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
+                $mbody =~ s/^>+\s.*//mg;  # Strip quoted lines
                 $mbody =~ s/\r{3}.*$//mg;
                 $mbody =~ s/\s+$//;
                 $mbody =~ s/^[^\n]*\Z//m if $lines > 5;
