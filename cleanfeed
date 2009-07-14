@@ -124,7 +124,8 @@ sub get_config {
     bin_allowed => '^bin[a.]|\.bin[aei.]|\.bin$|^fur\.artwork'.
         '|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
-        '|^fido\.|^unidata\.|alt\.security\.keydist',
+        '|^fido\.|^unidata\.|alt\.security\.keydist'.
+        '|^linux\.debian\.bugs\.dist$',
 
     # Groups matching this regex will accept binary UUenc and yEnc files
     # where filename extensions match 'image_extensions'.
@@ -797,7 +798,7 @@ sub filter_art {
                 # We're only interested in binaries
                 if (is_binary()) {
                     # Try to get the file extension
-                    $file_extension = extension() if not $file_extension;
+                    #$file_extension = extension() if not $file_extension;
                     # Is the binary an image?
                     if ($config{image_extensions}
                     and $file_extension =~ /$config{image_extensions}/) {
@@ -1361,25 +1362,21 @@ sub is_binary {
     return 0 unless $lines > $config{max_encoded_lines};
 
     if ($hdr{__BODY__} =~ /
-            (?:
-                ^[ \t|>]*               # skip quoting marks, if any
-                (?>                     # optimization: disable backtracking
-                    M[\x20-\x60]{60,61} # uuencoded line
-                )
-                \s*\r?\n                # trailing spaces and end of line
-            ){$config{max_encoded_lines}} # at least this many lines
-        /mox) {
-        $Cache_Is_Binary = 'uuencoded';
+        ^[bB][eE][gG][iI][nN][ \t]+     # begin
+        [0-7]{3,4}[ \t]+                # Permissions
+        \w+\.(\w{2,4})                  # Get file extension
+        \s*\n                           # End of line
+        (?:
+            ^[ \t|>]*                   # Skip quote marks
+            (?>                         # Disable Backtracking
+            M[\x20-\x60]{60,61}         # uuencoded line
+            )\s*\n                      # End of line
+        ){2}                            # Require at least two encoded lines
+    /mox) {
+        $file_extension = $1;
+        $Cache_Is_Binary = "uuencoded";
         return $Cache_Is_Binary;
-    }
-
-    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
-        local $_ = $1;
-        if (/line=/ and /size=/ and /name=/) {
-            $Cache_Is_Binary = 'yEnc Encoded OLD';
-            return $Cache_Is_Binary;
-        }
-    }
+    };
 
 #TODO: This check is not ideal, it doesn't match the number of base64 lines,
 #      just the total number of lines.  This is because Cleanfeed dies when
@@ -1392,7 +1389,7 @@ sub is_binary {
                     [A-Za-z0-9\+\/]{59,76}
                 )
                 \s*\r?\n
-            ){$config{max_encoded_lines}}
+            ){2}
         /mox) {
         $Cache_Is_Binary = 'Base64';
         return $Cache_Is_Binary;
