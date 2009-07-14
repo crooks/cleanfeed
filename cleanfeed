@@ -797,8 +797,6 @@ sub filter_art {
             unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 # We're only interested in binaries
                 if (is_binary()) {
-                    # Try to get the file extension
-                    #$file_extension = extension() if not $file_extension;
                     # Is the binary an image?
                     if ($config{image_extensions}
                     and $file_extension =~ /$config{image_extensions}/) {
@@ -1398,27 +1396,6 @@ sub is_binary {
     $Cache_Is_Binary = 0;
     return 0;
 };
-
-# Useful for groups where pictures are accepted, but not other binary formats.
-sub extension {
-    return 0 unless is_binary();
-    if ($hdr{__BODY__} =~ /
-        (                               # Start of uuEnc section
-        begin[ \t]+                     # begin
-        [0-7]{3,4}[ \t]+                # 666
-        |                               # Start of yEnc section
-        \=ybegin                        # ybegin
-        .+name\=                        # yEnc headers
-        )
-        .+                              # filename (greedy is good)
-        \.(\w{2,4})                     # file extension
-        \s*$                            # end of line
-        /imox) {
-            return $2;                  # Return file extension
-    };
-    return 0;
-};
-
 
 # Attempt to determine the client software
 sub x_reader {
