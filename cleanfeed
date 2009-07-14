@@ -797,7 +797,7 @@ sub filter_art {
                 # We're only interested in binaries
                 if (is_binary()) {
                     # Try to get the file extension
-                    $file_extension = extension();
+                    $file_extension = extension() if not $file_extension;
                     # Is the binary an image?
                     if ($config{image_extensions}
                     and $file_extension =~ /$config{image_extensions}/) {
@@ -1325,8 +1325,40 @@ sub filter_art {
 
 # Return true if the article is a binary, false otherwise.
 sub is_binary {
-    return 0 unless $lines > $config{max_encoded_lines};
     return $Cache_Is_Binary if defined $Cache_Is_Binary;
+
+    # yEnc checks: According to yEnc spec, all encoded parts start with
+    # =ybegin.
+    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)\n(.+)/o) {
+        local $_ = $1;
+        # ypart will be true is the line following ybegin starts with =ypart.
+        local $ypart = ($2 =~ /^=ypart\s/);
+        # Further confirmation that this is a yEnc message and extract
+        # the file extension.
+        if (/line=/ and /size=/ and /name=.+\.(\w{2,4})/) {
+            $file_extension = $1;
+            # If this is a multipart yEnc, we declare it as binary without
+            # further consideration.
+            if ($ypart) {
+                $Cache_Is_Binary = "yEnc Multipart";
+                return $Cache_Is_Binary;
+            # If not a multipart yEnc then we only declare it binary if it
+            # exceeds an acceptable number of encoded lines.
+            } elsif ($lines > $config{max_encoded_lines}) {
+                $Cache_Is_Binary = "yEnc Encoded";
+                return $Cache_Is_Binary;
+            } else {
+                # It's yEnc, not multi-part and under max encoded lines so
+                # return False.
+                $Cache_Is_Binary = 0;
+                return 0;
+            };
+        };
+    };
+
+    # Except for multipart yEnc, we allow small encoded binaries up to a
+    # specified number of lines.
+    return 0 unless $lines > $config{max_encoded_lines};
 
     if ($hdr{__BODY__} =~ /
             (?:
@@ -1344,7 +1376,7 @@ sub is_binary {
     if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)$/m) {
         local $_ = $1;
         if (/line=/ and /size=/ and /name=/) {
-            $Cache_Is_Binary = 'yEnc Encoded';
+            $Cache_Is_Binary = 'yEnc Encoded OLD';
             return $Cache_Is_Binary;
         }
     }
