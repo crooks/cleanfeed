@@ -1331,7 +1331,8 @@ sub is_binary {
     if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)\n(.+)/o) {
         local $_ = $1;
         # ypart will be true is the line following ybegin starts with =ypart.
-        local $ypart = ($2 =~ /^=ypart\s/);
+        # We also cut some slack when part=1 to allow for misuse of yEnc.
+        local $ypart = ($2 =~ /^=ypart\s/ && not /part=1\s/);
         # Further confirmation that this is a yEnc message and extract
         # the file extension.
         if (/line=/ and /size=/ and /name=.+\.(\w{2,4})/) {
