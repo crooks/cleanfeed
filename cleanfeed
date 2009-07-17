@@ -125,7 +125,7 @@ sub get_config {
         '|^alt\.anonymous\.messages$|^de\.alt\.dateien|^rec\.games\.bolo$'.
         '|^comp\.security\.pgp\.test$|^sfnet\.tiedostot'.
         '|^fido\.|^unidata\.|alt\.security\.keydist'.
-        '|^linux\.debian\.bugs\.dist$',
+        '|^linux\.debian\.bugs\.dist$|^lucky\.freebsd',
 
     # Groups matching this regex will accept binary UUenc and yEnc files
     # where filename extensions match 'image_extensions'.
@@ -1388,7 +1388,7 @@ sub is_binary {
                     [A-Za-z0-9\+\/]{59,76}
                 )
                 \s*\r?\n
-            ){2}
+            ){10}
         /mox) {
         $Cache_Is_Binary = 'Base64';
         return $Cache_Is_Binary;
