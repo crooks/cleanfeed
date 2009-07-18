@@ -87,6 +87,7 @@ sub get_config {
 
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
+    off_topic_maxgroups => 2,   # How many off topic groups allowed in a distro
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
     max_encoded_lines => 15,    # number of encoded binary lines to allow
@@ -170,6 +171,13 @@ sub get_config {
     meow_groups => '^alt\.fan\.karl-malden\.nose|^alt\.flame|^alt\.troll'.
         '|^alt\.alien\.vampire\.flonk\.flonk\.flonk|^alt\.romath'.
         '|^alt\.snuh|^alt\.fan\.natasha',
+
+    ### Topic groups allow administrators to limit crossposting from defined
+    ### groups to undefined groups.  The allowed number of groups is defined
+    ### in off_topic_maxgroups.
+    ### Examples: '\.politi[ck]', '\.pets', '\.sex'
+    topic1_groups => '',
+    topic2_groups => '',
 
     ### cancel in these groups are not honored
     no_cancel_groups => '^alt\.religion\.scientology|^news\.admin\.net-abuse|^alt\.config$',
@@ -285,7 +293,8 @@ sub get_config {
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups 
-                    image_allowed image_extensions meow_groups)) {
+                    image_allowed image_extensions meow_groups
+                    topic1_groups topic2_groups off_topic_maxgroups)) {
                 if (defined $config_append{$_}) {
                     $config{$_} .= "|$config_append{$_}";
                     $config{$_} =~ s/\|\|/\|/g;
@@ -609,6 +618,10 @@ sub filter_art {
             and /$config{low_xpost_groups}/o;
         $gr{meow}++ if $config{meow_groups}
             and /$config{meow_groups}/o;
+        $gr{topic1}++ if $config{topic1_groups}
+            and /$config{topic1_groups}/o;
+        $gr{topic2}++ if $config{topic2_groups}
+            and /$config{topic2_groups}/o;
         $gr{localhier}++ if /^local\./;
     };
 
@@ -747,6 +760,18 @@ sub filter_art {
                 #and $gr{meow} != scalar @groups
                 and $config{meow_ext_maxgroups}
                 and ($fupcnt - $gr{meow}) > $config{meow_ext_maxgroups};
+
+        return reject('Off-topic newsgroups (topic1)', 'Off-topic newsgroups')
+            if $gr{topic1}
+                and $gr{topic1} > 1
+                and $config{off_topic_maxgroups}
+                and ($fupcnt - $gr{topic1}) > $config{off_topic_maxgroups};
+
+        return reject('Off-topic newsgroups (topic2)', 'Off-topic newsgroups')
+            if $gr{topic2}
+                and $gr{topic2} > 1
+                and $config{off_topic_maxgroups}
+                and ($fupcnt - $gr{topic2}) > $config{off_topic_maxgroups};
 
         return reject('Too many test groups in crosspost',
             'Too many newsgroups') if $gr{test} > 2;
