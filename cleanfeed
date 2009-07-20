@@ -1388,7 +1388,7 @@ sub is_binary {
     if ($hdr{__BODY__} =~ /
         ^[bB][eE][gG][iI][nN][ \t]+     # begin
         [0-7]{3,4}[ \t]+                # Permissions
-        \w+\.(\w{2,4})                  # Get file extension
+        .+\.(\w{2,4})                   # Get file extension
         \s*\n                           # End of line
         (?:
             ^[ \t|>]*                   # Skip quote marks
