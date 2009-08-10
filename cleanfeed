@@ -404,7 +404,7 @@ $one_point_words = "pre.?teen|\bteen|\bsex|$free|credit|amateur|horne?y".
     'suduc(?:e|tress)|cuckold';
 $two_point_words = "$drugs".
     '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
-    '|le[sz]b(?:ian|o)|tit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
+    '|le[sz]b(?:ian|o)|\btit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
     '|twat|cunt|hard-?core|[^x]xxx|facial|gangbang|strap.on|submissive'.
     '|(?:live|real|innocent).girl|phone.{0,5}(?:sex|fun|play)|she.?male'.
     '|lolita|dildo|whore|fingering|barely.?(?:18|legal)';
@@ -1125,6 +1125,7 @@ sub filter_art {
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
             $score .= "!FromNoLC" if $lch{from} !~ /[a-z]/o;
+            $score .= "!FromLen" if length($hdr{From}) > 80;
 
             $score .= "!SubURL" if $lch{subject} =~ /$url/o;
             $score .= "!!!!!SubStealthURL" if $lch{subject} =~ /$stealthURL/o;
@@ -1220,6 +1221,17 @@ sub filter_art {
             # give them low scores.
             $score .= "!SigLen" if $body =~ /\n-- (\r?\n.*){5,}\n\w/;
             $score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
+
+            # Check messages for high ratios of upper case.
+            if ($lines < 4000 and not is_binary()) {
+                $uppercase = ($hdr{__BODY__} =~ tr/[A-Z]//);
+                $anycase = ($hdr{__BODY__} =~ tr/[a-zA-Z]//);
+                if ($uppercase > 50) {
+                    $capratio = $uppercase / $anycase;
+                    $score .= "!CapRatio" if $capratio > 0.2;
+                    $score .= "!!CapRatio" if $capratio > 0.5;
+                };
+            };
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
@@ -1406,7 +1418,8 @@ sub is_binary {
 #      just the total number of lines.  This is because Cleanfeed dies when
 #      trying to match 100's of lines in a Regex.
     return 0 unless $lines > $config{max_base64_lines};
-    if ($hdr{__BODY__} =~ /
+    if ($hdr{'Content-Transfer-Encoding'} =~ /base64/ or
+    $hdr{__BODY__} =~ /
             (?:
                 ^[ \t|>]*
                 (?>
