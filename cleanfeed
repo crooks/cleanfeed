@@ -1210,10 +1210,14 @@ sub filter_art {
                     # How much of the post is quoted?
                     $reflines = 0;
                     $reflines++ while $body =~ /^>/mg;
-                    $pctrefs = ($reflines / $lines) * 100;
-                    $score .= "!PctQuote" if $pctrefs > 70 and $lines > 20;
-                    $score .= "!!PctQuote2" if $pctrefs > 92 and $lines > 30;
-                    $score .= "!!NoQuote" if $reflines == 0 and $lines >5;
+                    $pctrefs = int(($reflines / $lines) * 100) / 100;
+                    if ($pctrefs > 92 and $lines > 30) {
+                        $score .= "!!PctQuote($pctrefs)";
+                    } elsif ($pctrefs > 70 and $lines > 20) {
+                        $score .= "!PctQuote($pctrefs)";
+                    } elsif ($reflines == 0 and $lines >5) {
+                        $score .= "!NoQuote";
+                    };
                 };
             };
 
@@ -1222,14 +1226,38 @@ sub filter_art {
             $score .= "!SigLen" if $body =~ /\n-- (\r?\n.*){5,}\n\w/;
             $score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
 
-            # Check messages for high ratios of upper case.
-            if ($lines < 4000 and not is_binary()) {
-                $uppercase = ($hdr{__BODY__} =~ tr/[A-Z]//);
-                $anycase = ($hdr{__BODY__} =~ tr/[a-zA-Z]//);
+            # Check messages for high ratios of upper case and urls.
+            if ($lines < 4000 and not is_binary() and
+            not $hdr{'Content-Transfer-Encoding'} =~ /base64/) {
+                $fuzzy = $hdr{__BODY__};
+                $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;      # Strip urls
+                $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;  # Strip urls
+                $fuzzy =~ s/[a-zA-Z]{20,}//g;        # Strip long char strings
+                $letters = $fuzzy =~ tr/[a-zA-Z]//;  # Count letters
+                $uppercase = $fuzzy =~ tr/[A-Z]//;   # Count upper
+                undef $fuzzy;
                 if ($uppercase > 50) {
-                    $capratio = $uppercase / $anycase;
-                    $score .= "!CapRatio" if $capratio > 0.2;
-                    $score .= "!!CapRatio" if $capratio > 0.5;
+                    $capratio = int(($uppercase / $letters) * 100) / 100;
+                    if ($capratio > 0.8) {
+                        $score .= "!!!CapRat($capratio)";
+                    } elsif ($capratio > 0.5) {
+                        $score .= "!!CapRat($capratio)";
+                    } elsif ($capratio > 0.2) {
+                        $score .= "!CapRat($capratio)";
+                    };
+                };
+                $score .= "*NoUrl" if $urls == 0;
+                if ($lines > 0 and $urls > 1) {
+                    $urlratio = int(($urls / $lines) * 100) / 100;
+                    if ($urlratio > 0.8 and  $lines > 100) {
+                        $score .= "!!!!UrlRat($urlratio)";
+                    } elsif ($urlratio > 0.5 and  $lines > 50) {
+                        $score .= "!!!UrlRat($urlratio)";
+                    } elsif ($urlratio > 0.3 and  $lines > 10) {
+                        $score .= "!!UrlRat($urlratio)";
+                    } elsif ($urlratio > 0.1 and  $lines > 5) {
+                        $score .= "!UrlRat($urlratio)";
+                    };
                 };
             };
 
