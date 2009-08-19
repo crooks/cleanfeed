@@ -404,7 +404,7 @@ $one_point_words = "pre.?teen|\bteen|\bsex|$free|credit|amateur|horne?y".
     'suduc(?:e|tress)|cuckold';
 $two_point_words = "$drugs".
     '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
-    '|le[sz]b(?:ian|o)|\btit(?!an|ch)|dick(?!.?berg)|blow.?job|cock|clit'.
+    '|le[sz]b(?:ian|o)|\btits?\b|dick(?!.?berg)|blow.?job|cock|clit'.
     '|twat|cunt|hard-?core|[^x]xxx|facial|gangbang|strap.on|submissive'.
     '|(?:live|real|innocent).girl|phone.{0,5}(?:sex|fun|play)|she.?male'.
     '|lolita|dildo|whore|fingering|barely.?(?:18|legal)';
@@ -1211,11 +1211,11 @@ sub filter_art {
                     $reflines = 0;
                     $reflines++ while $body =~ /^>/mg;
                     $pctrefs = int(($reflines / $lines) * 100) / 100;
-                    if ($pctrefs > 92 and $lines > 30) {
+                    if ($pctrefs > 0.9 and $lines > 50) {
                         $score .= "!!PctQuote($pctrefs)";
-                    } elsif ($pctrefs > 70 and $lines > 20) {
+                    } elsif ($pctrefs > 0.7 and $lines > 30) {
                         $score .= "!PctQuote($pctrefs)";
-                    } elsif ($reflines == 0 and $lines >5) {
+                    } elsif ($reflines == 0 and $lines > 5) {
                         $score .= "!NoQuote";
                     };
                 };
@@ -1249,9 +1249,9 @@ sub filter_art {
                 $score .= "*NoUrl" if $urls == 0;
                 if ($lines > 0 and $urls > 1) {
                     $urlratio = int(($urls / $lines) * 100) / 100;
-                    if ($urlratio > 0.8 and  $lines > 100) {
+                    if ($urlratio > 0.8 and  $lines > 80) {
                         $score .= "!!!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.5 and  $lines > 50) {
+                    } elsif ($urlratio > 0.5 and  $lines > 40) {
                         $score .= "!!!UrlRat($urlratio)";
                     } elsif ($urlratio > 0.3 and  $lines > 10) {
                         $score .= "!!UrlRat($urlratio)";
