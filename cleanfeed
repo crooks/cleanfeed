@@ -1119,9 +1119,11 @@ sub filter_art {
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
             # Score poor netiquette on Follow-up's
-            $score .= "!!ExpFollowup" if $grpfupcnt > $grpcnt;
-            $score .= "!NoFollowup" if $grpcnt > 1 and not $hdr{Followup-To};
-            $score .= "!NoFollowup2" if $grpcnt > 3 and not $hdr{Followup-To};
+            $score .= "!!ExpFup($grpcnt-$grpfupcnt)" if $grpfupcnt > $grpcnt;
+            if (not $hdr{'Followup-To'}) {
+                $score .= "!NoFup($grpcnt)" if $grpcnt > 1 and $grpcnt < 4;
+                $score .= "!!NoFup($grpcnt)" if $grpcnt >= 4;
+            };
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
             $score .= "!FromNoLC" if $lch{from} !~ /[a-z]/o;
@@ -1228,13 +1230,14 @@ sub filter_art {
 
             # Check messages for high ratios of upper case and urls.
             if ($lines < 4000 and not is_binary() and
-            not $hdr{'Content-Transfer-Encoding'} =~ /base64/) {
+            not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
                 $fuzzy = $hdr{__BODY__};
                 $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;      # Strip urls
                 $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;  # Strip urls
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;        # Strip long char strings
                 $letters = $fuzzy =~ tr/[a-zA-Z]//;  # Count letters
                 $uppercase = $fuzzy =~ tr/[A-Z]//;   # Count upper
+                $symbols = $fuzzy =~ tr/[:punct:]//; # Count symbols
                 undef $fuzzy;
                 if ($uppercase > 50) {
                     $capratio = int(($uppercase / $letters) * 100) / 100;
@@ -1246,6 +1249,17 @@ sub filter_art {
                         $score .= "!CapRat($capratio)";
                     };
                 };
+                if ($letters > 0 and not $hdr{References}) {
+                    $symratio = int(($symbols / $letters) * 100) / 100;
+                    if ($symratio > 0.3) {
+                        $score .= "!!!SymRat($symratio)";
+                    } elsif ($symratio > 0.2) {
+                        $score .= "!!SymRat($symratio)";
+                    } elsif ($symratio > 0.1) {
+                        $score .= "!SymRat($symratio)";
+                    };
+                };
+                # Grant some slack to posts with no url's in them.
                 $score .= "*NoUrl" if $urls == 0;
                 if ($lines > 0 and $urls > 1) {
                     $urlratio = int(($urls / $lines) * 100) / 100;
@@ -1260,6 +1274,9 @@ sub filter_art {
                     };
                 };
             };
+
+            # Match 15 consecutive lines with no text in them.
+            $score .= "!!!NoText15" if $body =~ /\r?\n(\W*\r?\n){15}/;
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
