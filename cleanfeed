@@ -1237,7 +1237,7 @@ sub filter_art {
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;        # Strip long char strings
                 $letters = $fuzzy =~ tr/[a-zA-Z]//;  # Count letters
                 $uppercase = $fuzzy =~ tr/[A-Z]//;   # Count upper
-                $symbols = $fuzzy =~ tr/[:punct:]//; # Count symbols
+                $symbols = $fuzzy =~ tr/[[:punct:]]//; # Count symbols
                 undef $fuzzy;
                 if ($uppercase > 50) {
                     $capratio = int(($uppercase / $letters) * 100) / 100;
