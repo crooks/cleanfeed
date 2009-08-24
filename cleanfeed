@@ -1225,19 +1225,20 @@ sub filter_art {
 
             # Long signatures are poor netiquette but not spam, so only
             # give them low scores.
-            $score .= "!SigLen" if $body =~ /\n-- (\r?\n.*){5,}\n\w/;
-            $score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
+            #$score .= "!SigLen" if $body =~ /\n-- (\r?\n.*){5,}\n\w/;
+            #$score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
 
             # Check messages for high ratios of upper case and urls.
             if ($lines < 4000 and not is_binary() and
             not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
                 $fuzzy = $hdr{__BODY__};
-                $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;      # Strip urls
-                $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;  # Strip urls
-                $fuzzy =~ s/[a-zA-Z]{20,}//g;        # Strip long char strings
-                $letters = $fuzzy =~ tr/[a-zA-Z]//;  # Count letters
-                $uppercase = $fuzzy =~ tr/[A-Z]//;   # Count upper
-                $symbols = $fuzzy =~ tr/[[:punct:]]//; # Count symbols
+                $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
+                $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
+                $fuzzy =~ s/\<[0-9A-F]{2}\>//g;     # Strip Hex
+                $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
+                $letters = $fuzzy =~ y/a-zA-Z//;    # Count letters
+                $uppercase = $fuzzy =~ y/A-Z//;     # Count upper
+                $symbols = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
                 undef $fuzzy;
                 if ($uppercase > 50) {
                     $capratio = int(($uppercase / $letters) * 100) / 100;
@@ -1251,16 +1252,18 @@ sub filter_art {
                 };
                 if ($letters > 0 and not $hdr{References}) {
                     $symratio = int(($symbols / $letters) * 100) / 100;
-                    if ($symratio > 0.3) {
+                    if ($symratio > 1) {
+                        $score .= "!!!!SymRat($symratio)";
+                    } elsif ($symratio > 0.5) {
                         $score .= "!!!SymRat($symratio)";
-                    } elsif ($symratio > 0.2) {
+                    } elsif ($symratio > 0.3) {
                         $score .= "!!SymRat($symratio)";
                     } elsif ($symratio > 0.1) {
                         $score .= "!SymRat($symratio)";
                     };
                 };
                 # Grant some slack to posts with no url's in them.
-                $score .= "*NoUrl" if $urls == 0;
+                $score .= "**NoUrl" if $urls == 0;
                 if ($lines > 0 and $urls > 1) {
                     $urlratio = int(($urls / $lines) * 100) / 100;
                     if ($urlratio > 0.8 and  $lines > 80) {
@@ -1276,7 +1279,7 @@ sub filter_art {
             };
 
             # Match 15 consecutive lines with no text in them.
-            $score .= "!!!NoText15" if $body =~ /\r?\n(\W*\r?\n){15}/;
+            #$score .= "!!!NoText15" if $body =~ /\r?\n(\W*\r?\n){15}/;
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
