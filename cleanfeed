@@ -50,6 +50,7 @@ sub get_config {
     do_phr => 1,                # do posting-host (high risk groups) check?
     do_fsl => 1,                # do the from/subject/lines EMP check?
     do_scoring_filter => 1,     # use the scoring filter?
+    do_ratio_scoring => 0,      # Score articles based on Caps/Sym/URL ratios?
 
     do_emp_dump => 1,           # dump EMP histories to a file for persistence?
     emp_dump_file => '',        # file to dump EMP histories to
@@ -218,6 +219,10 @@ sub get_config {
     ### Exempt these hosts from the High-Risk Newsgroups filter
     phr_exempt => '^localhost$|^127\.0\.0\.1$',
 
+    ### Exclude these groups from the ratio based scoring filters. (Only used
+    ### if do_ratio_scoring is true).
+    ratio_exclude => '^tw\.',
+
     ### Newsgroups that get frequently flooded.  This defines the groups
     ### processed by the PHR filter.  It should be entirely user-defined.
     flood_groups => '',
@@ -292,7 +297,7 @@ sub get_config {
                     phl_exempt phl_exclude supersedes_exempt bad_nph_hosts
                     phn_exempt phr_exempt phn_exclude flood_groups
                     refuse_messageids net_abuse_groups spam_report_groups
-                    adult_groups not_adult_groups faq_groups 
+                    adult_groups not_adult_groups faq_groups ratio_exclude 
                     image_allowed image_extensions meow_groups
                     topic1_groups topic2_groups off_topic_maxgroups)) {
                 if (defined $config_append{$_}) {
@@ -597,6 +602,7 @@ sub filter_art {
         $gr{adult}++ if /$config{adult_groups}/o
             and not /$config{not_adult_groups}/o;
         $gr{faq}++ if /$config{faq_groups}/o;
+        $gr{ratio}++ if /$config{ratio_exclude}/o;
         if ($config{active_file}) {
             $gr{mod}++ if $Moderated{$_};
         } elsif (defined &INN::newsgroup) {
@@ -635,6 +641,7 @@ sub filter_art {
     $gr{allmod} = ($gr{mod} == $grpcnt);
     $gr{alltest} = ($gr{test} == $grpcnt);
     $gr{alladult} = ($gr{adult} == $grpcnt);
+    $gr{ratio} = ($gr{ratio} == $grpcnt);
 
     # Same as above but include Followup_To in addition to Newsgroups
     $gr{skip} = ($gr{skip} == $grpfupcnt);
@@ -1229,12 +1236,14 @@ sub filter_art {
             #$score .= "!SigLen2" if $body =~ /\n-- (\r?\n.*){9,}\n\w/;
 
             # Check messages for high ratios of upper case and urls.
-            if ($lines < 4000 and not is_binary() and
+            if ($config{do_ratio_scoring} and not $gr{ratio}
+            and $lines < 4000 and not is_binary() and
             not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
                 $fuzzy = $hdr{__BODY__};
                 $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
                 $fuzzy =~ s/\<[0-9A-F]{2}\>//g;     # Strip Hex
+                $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
                 $letters = $fuzzy =~ y/a-zA-Z//;    # Count letters
                 $uppercase = $fuzzy =~ y/A-Z//;     # Count upper
@@ -1253,12 +1262,10 @@ sub filter_art {
                 if ($letters > 0 and not $hdr{References}) {
                     $symratio = int(($symbols / $letters) * 100) / 100;
                     if ($symratio > 1) {
-                        $score .= "!!!!SymRat($symratio)";
-                    } elsif ($symratio > 0.5) {
                         $score .= "!!!SymRat($symratio)";
-                    } elsif ($symratio > 0.3) {
+                    } elsif ($symratio > 0.5) {
                         $score .= "!!SymRat($symratio)";
-                    } elsif ($symratio > 0.1) {
+                    } elsif ($symratio > 0.3) {
                         $score .= "!SymRat($symratio)";
                     };
                 };
