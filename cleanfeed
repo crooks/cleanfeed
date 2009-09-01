@@ -221,7 +221,7 @@ sub get_config {
 
     ### Exclude these groups from the ratio based scoring filters. (Only used
     ### if do_ratio_scoring is true).
-    ratio_exclude => '^tw\.',
+    ratio_exclude => '^cn\.|^tw\.|^japan\.|^fj\.|\.china',
 
     ### Newsgroups that get frequently flooded.  This defines the groups
     ### processed by the PHR filter.  It should be entirely user-defined.
@@ -534,6 +534,7 @@ sub filter_art {
     undef $XReader;
     undef $score;
     undef $scoreval;
+    undef $urlcount;
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
@@ -1173,7 +1174,6 @@ sub filter_art {
             $score .= "!Lines:$lines-$hdr{Lines}" if $lines ne $hdr{Lines};
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
-            $score .= "!!Google" if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
@@ -1240,9 +1240,8 @@ sub filter_art {
             and $lines < 4000 and not is_binary() and
             not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
                 $fuzzy = $hdr{__BODY__};
-                $urls = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
-                $urls += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
-                $fuzzy =~ s/\<[0-9A-F]{2}\>//g;     # Strip Hex
+                $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
+                $urlcount += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
                 $letters = $fuzzy =~ y/a-zA-Z//;    # Count letters
@@ -1270,9 +1269,9 @@ sub filter_art {
                     };
                 };
                 # Grant some slack to posts with no url's in them.
-                $score .= "**NoUrl" if $urls == 0;
-                if ($lines > 0 and $urls > 1) {
-                    $urlratio = int(($urls / $lines) * 100) / 100;
+                $score .= "**NoUrl" if $urlcount == 0;
+                if ($lines > 0 and $urlcount > 1) {
+                    $urlratio = int(($urlcount / $lines) * 100) / 100;
                     if ($urlratio > 0.8 and  $lines > 80) {
                         $score .= "!!!!UrlRat($urlratio)";
                     } elsif ($urlratio > 0.5 and  $lines > 40) {
@@ -1285,8 +1284,24 @@ sub filter_art {
                 };
             };
 
-            # Match 15 consecutive lines with no text in them.
-            #$score .= "!!!NoText15" if $body =~ /\r?\n(\W*\r?\n){15}/;
+            # High Spam Sources.  Some sources are responsible for high volumes
+            # of Spam.  We rate thesee a low spam risk if there's a References
+            # header.  If there isn't, then the risk is based on url content
+            # within the payload.  If we don't have url data, we assume a
+            # mid-score of 2.
+            if ($hdr{'Injection-Info'} =~ /googlegroups\.com/
+            or $hdr{Path} =~ /newsguy\.com!news\d$/) {
+                if ($hdr{References}) {
+                    $score .= "!SpamSrc";
+                } else {
+                    if (defined $urlcount) {
+                        $score .= "!SpamSrcNoUrl" if $urlcount == 0;
+                        $score .= "!!!SpamSrcUrl" if $urlcount >= 1;
+                    } else {
+                        $score .= "!!SpamSrc";
+                    }; # End of url defined
+                }; # End of References
+            }; # End of SpamSrc
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
