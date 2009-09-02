@@ -535,6 +535,7 @@ sub filter_art {
     undef $score;
     undef $scoreval;
     undef $urlcount;
+    undef $charset;
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
@@ -659,6 +660,10 @@ sub filter_art {
     foreach (@Restricted_List) {
         $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == $grpcnt);
     }
+
+    if ($hdr{'Content-Type'} =~ /charset=([a-zA-Z0-9.:()_-]+)/io) {
+        $charset = lc($1);
+    };
 
     # checks common to all article types #####################################
     foreach (split(/\s+/, $hdr{'NNTP-Posting-Host'})) {
@@ -1237,8 +1242,9 @@ sub filter_art {
 
             # Check messages for high ratios of upper case and urls.
             if ($config{do_ratio_scoring} and not $gr{ratio}
-            and $lines < 4000 and not is_binary() and
-            not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
+            and $lines < 4000 and not is_binary()
+            and not $charset =~ /iso-2022/
+            and not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
@@ -1293,15 +1299,23 @@ sub filter_art {
             or $hdr{Path} =~ /newsguy\.com!news\d$/) {
                 if ($hdr{References}) {
                     $score .= "!SpamSrc";
+                } elsif (defined $urlcount) {
+                    $score .= "!SpamSrc+NoUrl" if $urlcount == 0;
+                    $score .= "!!!SpamSrc+Url" if $urlcount >= 1;
                 } else {
-                    if (defined $urlcount) {
-                        $score .= "!SpamSrcNoUrl" if $urlcount == 0;
-                        $score .= "!!!SpamSrcUrl" if $urlcount >= 1;
-                    } else {
-                        $score .= "!!SpamSrc";
-                    }; # End of url defined
+                    $score .= "!!SpamSrc";
                 }; # End of References
             }; # End of SpamSrc
+
+            # Grant some slack to adult groups.
+            if ($hdr{References}) {
+                $score .= "***Adult" if $gr{alladult};
+            } elsif (defined $urlcount) {
+                $score .= "**Adult" if $gr{alladult} and $urlcount == 0;
+                $score .= "#Adult+URL" if $gr{alladult} and $urlcount >= 1;
+            } else {
+                $score .= "*Adult"
+            }; # End of Adult slack
 
             if ($config{active_file} or defined &INN::newsgroup) {
                 if ($gr{allmod}) {
@@ -1314,7 +1328,6 @@ sub filter_art {
             }
 
             # Cut adult groups some slack
-            $score .= "**Adult" if $gr{alladult};
 
             #TODO Uncomment the following after scoring testing
             #$score += local_filter_scoring() if defined &local_filter_scoring;
@@ -1323,8 +1336,7 @@ sub filter_art {
 
             return reject("Scoring filter ($scoreval)", "Scoring filter")
                 if $scoreval > 7;
-                #if (($score =~ tr/!//) - ($score =~ tr/*//)) > 7;
-        }
+        }; # End of Scoring filters
 
         if (defined &local_filter_last) {
             my @result = local_filter_last();
@@ -1825,6 +1837,7 @@ sub saveart {
     print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
     print LOCAL "INFO: $info\n" if $info;
     print LOCAL "Score: $score\n" if $score;
+    print LOCAL "Charset: $charset\n" if defined $charset;
     print LOCAL "Binary: $Cache_Is_Binary\n"
         if is_binary();
     foreach (sort keys %hdr) {
