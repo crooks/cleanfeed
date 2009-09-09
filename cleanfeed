@@ -380,7 +380,7 @@ $pics = 'pi(?:c|x)';
 $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
          'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
 # US Phone 800-123-1234  UK Phone 09096-400141
-$phone = '[89]\d{2}[\.\s\-_*\)]+\d{2,3}[\.\s\-_*]+\d{4}'.
+$phone = '\b[89]\d{2}[\.\s\-_*\)]*\d{2,3}[\.\s\-_*]*\d{4}\b'.
          '|[\s\-_*0][89]\d{2,3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 
@@ -404,7 +404,7 @@ $porn = "(?:$sex_adjs).{0,25}(?:$pics|video|dvd|image|porn|photo|mpeg)";
 $one_point_words = "pre.?teen|\bteen|\bsex|$free|credit|amateur|horne?y".
     '|anal(?!yst)|oral|bondage|breast|vid(?:eo|s)|dvd|kink(?:y|ier)|mistress'.
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
-    '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties'.
+    '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties|bang'.
     '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture'.
     'suduc(?:e|tress)|cuckold';
 $two_point_words = "$drugs".
@@ -1312,7 +1312,7 @@ sub filter_art {
                 $score .= "***Adult" if $gr{alladult};
             } elsif (defined $urlcount) {
                 $score .= "**Adult" if $gr{alladult} and $urlcount == 0;
-                $score .= "#Adult+URL" if $gr{alladult} and $urlcount >= 1;
+                $score .= "#Adult+Url" if $gr{alladult} and $urlcount >= 1;
             } else {
                 $score .= "*Adult"
             }; # End of Adult slack
