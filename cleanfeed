@@ -1244,7 +1244,7 @@ sub filter_art {
             if ($config{do_ratio_scoring} and not $gr{ratio}
             and $lines < 4000 and not is_binary()
             and not $charset =~ /iso-2022/
-            and not $hdr{'Content-Transfer-Encoding'} =~ /base64|8bit/) {
+            and not $hdr{'Content-Transfer-Encoding'} =~ /base64/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
@@ -1288,7 +1288,7 @@ sub filter_art {
                         $score .= "!UrlRat($urlratio)";
                     };
                 };
-            };
+            }; # End of do_ratio_scoring
 
             # High Spam Sources.  Some sources are responsible for high volumes
             # of Spam.  We rate thesee a low spam risk if there's a References

@@ -151,17 +151,17 @@ def GetSize(filename):
     """Return the size of a given file in Bytes"""
     return os.path.getsize(filename)
 
-def Excluded(entry):
-    """Compare a passed entry with all the entries in our exclude file.
+def Excluded(entry, list_to_exclude):
+    """Compare a passed entry with all the entries in the exclude list.
     Entries will be treated as plain text unless wrapped within slashes in
     which case they will be regarded as regex's."""
     excluded = False
-    for rule in exclude:
+    for rule in list_to_exclude:
         # Entries wrapped in /.../ are regex format.
         if rule.startswith('/') and rule.endswith('/'):
             # Strip the first and last chars.
             rule = rule[1:-1]
-            if re.search(rule, entry, I):
+            if re.search(rule, entry, re.IGNORECASE):
                 excluded = True
                 break
         # If entry is not regex, do a plain-text compare.
@@ -250,9 +250,9 @@ def ScanFiles(files):
             for hit in hits:
                 # If a hit is excluded or its count hasn't reached a minimal
                 # level since last rotation, ignore it.
-                if Excluded(hit) or hits[hit] < config.minimum_hits:
+                if hits[hit] < config.minimum_hits:
                     continue
-                if hit not in existing and not Excluded(hit):
+                if hit not in existing:
                     print "Inserting %s into %s" % (
                         hit,
                         filename.split('/').pop()
@@ -271,7 +271,6 @@ def Main():
     # Logfiles to be read by default.  This can be overridden by command line args.
     logfiles = File2List(config.filelist)
     # URL's to exclude from processing.  Entries can be plain-text or regex.
-    global exclude
     exclude = File2List(config.exclude)
     include = File2List(config.include)
 
@@ -287,22 +286,34 @@ def Main():
 
     # First, process the entries in our manual include file.
     for hit in include:
-        entry = RegexSafe(hit)
-        badurl.write("%-40s # Manually included\n" % (entry,))
+        if hit.startswith('/') and hit.endswith('/'):
+            hit = hit[1:-1]
+        else:
+            hit = RegexSafe(hit)
+        badurl.write("%-40s # Manually included\n" % (hit,))
         print "%-40s Manually included" % (hit,)
 
     #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
     for hit, count in results:
-        if count > config.threshold and \
-          not Excluded(hit) and \
-          hit not in include:
+        if count > config.threshold:
+            exc = Excluded(hit, exclude)
+            inc = Excluded(hit, include)
             if config.regex_safe:
-                entry = RegexSafe(hit)
+                hit = RegexSafe(hit)
             else:
                 entry = hit
-            badurl.write("%-40s # %d\n" % (entry, count))
-            print "%-40s %5d" % (hit, count)
-            #print "%-40s  %5d  %5d  %10s  %10s" % (entry, p, c, firststamp, laststamp)
+            if not inc and not exc:
+                badurl.write("%-40s # %d\n" % (hit, count))
+                print "%-40s %d" % (hit, count)
+            elif inc and not exc:
+                badurl.write("#%-39s # %d Matches manual list\n" % (hit, count))
+                print "# %-38s %d Matches manual list" % (hit, count)
+            elif not inc and exc:
+                badurl.write("#%-39s # %d Whitelisted\n" % (hit, count))
+                print "# %-38s %d Whitelisted" % (hit, count)
+            else:
+                badurl.write("#%-39s # %d Error: Matches Include and Exclude\n" % (hit, count))
+                print "# %-38s %d Error: Matches Include and Exclude" % (hit, count)
         
     # Close the file and shelves
     badurl.close()
