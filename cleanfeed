@@ -1243,8 +1243,7 @@ sub filter_art {
             # Check messages for high ratios of upper case and urls.
             if ($config{do_ratio_scoring} and not $gr{ratio}
             and $lines < 4000 and not is_binary()
-            and not $charset =~ /iso-2022/
-            and not $hdr{'Content-Transfer-Encoding'} =~ /base64/) {
+            and not $charset =~ /iso-2022/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
@@ -1254,7 +1253,8 @@ sub filter_art {
                 $uppercase = $fuzzy =~ y/A-Z//;     # Count upper
                 $symbols = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
                 undef $fuzzy;
-                if ($uppercase > 50) {
+                if (not $hdr{'Content-Transfer-Encoding'} =~ /base64/
+                and $uppercase > 50) {
                     $capratio = int(($uppercase / $letters) * 100) / 100;
                     if ($capratio > 0.8) {
                         $score .= "!!!CapRat($capratio)";
