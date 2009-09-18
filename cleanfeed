@@ -869,9 +869,9 @@ sub filter_art {
         return reject('HTML post')
             if $config{block_html} and not $gr{html}
                 and $lch{'content-type'} =~ m#text/html#
-                 or $lch{'content-type'} =~ m#multipart/(?:mixed|related)#
+                 or ($lch{'content-type'} =~ m#multipart/(?:mixed|related)#
                 and $hdr{__BODY__} =~
-                    /^$ci_ctype:[\t ][Tt][Ee][Xx][Tt]\/[Hh][Tt][Mm][Ll]/mo;
+                    /^$ci_ctype:[\t ][Tt][Ee][Xx][Tt]\/[Hh][Tt][Mm][Ll]/mo);
 
         return reject('HTML post')
             if $config{block_multi_alt} and not $gr{html}
@@ -1954,7 +1954,8 @@ sub read_hashes {
         if $Bad_URL;
     # Bad URL's in Body (Central Resource)
     read_regex('bad_url_central', \$Bad_URL_Central);
-    $Bad_URL_Central_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i
+    #$Bad_URL_Central_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i
+    $Bad_URL_Central_RE = qr/(?:www\.|http:\/\/)\S*($Bad_URL_Central)/i
         if $Bad_URL_Central;
 };
 
