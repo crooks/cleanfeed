@@ -349,7 +349,8 @@ $WebHost = ($] >= 5.005 ? '(?<![\w.])' : '' ) .
     '(?:[Ww][Ww][Ww]\d?|[Ww][Ee][Bb]\d?|[Mm][Ee][Mm][Bb][Ee][Rr][Ss]' .
     '|[Uu][Ss][Ee][Rr][Ss]?|[Hh][Oo][Mm][Ee])';
 # http:// plus optional username/password.
-$HTTP = '[Hh][Tt][Tt][Pp][Ss]?:\/\/?(?:\w+(?::\w+)?@)?';
+#$HTTP = '[Hh][Tt][Tt][Pp][Ss]?:\/\/?(?:\w+(?::\w+)?@)?';
+$HTTP = '(?:www\.|https?:\/\/)';
 $HOST = '[\w\-.]+'; # characters for the hostname
 $PORT = '(?::\d+)?'; # always optional
 
@@ -367,11 +368,6 @@ $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
 #            '|sites\.google\.com/site/|groups\.google\.com/group/'.
 #            '|6x\.to|liteurl\.com|xurl\.jp|c4\.to|da\.ru|beam\.to|doiop\.com'.
 #            '|kickme\.to|end\.at|has\.it|hotshorturl\.com';
-
-# Regexps for matching MIME headers
-$ci_ctype = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Yy][Pp][Ee]';
-$ci_cte = '[Cc][Oo][Nn][Tt][Ee][Nn][Tt]-[Tt][Rr][Aa][Nn][Ss][Ff][Ee][Rr]-'.
-    '[Ee][Nn][Cc][Oo][Dd][Ii][Nn][Gg]';
 
 # for the scoring filter
 $sex = 'sex|xxx|fuck';
@@ -857,23 +853,30 @@ sub filter_art {
         }; # End of block binaries
 
         # mime-encapsulated HTML (attached *.html file)
-        return reject('Attached HTML file')
-            if $config{block_mime_html} and not $gr{mime_html}
-                and $hdr{'Content-Disposition'} =~ /filename.*\.html?/
-                or $hdr{'Content-Base'} =~ /file:.*\.html?/
-                or ($lch{'content-type'} =~ m#multipart/(?:mixed|related)#
-                    and $hdr{__BODY__} =~ /^$ci_ctype:[\t ]+text\/html/mo
-                    and $hdr{__BODY__}=~/^$ci_cte:[\t ][Bb][Aa][Ss][Ee]64/mo);
+        if ($config{block_mime_html} and not $gr{mime_html}) {
+            return reject('HTML file attached')
+                if $hdr{'Content-Disposition'} =~ /filename.*\.html?/
+                    or $hdr{'Content-Base'} =~ /file:.*\.html?/;
+            return reject('HTML Base64 attachment')
+                if $lch{'content-type'} =~ m#multipart/(?:mixed|related)#
+                    and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
+                    and $hdr{__BODY__} =~ /^Content-Transfer-Encoding:[\t ]base64/imo;
+        };
 
-        # HTML
-        return reject('HTML post')
-            if $config{block_html} and not $gr{html}
-                and $lch{'content-type'} =~ m#text/html#
-                 or ($lch{'content-type'} =~ m#multipart/(?:mixed|related)#
-                and $hdr{__BODY__} =~
-                    /^$ci_ctype:[\t ][Tt][Ee][Xx][Tt]\/[Hh][Tt][Mm][Ll]/mo);
+        # HTML inline and MIME checks
+        if ($config{block_html} and not $gr{html}) {
+            # HTML formatted postings
+            return reject('HTML post') if $lch{'content-type'} =~ m#text/html#;
 
-        return reject('HTML post')
+            # MIME HTML without Text
+            return reject('HTML Multipart without Text/Plain.')
+                if $lch{'content-type'} =~ m#multipart/(?:mixed|related|alternative)#
+                and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
+                and $hdr{__BODY__} !~ m#^Content-Type:[\t ]+text/plain#imo;
+        };
+
+        # MIME Multipart/Alternative
+        return reject('MIME Multipart/Alternative')
             if $config{block_multi_alt} and not $gr{html}
                 and $lch{'content-type'} =~ m#multipart/alternative#;
 
@@ -1105,7 +1108,7 @@ sub filter_art {
 
         # Set a flag if the message body contains a URL.  This means later,
         # more complex tests can be bypassed on many messages.
-        if ($body =~ /http:\/\/|www\./io) {
+        if ($body =~ /$HTTP/io) {
             $body_has_url = 1;
         };
 
@@ -1196,6 +1199,7 @@ sub filter_art {
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
+            $score .= "!!Money" if $body =~ /\d{1,2}\.\d{2}\b/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
@@ -1246,7 +1250,7 @@ sub filter_art {
             and not $charset =~ /iso-2022/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
-                $urlcount += $fuzzy =~ s/(www\.|http:\/\/)\S+//g;   # Strip urls
+                $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
                 $letters = $fuzzy =~ y/a-zA-Z//;    # Count letters
@@ -1950,13 +1954,10 @@ sub read_hashes {
     $Bad_Body_RE = qr/($Bad_Body)/ if $Bad_Body;
     # Bad URL's in Body
     read_regex('bad_url', \$Bad_URL);
-    $Bad_URL_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL))/i
-        if $Bad_URL;
+    $Bad_URL_RE = qr/$HTTP\S*($Bad_URL)/i if $Bad_URL;
     # Bad URL's in Body (Central Resource)
     read_regex('bad_url_central', \$Bad_URL_Central);
-    #$Bad_URL_Central_RE = qr/((?:www\.|http:\/\/(?:www\.)?)(?:$Bad_URL_Central))/i
-    $Bad_URL_Central_RE = qr/(?:www\.|http:\/\/)\S*($Bad_URL_Central)/i
-        if $Bad_URL_Central;
+    $Bad_URL_Central_RE = qr/$HTTP\S*($Bad_URL_Central)/i if $Bad_URL_Central;
 };
 
 sub read_hash {
