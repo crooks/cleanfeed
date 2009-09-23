@@ -854,13 +854,10 @@ sub filter_art {
 
         # mime-encapsulated HTML (attached *.html file)
         if ($config{block_mime_html} and not $gr{mime_html}) {
-            return reject('HTML file attached')
+            return reject('HTML MIME attachment')
                 if $hdr{'Content-Disposition'} =~ /filename.*\.html?/
-                    or $hdr{'Content-Base'} =~ /file:.*\.html?/;
-            return reject('HTML Base64 attachment')
-                if $lch{'content-type'} =~ m#multipart/(?:mixed|related)#
-                    and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
-                    and $hdr{__BODY__} =~ /^Content-Transfer-Encoding:[\t ]base64/imo;
+                or $hdr{'Content-Base'} =~ /file:.*\.html?/
+                or $lch{'content-type'} =~ m#multipart/(?:mixed|related)#;
         };
 
         # HTML inline and MIME checks
