@@ -97,6 +97,7 @@ sub get_config {
 
     block_mime_html => 1,       # block MIME encapsulated HTML (attached files)
                                 #  (NOT straight or multipart/alternative)
+    block_html_img => 1,        # Block embedded images
     block_html => 1,            # block text/html but not multipart/alternative
     block_multi_alt => 0,       # block multipart/alternative articles
 
@@ -860,10 +861,18 @@ sub filter_art {
                 or $hdr{__BODY__} =~ /^Content-Base:.*file:.*\.html?/imo);
         };
 
+        if ($config{block_html_img} and not $gr{html}) {
+            return reject('HTML embedded image')
+                if $lch{'content-type'} =~ m#text/html|multipart#
+                and $hdr{__BODY__} =~ /<img\s+src=/i;
+        };
+
         # HTML inline and MIME checks
         if ($config{block_html} and not $gr{html}) {
             # HTML formatted postings
-            return reject('HTML post') if $lch{'content-type'} =~ m#text/html#;
+                return reject('HTML post')
+                    if $lch{'content-type'} =~ m#text/html#;
+            
 
             # MIME HTML without Text
             return reject('HTML Multipart without Text/Plain.')
@@ -1183,8 +1192,6 @@ sub filter_art {
 
             if ($lch{'content-type'} =~ m#^(?:multipart|text/html)#) {
                 $score .= "***PGP" if $lch{'content-type'} =~ /^multipart\/signed/;
-                $score .= "!!!!ImageLink" if $body =~ /<img src=/;
-                $score .= "!!!MimeHTML" if $body =~ /^content-base:..?http/m;
                 $score .= "!!!!!!!HTMLRefresh" if $body =~ /<meta http-equiv=.?refresh/;
                 $score .= "!!!!!!!HTMLPopup" if $body =~ /window\.open\(/;
                 $score .= "!!!!!!HTMLJava" if $body =~ /<script language=.?javascript/;
