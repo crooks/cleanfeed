@@ -854,10 +854,10 @@ sub filter_art {
 
         # mime-encapsulated HTML (attached *.html file)
         if ($config{block_mime_html} and not $gr{mime_html}) {
-            return reject('HTML MIME attachment')
-                if $hdr{'Content-Disposition'} =~ /filename.*\.html?/
-                or $hdr{'Content-Base'} =~ /file:.*\.html?/
-                or $lch{'content-type'} =~ m#multipart/(?:mixed|related)#;
+            return reject('HTML file attachment')
+                if $lch{'content-type'} =~ /multipart/
+                and ($hdr{__BODY__} =~ /^Content-Disposition:.*filename.*\.html?/imo
+                or $hdr{__BODY__} =~ /^Content-Base:.*file:.*\.html?/imo);
         };
 
         # HTML inline and MIME checks
@@ -867,9 +867,9 @@ sub filter_art {
 
             # MIME HTML without Text
             return reject('HTML Multipart without Text/Plain.')
-                if $lch{'content-type'} =~ m#multipart/(?:mixed|related|alternative)#
+                if $lch{'content-type'} =~ /multipart/
                 and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
-                and $hdr{__BODY__} !~ m#^Content-Type:[\t ]+text/plain#imo;
+                and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
         };
 
         # MIME Multipart/Alternative
@@ -1196,7 +1196,7 @@ sub filter_art {
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
-            $score .= "!!Money" if $body =~ /\d{1,2}\.\d{2}\b/;
+            $score .= "!!Money" if $body =~ /[\$£]\d{1,2}\.\d{2}\b/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
@@ -1244,7 +1244,8 @@ sub filter_art {
             # Check messages for high ratios of upper case and urls.
             if ($config{do_ratio_scoring} and not $gr{ratio}
             and $lines < 4000 and not is_binary()
-            and not $charset =~ /iso-2022/) {
+            and not $hdr{'Content-Transfer-Encoding'} =~ /base64/
+            and not $charset =~ /iso-2022|koi8-r/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
@@ -1254,27 +1255,29 @@ sub filter_art {
                 $uppercase = $fuzzy =~ y/A-Z//;     # Count upper
                 $symbols = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
                 undef $fuzzy;
-                if (not $hdr{'Content-Transfer-Encoding'} =~ /base64/
-                and $uppercase > 50) {
-                    $capratio = int(($uppercase / $letters) * 100) / 100;
-                    if ($capratio > 0.8) {
-                        $score .= "!!!CapRat($capratio)";
-                    } elsif ($capratio > 0.5) {
-                        $score .= "!!CapRat($capratio)";
-                    } elsif ($capratio > 0.2) {
-                        $score .= "!CapRat($capratio)";
+                if (not $charset =~ /iso-2022|koi8-r/) {
+                    if ($uppercase > 50) {
+                        $capratio = int(($uppercase / $letters) * 100) / 100;
+                        if ($capratio > 0.8) {
+                            $score .= "!!!CapRat($capratio)";
+                        } elsif ($capratio > 0.5) {
+                            $score .= "!!CapRat($capratio)";
+                        } elsif ($capratio > 0.2) {
+                            $score .= "!CapRat($capratio)";
+                        };
                     };
-                };
-                if ($letters > 0 and not $hdr{References}) {
-                    $symratio = int(($symbols / $letters) * 100) / 100;
-                    if ($symratio > 1) {
-                        $score .= "!!!SymRat($symratio)";
-                    } elsif ($symratio > 0.5) {
-                        $score .= "!!SymRat($symratio)";
-                    } elsif ($symratio > 0.3) {
-                        $score .= "!SymRat($symratio)";
+                    if ($letters > 0 and not $hdr{References}) {
+                        $symratio = int(($symbols / $letters) * 100) / 100;
+                        if ($symratio > 1) {
+                            $score .= "!!!SymRat($symratio)";
+                        } elsif ($symratio > 0.5) {
+                            $score .= "!!SymRat($symratio)";
+                        } elsif ($symratio > 0.3) {
+                            $score .= "!SymRat($symratio)";
+                        };
                     };
-                };
+                }; # End of charset conditional
+
                 # Grant some slack to posts with no url's in them.
                 $score .= "**NoUrl" if $urlcount == 0;
                 if ($lines > 0 and $urlcount > 1) {
