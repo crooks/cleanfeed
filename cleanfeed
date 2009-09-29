@@ -1203,7 +1203,7 @@ sub filter_art {
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
-            $score .= "!!Money" if $body =~ /[\$£]\d{1,2}\.\d{2}\b/;
+            $score .= "!!!Rate" if $body =~ /[\s£\$]\d{1,2}\.\d{2}[\/\\]m/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
