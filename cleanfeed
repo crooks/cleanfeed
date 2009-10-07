@@ -1203,7 +1203,9 @@ sub filter_art {
             $score .= "!!!2CR" if $body =~ /\r\r/;
             $score .= "!!Newlines" if $hdr{__BODY__} =~ /(\r?\n){15}/;
             $score .= "!!Phone" if $body =~ /$phone/;
-            $score .= "!!!Rate" if $body =~ /\d{1,2}\.\d{2}\s?(?:[\\\/]\s?m|\s+per\b)/;
+            # Score rates per minute (1.99/m or 1.99 per min)
+            $score .= "!!!Rate"
+                if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\s+per\bmin)/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
 
