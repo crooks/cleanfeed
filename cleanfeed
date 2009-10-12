@@ -525,14 +525,15 @@ sub setup_stuff {
 sub filter_art {
     $now = time;
     undef $body;
-    undef $body_has_url;
-    undef $file_extension;
-    undef $Cache_Is_Binary;
-    undef $XReader;
-    undef $score;
-    undef $scoreval;
-    undef $urlcount;
-    undef $charset;
+    undef $body_has_url;    # Flag. Ture if body contains a URL
+    undef $file_extension;  # File extension on yEnc or UUencoded binaries
+    undef $Cache_Is_Binary; # Flag. True if content is Binary
+    undef $localfeed;       # Flag. True if article source is local
+    undef $XReader;         # Newsreader application, if specified
+    undef $score;           # String representation of article score
+    undef $scoreval;        # Numeric representation of article score
+    undef $urlcount;        # Number of URL's in an article
+    undef $charset;         # Article charset (if defined in Content-Type)
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
@@ -709,6 +710,13 @@ sub filter_art {
         $lch{sender}        = lc $hdr{Sender} || '';
         $lch{organization}  = lc $hdr{Organization} || '';
         $lch{'content-type'}= lc $hdr{'Content-Type'} || '';
+
+        # Provide a user-defined function for tagging posts that are fed from
+        # sources the operator considers local.  Note: This includes, but is
+        # not limited to articles received via nnrpd.
+        if (defined &local_flag_localfeed) {
+            $localfeed = local_flag_localfeed();
+        };
 
         if (defined &local_filter_first) {
             my @result = local_filter_first();

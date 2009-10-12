@@ -145,6 +145,14 @@ The following table describes the various functions within cleanfeed.local:-
 <tr>
 <td class='oneHed'>Function</td>
 <td class='oneHed'>Description</td>
+<tr>
+<td class='oneBod'>local_flag_localfeed</td>
+<td class='oneBod'>In many news configurations, articles are fed to the server
+from sources that are considered local.  The role of this function is to identify and tag
+these local articles. The operator should define one or more conditional rules that
+cause the function to return True if the source of the article is local.  When True is
+returned, the Cleanfeed global variable $localfeed will be set True.</td>
+</tr>
 </tr>
 <tr>
 <td class='oneBod'>local_filter_first</td>
