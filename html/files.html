@@ -172,6 +172,7 @@ might be:<br>
 <pre>
 sub local_flag_spamsource {
     return 1 if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
+    return 1 if $hdr{Path} =~ /newsguy\.com!news\d$/;
     return 0;
 };
 </pre>
