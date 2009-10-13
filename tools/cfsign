@@ -7,10 +7,10 @@
 # Export the working copy from the repository to the web server and create a
 # diff file against it.
 
-SOURCE='svn+ssh://cleanfeed@drooper.mixmin.net/home/cleanfeed/svn-repository/cleanfeed/trunk'
+SOURCE='svn+ssh://cleanfeed@snorky.mixmin.net/home/cleanfeed/svn-repository/cleanfeed/trunk'
 DESTDIR='/tmp'
 ORIGINAL='/crypt/home/crooks/cleanfeed/branches/cleanfeed-20020501/cleanfeed'
-WEBUSER='news@drooper'
+WEBUSER='news@snorky'
 WEBDIR='/var/www/cleanfeed'
 
 # Export the repository
