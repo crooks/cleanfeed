@@ -529,6 +529,7 @@ sub filter_art {
     undef $file_extension;  # File extension on yEnc or UUencoded binaries
     undef $Cache_Is_Binary; # Flag. True if content is Binary
     undef $localfeed;       # Flag. True if article source is local
+    undef $spamsource;      # Flag. True if article origin is spam friendly
     undef $XReader;         # Newsreader application, if specified
     undef $score;           # String representation of article score
     undef $scoreval;        # Numeric representation of article score
@@ -716,6 +717,13 @@ sub filter_art {
         # not limited to articles received via nnrpd.
         if (defined &local_flag_localfeed) {
             $localfeed = local_flag_localfeed();
+        };
+
+        # Provide a user-defined function for tagging posts that are fed from
+        # sources the operator considers spam friendly.  These could easily be
+        # hardcoded but doing so might get me kneecapped.
+        if (defined &local_flag_spamsource) {
+            $spamsource = local_flag_spamsource();
         };
 
         if (defined &local_filter_first) {
@@ -1316,8 +1324,7 @@ sub filter_art {
             # header.  If there isn't, then the risk is based on url content
             # within the payload.  If we don't have url data, we assume a
             # mid-score of 2.
-            if ($hdr{'Injection-Info'} =~ /googlegroups\.com/
-            or $hdr{Path} =~ /newsguy\.com!news\d$/) {
+            if ($spamsource) {
                 if ($hdr{References}) {
                     $score .= "!SpamSrc";
                 } elsif (defined $urlcount) {

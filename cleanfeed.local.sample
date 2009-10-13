@@ -30,6 +30,12 @@ sub local_flag_localfeed {
     return 0;
 };
 
+sub local_flag_spamsource {
+    return 1 if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
+    return 1 if $hdr{Path} =~ /newsguy\.com!news\d$/;
+    return 0;
+};
+
 sub local_filter_first {
 #   if ($gr{binary} and not is_binary()) {
 #           saveart('is_binary')
