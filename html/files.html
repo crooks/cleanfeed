@@ -150,8 +150,33 @@ The following table describes the various functions within cleanfeed.local:-
 <td class='oneBod'>In many news configurations, articles are fed to the server
 from sources that are considered local.  The role of this function is to identify and tag
 these local articles. The operator should define one or more conditional rules that
-cause the function to return True if the source of the article is local.  When True is
-returned, the Cleanfeed global variable $localfeed will be set True.</td>
+cause the function to return True if the source of the article is local.  For example:<br>
+<pre>
+sub local_flag_localfeed {
+    if ($hdr{'X-Trace'} =~ /\.mydomain\.com/
+      or $hdr{Path} =~ /^not\-for\-mail$/
+      or $hdr{'Message-ID'} =~ /\@mydomain.com>$/) {
+        return 1;
+    };
+    return 0;
+};
+<pre>
+When True is returned, the Cleanfeed global variable $localfeed will be set
+True.</td>
+</tr>
+</tr>
+<td class='oneBod'>local_flag_spamsource</td>
+<td class='oneBod'>Define a set of rules that return True if a posting
+originates from a source that is considered spam friendly.  One such example
+might be:<br>
+<pre>
+sub local_flag_spamsource {
+    return 1 if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
+    return 0;
+};
+</pre>
+When True is returned, the Cleanfeed global variable $spamsource will be set
+True.</td>
 </tr>
 </tr>
 <tr>
