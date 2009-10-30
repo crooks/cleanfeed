@@ -1,4 +1,4 @@
-# vim: tabstop=4 expandtab shiftwidth=4 autoindent syntax=perl
+# vim: set tabstop=4 shiftwidth=4 expandtab syntax=perl:
 
 ######################### IMPORTANT! - READ CAREFULLY ########################
 # This file contains some parts of my own cleafeed.local.
@@ -25,18 +25,36 @@ my @badaspnntps = (
 my %badaspnntp = map { $_ => 1 } @badaspnntps;
 undef @badaspnntps;
 
-sub local_filter_first {
+sub local_flag_localfeed {
+    return 1 if $hdr{Path} =~ /^not\-for\-mail$/;
+    return 0;
+};
 
-    # A well known troll is preloading Path headers.  Save articles for
-    # inspection when alt\.net appears more than once in the Path.
-    if ($hdr{Path} =~ /alt\.net.*alt\.net/) {
-        saveart('path-preload');
+sub local_flag_spamsource {
+    return 1 if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
+    return 1 if $hdr{Path} =~ /newsguy\.com!news\d$/;
+    return 0;
+};
+
+sub local_filter_first {
+#   if ($gr{binary} and not is_binary()) {
+#           saveart('is_binary')
+#   };
+
+    # local posts
+    if ($localfeed) {
+        if ($hdr{Approved}) {
+            foreach (@groups) {
+                if (not /^(?:alt|news\.admin\.net-abuse)\./) {
+                    saveart('CF.approved');
+                    return reject("Forged approval in $_ ($hdr{Approved})");
+                };
+            };
+        };
     };
 
-    # Reject the current wave of Chinese spam being posted via Google.
-    if (not $hdr{References} and
-            $hdr{'X-Trace'} =~ /posting\.google\.com/ and
-            not $gr{reports}) {
+    if (not $hdr{References}
+    and $hdr{'X-Trace'} =~ /posting\.google\.com/ and not $gr{reports}) {
         if ($hdr{Subject} =~ /
                 cheap.*wholesale
             |   wholesale.*cheap
@@ -48,19 +66,6 @@ sub local_filter_first {
             /imx) {
             saveart('subject');
             return reject('Subject Rejected');
-        };
-    };
-
-    # Reject repeated troll-posting about Shakespeare.
-    if ($hdr{Newsgroups} =~ /humanities\.lit\.authors\.shakespeare/) {
-        if ($hdr{__BODY__} =~ /
-            ^www\.shakespeareauthorship\.com
-        |   ^http:\/\/hometown\.aol\.com\/kqknave\/shakenbake\.html
-        |   ^http:\/\/hometown\.aol\.com\/kqknave\/monsarr1\.html
-        |   ^Agent\sJim
-        /imx) {
-            saveart('shakespeare');
-            return reject('Shakespeare Spam');
         };
     };
 };
@@ -76,75 +81,99 @@ sub local_filter_bot {
 };
 
 sub local_filter_last {
-    my $localpost = 0;
-    #$localpost = 1 if $hdr{'X-Trace'} and $hdr{'X-Trace'} =~ /\.mydomain/;
-    $localpost = 1 if $hdr{Path} =~ /^not\-for\-mail$/;
-
-    #This should be done in filter_nnrpd.pl but works for now.
-    if ($localpost) {
-        # Don't allow posts (or crossposts) to these groups
-        if ($hdr{Newsgroups} =~ /
-            hr\.alt\.trash
-        |   rec\.radio\.
-        |   alt\.ham-radio\.
-        /x) {
-            saveart('local.group');
-            return reject('Group rejected');
+    if (not $hdr{References} and 
+        $hdr{__LINES__} > 25 and
+        $hdr{__LINES__} < 150 and
+        scalar @groups > 4 and
+        scalar @followups > 4) {
+        if ($hdr{__BODY__} =~ /MI5/ or
+            $hdr{Subject} =~ /M.{1,3}I.{1,3}5/) {
+            saveart('mi5');
+            return reject('MI5 Filter');
         };
-        saveart('local.post');
     };
+
+    # Unremark this section to log all locally generated articles
+    #if ($localfeed) {
+    #    saveart('local.post');
+    #};
 
     if ($config{watch_cancels} and $localpost) {
         $LocalPosts{$hdr{'Message-ID'}} = $now;
-    };
+    }
+
+#   saveart('W.longsubj') if length $hdr{Subject} > 160;
+#   saveart('W.space') if $hdr{Subject} =~ / {15,}[^ ]/;
+    saveart('W.repostnotrej')
+        if $hdr{Subject} =~ /^REPOST: / and $hdr{Path} =~ /!resurrector!/;
+    return '';
 };
 
+# Unremark this example function to log and reject all locally generated
+# cancels.
+#sub local_filter_cancel {
+#    if ($localfeed) {
+#        saveart('local.cancel');
+#        return reject('Cancels forbidden');
+#    };
+#};
+
+# here I save some articles I want to check.
 sub local_filter_reject {
     my ($vr, $sr) = @_;
 
-    # Create logfiles for rejected articles I want to monitor.
     saveart('local.reject', $vr)
-        if $hdr{Path} =~ /^not\-for\-mail$/;
+        if $hdr{Path} =~ /^not\-for\-mail$/ or
+           $hdr{Path} =~ /^news\.mixmin\.net!not-for-mail/;
+    #saveart('w.supersedes') if $vr =~ /^Excessive Supersedes/;
+    #saveart('cf.newsagent', $vr) if $vr =~ /^NewsAgent/;
+    #saveart('cf.sex', $vr) if $vr =~ /^Sex spam/ and $lines < 300;
     saveart('emp.phn', $vr) if $vr =~ /^EMP\s\(phn/;
     saveart('emp.phr', $vr) if $vr =~ /^EMP\s\(phr/;
     saveart('emp.phl', $vr) if $vr =~ /^EMP\s\(phl/;
     saveart('emp.fsl', $vr) if $vr =~ /^EMP\s\(fsl/;
     if (is_binary()) {
         saveart('emp.md5.bin', $vr) if $vr =~ /^EMP\s\(md5/;
-        saveart('cf.scoring', $vr, 2) if $vr =~ /^Scoring/;
+        saveart('cf.scoring', $vr, 2) if $vr =~ /^Scoring filter/;
     } else {
         saveart('emp.md5', $vr) if $vr =~ /^EMP\s\(md5/;
-        saveart('cf.scoring', $vr) if $vr =~ /^Scoring/;
+        saveart('cf.scoring', $vr) if $vr =~ /^Scoring filter/;
     }
+    # Save articles rejected by bad_hosts.
     saveart('cf.hosts', $vr) if $vr =~ /^Bad\shost/;
+    # Provide a seed for bad_hosts_central.
+    saveart('badhosts', $vr, 3) if $vr =~ /^EMP|^Bad\shost|^URL/
+        and $hdr{'NNTP-Posting-Host'}
+        and not $gr{alltest};
     saveart('cf.uuenc', $vr) if $vr =~ /^UUencoded/;
     saveart('cf.binary', $vr) if $vr =~ /^Binary/;
-    saveart('cf.body', $vr) if $vr =~ /^Body/;
+    #saveart('r.nanacancel') if $vr eq 'Cancel in forbidden group';
 
     return @_;
 }
 
 sub local_config {
     %config_local = (
-        debug_batch_directory => '/usr/local/news/cleanfeed/log',
-        emp_dump_file => '/usr/local/news/tmp/empdump',
-        statfile => '/usr/local/news/cleanfeed/cleanfeed.stats',
-#       html_statfile => '/news/log/cleanfeed.stats.html',
-        bad_rate_reload => 5000,
         block_late_cancels => 1,
         block_user_cancels => 1,
+        active_file => '/usr/local/news/db/active',
+        statfile => '/usr/local/news/cleanfeed/cleanfeed.stats',
+#       html_statfile => '/news/log/cleanfeed.stats.html',
+        stats_interval => 300,
+        do_scoring_filter => 0,
         do_emp_dump => 1,
-        do_scoring_filter => 1,
-        flood_groups => '^sci\.crypt$',
-        low_xpost_maxgroups => 3,
-        maxgroups => 6,
-        MD5RateCutoff => 3,
+        emp_dump_file => '/usr/local/news/tmp/empdump',
         md5_skips_followups => 0,
-        meow_ext_maxgroups => 2,
+        debug_batch_directory => '/usr/local/news/cleanfeed/log',
+        flood_groups => '^sci\.crypt$|^news\.software\.nntp$|^alt\.free\.newsservers',
+        MD5RateCutoff => 3,
         PHNRateBaseInterval => 1800,
         PHRRateBaseInterval => 1800,
+        maxgroups => 6,
+        low_xpost_maxgroups => 3,
+        meow_ext_maxgroups => 2,
+        low_xpost_groups => 'test|jobs|forsale',
         reject_suspect_cancels => 1,
-        stats_interval => 300,
     );
 
     %config_append = (
@@ -152,10 +181,26 @@ sub local_config {
         bin_allowed => '^alt\.mag\.',
         phn_exempt => 'bristol.highgroove.com',
         phn_exclude => 'uk.people.silversurfers',
+        spam_report_groups => 'local.test',
     );
 
     $Restricted_Groups{netscape} = '^netscape\.';
-};
+
+    $config{block_user_cancels} = 1;
+    $config{reject_suspect_cancels} = 1;
+    $config{watch_cancels} = 0;
+    if ($config{watch_cancels}) {
+        eval { require AnyDBM_File; import AnyDBM_File;
+                require Fcntl; import Fcntl; }; # XXX ugly
+        if ($@) {
+            $config{watch_cancels} = undef;
+            slog('E', 'Cannot load AnyDBM_File: ' . $@);
+        }
+        tie %LocalPosts, 'AnyDBM_File', "$config_dir/posts",
+                &Fcntl::O_CREAT|&Fcntl::O_RDWR, 0666
+            or slog('E', 'Cannot load AnyDBM_File: ' . $!);
+    }
+}
 
 print $now.$config_dir.$lines.%Restricted_Groups.%Moderated.%config_local.%config_append.@followups if 0; # lint food
 
