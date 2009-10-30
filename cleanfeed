@@ -89,6 +89,8 @@ sub get_config {
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
     off_topic_maxgroups => 2,   # How many off topic groups allowed in a distro
+    on_topic_mingroups => 1,    # How many on topic groups req'd to trigger
+                                # topic filters
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
     max_encoded_lines => 15,    # number of encoded binary lines to allow
@@ -789,13 +791,13 @@ sub filter_art {
 
         return reject('Off-topic newsgroups (topic1)', 'Off-topic newsgroups')
             if $gr{topic1}
-                and $gr{topic1} > 1
+                and $gr{topic1} >= $config{on_topic_mingroups}
                 and $config{off_topic_maxgroups}
                 and ($fupcnt - $gr{topic1}) > $config{off_topic_maxgroups};
 
         return reject('Off-topic newsgroups (topic2)', 'Off-topic newsgroups')
             if $gr{topic2}
-                and $gr{topic2} > 1
+                and $gr{topic2} >= $config{on_topic_mingroups}
                 and $config{off_topic_maxgroups}
                 and ($fupcnt - $gr{topic2}) > $config{off_topic_maxgroups};
 
