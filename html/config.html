@@ -211,7 +211,7 @@ stop incrementing any further.</td>
 </tr>
 
 <tr>
-<td class='oneBod'><a name=''>MD5RateBaseInterval</a></td>
+<td class='oneBod'><a name='MD5RateBaseInterval'>MD5RateBaseInterval</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>After this many seconds, begin to decrement the count against a
 specific hash.</td>
@@ -513,6 +513,29 @@ settings.</td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>Block multipart/alternate formatted MIME messages.</td>
 <td class='oneBod'>0</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='off_topic_maxgroups'>off_topic_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>Define how many off-topic groups are permitted when a
+distribution contains a number of groups defined in <a
+href='regex.html#topic1_groups'>topic1_groups</a> or <a
+href='regex.html#topic2_groups'>topic2_groups</a>.  The number of on-topic
+groups required to trigger the filters is defined in <a
+href='#on_topic_mingroups'>on_topic_mingroups</a>.</td>
+<td class='oneBod'>2</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='on_topic_mingroups'>on_topic_mingroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>This relates to the above <a
+href='#off_topic_maxgroups'>off_topic_maxgroups</a> It defines how many groups
+must match <a href='regex.html#topic1_groups'>topic1_groups</a> or <a
+href='regex.html#topic2_groups'>topic2_groups</a> in order to trigger the topic
+filters.</td>
+<td class='oneBod'>1</td>
 </tr>
 
 <tr>

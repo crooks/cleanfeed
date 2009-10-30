@@ -245,6 +245,27 @@ NNTP-Posting-Host header.
 </tr>
 
 <tr>
+<td class='oneBod'><a name='topic1_groups'>topic1_groups</a></td>
+<td class='oneBod'>By default this regex is empty.  Groups that match it will
+trigger topic filters that work in the same way as <a
+href='#meow_groups'>meow_groups</a>.<br>
+<b>Example:</b> The operator may elect to limit crossposting from adult content
+groups to non-adult groups.  This could be done by defining:<br>
+topic1_groups => '\.sex'<br>
+This would limit crossposts between groups matching .sex and those that don't.<br>
+See also, <a href='config.html#off_topic_maxgroups'>off_topic_maxgroups</a> and
+<a href='config.html#on_topic_mingroups'>on_topic_mingroups</a>.
+</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='topic2_groups'>topic2_groups</a></td>
+<td class='oneBod'>Identical to <a href='topic1_groups'>topic1_groups</a>.
+This parameter allows for the definition of a second list of topic groups.
+</td>
+</tr>
+
+<tr>
 <td class='oneBodBG'><a name='Restricted_Groups'>Restricted_Groups</a></td>
 <td class='oneBodBG'>Unlike all the other regex's this one is contained in a
 Perl Hash, keyed by a friendly name and containing the regex.  Distributions
