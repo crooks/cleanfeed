@@ -1847,15 +1847,18 @@ sub trimhashes {
 # debugging functions to save articles
 ##############################################################################
 sub logart {
-    # Output format is controlled it a bit level.
-    # 1  = Generic Headers
-    # 2  = Cleanfeed Internals
-    # 4  = Include Body
-    # 8  = Truncate Body (On / Off)
-    # 16 = Processed Body (Lowercase, Truncated, Base64 Decoded)
+    # Output format is controlled at a bit level.
+    # Some args are ambiguous, for example if bit 3 (Include Body) is 0 then
+    # bits 4 and 5 are ignored.
+    # 1(1)   = Include Post Headers
+    # 2(2)   = Cleanfeed Internals
+    # 3(4)   = Include Body
+    # 4(8)   = Truncate Body (On / Off)
+    # 5(16)  = Processed Body (Lowercase, Truncated, Base64 Decoded)
 
     my ($file, $info, $format) = @_;
-    $format ||= 0;
+    # Default format value is 15.
+    $format ||= 15;
 
     return if not $config{debug_batch_directory};
     checkrotate("$config{debug_batch_directory}/$file");
@@ -1866,7 +1869,7 @@ sub logart {
     }
 
     # Begin Header cutmark
-    if ($format & 1 or $format & 2) {
+    if ($format & 3) {
         print LOCAL "$CutmarkHead\n";
         print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
     };
@@ -1888,7 +1891,7 @@ sub logart {
     };
 
     # End of headers cutmark
-    if ($format & 1 or $format & 2) {
+    if ($format & 3) {
         print LOCAL "$CutmarkBody\n";
     };
 
