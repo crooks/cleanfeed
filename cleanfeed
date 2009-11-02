@@ -88,8 +88,8 @@ sub get_config {
 
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
-    off_topic_maxgroups => 2,   # How many off topic groups allowed in a distro
-    on_topic_mingroups => 1,    # How many on topic groups req'd to trigger
+    off_topic_maxgroups => 1,   # How many off topic groups allowed in a distro
+    on_topic_mingroups => 2,    # How many on topic groups req'd to trigger
                                 # topic filters
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
@@ -338,6 +338,9 @@ sub get_config {
         }
     }
 
+    # Try and load base64 decoding functionality.
+    eval "use MIME::Base64; 1" or $config{nobase64} = 1;
+
 } # end of get_config()
 
 # Regexps for matching URLs
@@ -544,8 +547,14 @@ sub filter_art {
     # Study the message BODY.  This used to be in the local config file but
     # this seems more logical.
     # TODO: Make the number of lines configurable.
-    study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
-    $body = lc substr($hdr{__BODY__}, 0, 4000);
+    if (not $config{nobase64}
+    and $hdr{'Content-Transfer-Encoding'} =~ /^base64$/i
+    and $hdr{'Content-Type'} =~ /^text/i) {
+        $body = lc substr(MIME::Base64::decode($hdr{__BODY__}), 0, 4000);
+    } else {
+        study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
+        $body = lc substr($hdr{__BODY__}, 0, 4000);
+    };
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
     if ($status{accepted} % $config{bad_rate_reload} == 0
@@ -1338,13 +1347,15 @@ sub filter_art {
             }; # End of SpamSrc
 
             # Grant some slack to adult groups.
-            if ($hdr{References}) {
-                $score .= "***Adult" if $gr{alladult};
-            } elsif (defined $urlcount) {
-                $score .= "**Adult" if $gr{alladult} and $urlcount == 0;
-                $score .= "#Adult+Url" if $gr{alladult} and $urlcount >= 1;
-            } else {
-                $score .= "*Adult"
+            if ($gr{alladult}) {
+                if ($hdr{References}) {
+                    $score .= "***Adult";
+                } elsif (defined $urlcount) {
+                    $score .= "**Adult" if $urlcount == 0;
+                    $score .= "#Adult+Url" if $urlcount >= 1;
+                } else {
+                    $score .= "*Adult";
+                };
             }; # End of Adult slack
 
             if ($config{active_file} or defined &INN::newsgroup) {
@@ -1835,6 +1846,67 @@ sub trimhashes {
 ##############################################################################
 # debugging functions to save articles
 ##############################################################################
+sub logart {
+    # Output format is controlled it a bit level.
+    # 1  = Generic Headers
+    # 2  = Cleanfeed Internals
+    # 4  = Include Body
+    # 8  = Truncate Body (On / Off)
+    # 16 = Processed Body (Lowercase, Truncated, Base64 Decoded)
+
+    my ($file, $info, $format) = @_;
+    $format ||= 0;
+
+    return if not $config{debug_batch_directory};
+    checkrotate("$config{debug_batch_directory}/$file");
+
+    if (not open(LOCAL, ">>$config{debug_batch_directory}/$file")) {
+        slog('E', "Cannot open $file: $!");
+        return;
+    }
+
+    # Begin Header cutmark
+    if ($format & 1 or $format & 2) {
+        print LOCAL "$CutmarkHead\n";
+        print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
+    };
+
+    # Cleanfeed Internals
+    if ($format & 2) {
+        print LOCAL "INFO: $info\n" if $info;
+        print LOCAL "Score: $score\n" if $score;
+        print LOCAL "Charset: $charset\n" if defined $charset;
+        print LOCAL "Binary: $Cache_Is_Binary\n" if is_binary();
+    };
+
+    # Article Headers
+    if ($format & 1) {
+        foreach (sort keys %hdr) {
+            next if $_ eq '__BODY__' or $_ eq '__LINES__';
+            print LOCAL "$_: $hdr{$_}\n";
+        };
+    };
+
+    # End of headers cutmark
+    if ($format & 1 or $format & 2) {
+        print LOCAL "$CutmarkBody\n";
+    };
+
+    if ($format & 4) {
+        # Truncated __BODY__
+        if (not $format & 16) {
+            # Full, unprocessed body
+            print LOCAL "$hdr{__BODY__}\n" if not $format & 8;
+            # Truncated, unprocessed body
+            print LOCAL substr($hdr{__BODY__}, 0, 4000) . "\n\n" if $format & 8;
+        } else {
+            # processed body (Both truncated or not)
+            print LOCAL "$body\n\n";
+        };
+    }; # End of body
+    close LOCAL;
+    return;
+}; # End of logart
 
 sub saveart {
     # We currently recognise various formatting options:
