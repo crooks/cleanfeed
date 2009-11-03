@@ -1486,6 +1486,14 @@ sub filter_art {
 sub is_binary {
     return $Cache_Is_Binary if defined $Cache_Is_Binary;
 
+    # Return False if the article is Base64 encoded.  We want to match binary
+    # content, *not* Base64 encoding.
+    if ($hdr{'Content-Transfer-Encoding'} =~ /^base64$/i
+    and $hdr{'Content-Type'} =~ /^text/i) {
+        $Cache_Is_Binary = 0;
+        return $Cache_Is_Binary
+    };
+
     # yEnc checks: According to yEnc spec, all encoded parts start with
     # =ybegin.
     if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)\n(.+)/o) {
@@ -1541,8 +1549,7 @@ sub is_binary {
 #      just the total number of lines.  This is because Cleanfeed dies when
 #      trying to match 100's of lines in a Regex.
     return 0 unless $lines > $config{max_base64_lines};
-    if ($hdr{'Content-Transfer-Encoding'} =~ /base64/ or
-    $hdr{__BODY__} =~ /
+    if ($hdr{__BODY__} =~ /
             (?:
                 ^[ \t|>]*
                 (?>
@@ -1855,6 +1862,8 @@ sub logart {
     # 3(4)   = Include Body
     # 4(8)   = Truncate Body (On / Off)
     # 5(16)  = Processed Body (Lowercase, Truncated, Base64 Decoded)
+    # 6(32)  = Just NNTP-Posting-Host
+    # 7(64)  = Just Newsgroups
 
     my ($file, $info, $format) = @_;
     # Default format value is 15.
@@ -1889,6 +1898,13 @@ sub logart {
             print LOCAL "$_: $hdr{$_}\n";
         };
     };
+
+    # Just NNTP-Posting-Host
+    print LOCAL "$hdr{'NNTP-Posting-Host'}\n" if $format & 32
+        and not $format & 1;
+    # Just Newsgroups
+    print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64
+        and not $format & 1;
 
     # End of headers cutmark
     if ($format & 3) {
