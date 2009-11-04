@@ -1282,7 +1282,7 @@ sub filter_art {
             and $lines < 4000 and not is_binary()
             and not $hdr{'Content-Transfer-Encoding'} =~ /base64/
             and not $charset =~ /iso-2022|koi8-r/) {
-                $fuzzy = $hdr{__BODY__};
+                $fuzzy = $body;
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
