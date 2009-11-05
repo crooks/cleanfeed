@@ -1864,6 +1864,7 @@ sub logart {
     # 5(16)  = Processed Body (Lowercase, Truncated, Base64 Decoded)
     # 6(32)  = Just NNTP-Posting-Host
     # 7(64)  = Just Newsgroups
+    # 8(128) = Just Message-ID
 
     my ($file, $info, $format) = @_;
     # Default format value is 15.
@@ -1897,14 +1898,14 @@ sub logart {
             next if $_ eq '__BODY__' or $_ eq '__LINES__';
             print LOCAL "$_: $hdr{$_}\n";
         };
+    } else {
+        # Just NNTP-Posting-Host
+        print LOCAL "$hdr{'NNTP-Posting-Host'}\n" if $format & 32;
+        # Just Newsgroups
+        print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64;
+        # Just Message-ID
+        print LOCAL "$hdr{'Message-ID'}\n" if $format & 128;
     };
-
-    # Just NNTP-Posting-Host
-    print LOCAL "$hdr{'NNTP-Posting-Host'}\n" if $format & 32
-        and not $format & 1;
-    # Just Newsgroups
-    print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64
-        and not $format & 1;
 
     # End of headers cutmark
     if ($format & 3) {
@@ -1912,12 +1913,16 @@ sub logart {
     };
 
     if ($format & 4) {
-        # Truncated __BODY__
+        # Truncated and processed __BODY__
         if (not $format & 16) {
             # Full, unprocessed body
             print LOCAL "$hdr{__BODY__}\n" if not $format & 8;
             # Truncated, unprocessed body
-            print LOCAL substr($hdr{__BODY__}, 0, 4000) . "\n\n" if $format & 8;
+            print LOCAL substr($hdr{__BODY__}, 0, 4000) . "\n\n"
+            if $format & 8 and not is_binary();
+            # Make binary even shorter
+            print LOCAL substr($hdr{__BODY__}, 0, 320) . "\n\n"
+            if $format & 8 and is_binary();
         } else {
             # processed body (Both truncated or not)
             print LOCAL "$body\n\n";
