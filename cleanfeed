@@ -1240,6 +1240,8 @@ sub filter_art {
                 if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\s+per\bmin)/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
+            # Power Post generates lots of spam.
+            $score .= "!!!PowerPost" if $hdr{'X-Newsposter'} and not $gr{binary};
 
             # only URL
             $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
