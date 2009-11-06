@@ -819,7 +819,7 @@ sub filter_art {
         return reject('Adult group ECP', 'Too many newsgroups')
             if $fupcnt > 6 and $gr{adult} > $grpcnt / 2;
 
-        return reject('Poison newsgroup') if $gr{poison};
+        return reject('Poison newsgroup') if $gr{poison} and $grpcnt > 1;
 
         foreach (@Restricted_List) {
             return reject("hierarchy violation - crosspost outside $_")
@@ -1503,7 +1503,7 @@ sub is_binary {
         local $ypart = ($2 =~ /^=ypart\s/ && not /part=1\s/);
         # Further confirmation that this is a yEnc message and extract
         # the file extension.
-        if (/line=/ and /size=/ and /name=.+\.(\w{2,4})/) {
+        if (/line=/ and /size=/ and /name=.*\.(\w{2,4})/) {
             $file_extension = $1;
             # If this is a multipart yEnc, we declare it as binary without
             # further consideration.
