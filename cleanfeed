@@ -860,8 +860,6 @@ sub filter_art {
             unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 # We're only interested in binaries
                 if (is_binary()) {
-                    return reject("Binary Payload")
-                    if $config{block_all_binaries};
                     # Is the binary an image?
                     if ($config{image_extensions}
                     and $file_extension =~ /$config{image_extensions}/) {
@@ -879,6 +877,10 @@ sub filter_art {
                             if not $gr{binary};
                         }; # End of $file_extension check
                     }; # End of extension()
+                    # If configured to reject all binary, we do it last so
+                    # misplaced stuff is still highlighted.
+                    return reject("Binary Payload")
+                    if $config{block_all_binaries};
                 }; # End of is_binary
             }; # End of moderated groups
         }; # End of block binaries
