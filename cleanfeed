@@ -39,6 +39,7 @@ sub get_config {
     aggressive => 1,            # set to 0 if your lawyers are paranoid
     maxgroups => 14,            # maximum number of groups in a crosspost
     block_binaries => 1,        # block misplaced binaries
+    block_all_binaries => 0,    # Reject all binary regardless of distribution
     block_late_cancels => 0,    # block cancels of rejected articles
     block_user_spamcancels => 1,# reject spam cancels with X-Trace or N-P-H
     block_user_cancels => 0,    # accept only spam cancels
@@ -855,10 +856,12 @@ sub filter_art {
                 /mx;
 
         # binaries in non-binary newsgroups
-        if ($config{block_binaries}) {
+        if ($config{block_binaries} or $config{block_all_binaries}) {
             unless ($config{binaries_in_mod_groups} and $gr{allmod}) {
                 # We're only interested in binaries
                 if (is_binary()) {
+                    return reject("Binary Payload")
+                    if $config{block_all_binaries};
                     # Is the binary an image?
                     if ($config{image_extensions}
                     and $file_extension =~ /$config{image_extensions}/) {
