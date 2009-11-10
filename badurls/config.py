@@ -38,7 +38,7 @@ threshold = 500
 minimum_hits = 5
 
 # Expire (delete) database date that is older than this number of hours.
-expire_hours = 168
+expire_hours = 672
 
 # The file from which to read the default list of logfiles we're going to
 # process.

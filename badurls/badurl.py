@@ -293,15 +293,14 @@ def Main():
         badurl.write("%-40s # Manually included\n" % (hit,))
         print "%-40s Manually included" % (hit,)
 
-    #print "%-40s  %5s  %5s  %10s  %10s" % ("Host", "Today", "Count", "First Seen", "Last Seen")
+    # Next process everything not Manually included.
     for hit, count in results:
         if count > config.threshold:
             exc = Excluded(hit, exclude)
             inc = Excluded(hit, include)
+            # Regex Safe mode ensures text output is escaped.
             if config.regex_safe:
                 hit = RegexSafe(hit)
-            else:
-                entry = hit
             if not inc and not exc:
                 badurl.write("%-40s # %d\n" % (hit, count))
                 print "%-40s %d" % (hit, count)
