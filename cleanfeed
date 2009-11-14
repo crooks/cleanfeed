@@ -1021,9 +1021,8 @@ sub filter_art {
             }; # End of PHL filter
 
             # create posting-host/newsgroups hash
-            if ($config{do_phn} and not $gr{allmod}
-            and not $gr{phrinc} and not $gr{phnskip} and not $gr{alltest}
-            and not ($gr{binary} and $lines > 100)) {
+            if ($config{do_phn} and not $gr{phrinc} and not $gr{phnskip}
+             and not $gr{alltest} and not ($gr{binary} and $lines > 100)) {
                 if ($hdr{'NNTP-Posting-Host'}
                 and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
                     if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
