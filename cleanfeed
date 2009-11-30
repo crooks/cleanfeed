@@ -263,6 +263,7 @@ sub get_config {
 
     # Store the Cleanfeed development revision number
     ($version) = q$Revision$ =~ /(\d+)/;
+    ($version_date) = q$Date$ =~ /(\d{4}(\-\d{2}){2})/;
 
     ### List of group patterns that don't allow outside crossposts.
     ### Key is "friendly" name, value is the pattern.
@@ -1793,8 +1794,8 @@ sub writestats {
         slog('E', "Cannot open $config{statfile}: $!");
         return;
     }
-    print FILE 'Cleanfeed Version: ' . $version . "\n"
-    . 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
+    print FILE "Cleanfeed Version: $version ($version_date)\n";
+    print FILE 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
     . 'Report generated: ' . scalar(localtime) . "\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n\n"
     . "Accepted: $status{accepted}\nRejected: $status{rejected}\n";
