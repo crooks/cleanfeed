@@ -1629,7 +1629,7 @@ sub filter_messageid {
     return '' if not $config{do_mid_filter};
     my ($id) = @_;
 
-    if ($config{refuse_messageids} and $id =~ /$config{refuse_messageids}/o) {
+    if ($config{refuse_messageids} and $id =~ /$config{refuse_messageids}/io) {
         $status{refused}++;
         return 'No';
     }
