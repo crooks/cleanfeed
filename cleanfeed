@@ -1696,9 +1696,10 @@ sub write_html_stats {
     print HTML "<html>\n<head>\n"
     . "<title>Cleanfeed Status</title>\n"
     . "</head>\n<body>\n\n"
-    . "<p>\n"
-    . "<b>Cleanfeed Version:</b> " . $version . "<br>\n"
-    . "<b>Filter started:</b> " . scalar(localtime $Start_Time) . "<br>\n"
+    . "<p>\n";
+    print HTML "<b>Cleanfeed Version:</b> $version ($version_date)<br>\n"
+        if $version and $version_date;
+    print HTML "<b>Filter started:</b> " . scalar(localtime $Start_Time) . "<br>\n"
     . "<b>Report generated:</b> " . scalar(localtime) . "<br>\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n"
     . "\n<p>\n"
@@ -1794,7 +1795,8 @@ sub writestats {
         slog('E', "Cannot open $config{statfile}: $!");
         return;
     }
-    print FILE "Cleanfeed Version: $version ($version_date)\n";
+    print FILE "Cleanfeed Version: $version ($version_date)\n"
+        if $version and $version_date;
     print FILE 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
     . 'Report generated: ' . scalar(localtime) . "\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n\n"
