@@ -89,9 +89,13 @@ sub get_config {
 
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
-    off_topic_maxgroups => 1,   # How many off topic groups allowed in a distro
-    on_topic_mingroups => 2,    # How many on topic groups req'd to trigger
+    off_topic1_maxgroups => 1,  # How many off topic groups allowed in a distro
+    on_topic1_maxgroups => 2,   # How many on-topic groups allowed in a distro
+    on_topic1_mingroups => 2,   # How many on topic groups req'd to trigger
                                 # topic filters
+    off_topic2_maxgroups => 1,
+    on_topic2_maxgroups => 2,
+    on_topic2_mingroups => 2,
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
     max_encoded_lines => 15,    # number of encoded binary lines to allow
@@ -257,6 +261,9 @@ sub get_config {
 
     );
 
+    # Store the Cleanfeed development revision number
+    ($version) = q$Revision$ =~ /(\d+)/;
+
     ### List of group patterns that don't allow outside crossposts.
     ### Key is "friendly" name, value is the pattern.
     %Restricted_Groups = (
@@ -303,7 +310,7 @@ sub get_config {
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups ratio_exclude 
                     image_allowed image_extensions meow_groups
-                    topic1_groups topic2_groups off_topic_maxgroups)) {
+                    topic1_groups topic2_groups)) {
                 if (defined $config_append{$_}) {
                     $config{$_} .= "|$config_append{$_}";
                     $config{$_} =~ s/\|\|/\|/g;
@@ -799,17 +806,25 @@ sub filter_art {
                 and $config{meow_ext_maxgroups}
                 and ($fupcnt - $gr{meow}) > $config{meow_ext_maxgroups};
 
-        return reject('Off-topic newsgroups (topic1)', 'Off-topic newsgroups')
+        return reject('Topic Filter (Off-Topic1)', 'Topic Filter')
             if $gr{topic1}
-                and $gr{topic1} >= $config{on_topic_mingroups}
-                and $config{off_topic_maxgroups}
-                and ($fupcnt - $gr{topic1}) > $config{off_topic_maxgroups};
+                and $gr{topic1} >= $config{on_topic1_mingroups}
+                and $config{off_topic1_maxgroups}
+                and $fupcnt - $gr{topic1} > $config{off_topic1_maxgroups};
 
-        return reject('Off-topic newsgroups (topic2)', 'Off-topic newsgroups')
+        return reject('Topic Filter (On-Topic1)', 'Topic Filter')
+            if $gr{topic1} and $config{on_topic1_maxgroups}
+                and $gr{topic1} > $config{on_topic1_maxgroups};
+
+        return reject('Topic Filter (topic2)', 'Topic Filter')
             if $gr{topic2}
-                and $gr{topic2} >= $config{on_topic_mingroups}
-                and $config{off_topic_maxgroups}
-                and ($fupcnt - $gr{topic2}) > $config{off_topic_maxgroups};
+                and $gr{topic2} >= $config{on_topic2_mingroups}
+                and $config{off_topic2_maxgroups}
+                and $fupcnt - $gr{topic2} > $config{off_topic2_maxgroups};
+
+        return reject('Topic Filter (On-Topic2)', 'Topic Filter')
+            if $gr{topic2} and $config{on_topic2_maxgroups}
+                and $gr{topic2} > $config{on_topic2_maxgroups};
 
         return reject('Too many test groups in crosspost',
             'Too many newsgroups') if $gr{test} > 2;
@@ -1681,6 +1696,7 @@ sub write_html_stats {
     . "<title>Cleanfeed Status</title>\n"
     . "</head>\n<body>\n\n"
     . "<p>\n"
+    . "<b>Cleanfeed Version:</b> " . $version . "<br>\n"
     . "<b>Filter started:</b> " . scalar(localtime $Start_Time) . "<br>\n"
     . "<b>Report generated:</b> " . scalar(localtime) . "<br>\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n"
@@ -1777,7 +1793,8 @@ sub writestats {
         slog('E', "Cannot open $config{statfile}: $!");
         return;
     }
-    print FILE 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
+    print FILE 'Cleanfeed Version: ' . $version . "\n"
+    . 'Filter started: ' . scalar(localtime $Start_Time) . "\n"
     . 'Report generated: ' . scalar(localtime) . "\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n\n"
     . "Accepted: $status{accepted}\nRejected: $status{rejected}\n";
