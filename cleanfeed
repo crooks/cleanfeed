@@ -164,7 +164,7 @@ sub get_config {
     score_exclude => 'alt\.anonymous\.messages',
 
     ### HTML allowed here (if block_html or block_multi_alt is turned on)
-    html_allowed => '^microsoft\.',
+    html_allowed => '^microsoft\.|^relcom\.',
 
     ### MIME HTML allowed here (if block_mime_html is turned on)
     mime_html_allowed => '',
@@ -201,14 +201,14 @@ sub get_config {
 
     ### Exclude these Newsgroups from the NNTP-Posting-Host / Lines filter
     phl_exclude => 'comp\.lang\.ruby|^microsoft\.|^alt\.bestjobsusa'.
-        '|\.bbs\.',
+        '|\.bbs\.|relcom\.hot-news',
 
     ### Exclude these Newsgroups from the NNTP-Posting-Host / Newsgroup filter
     phn_exclude => '^local\.|^alt\.anonymous\.messages'.
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters|^perl\.'.
-        '|\.marketplace|\.ebay|\.forsale',
+        '|\.marketplace|\.ebay|\.forsale|relcom\.hot-news',
 
     # These hosts create unlinkable NNTP-Posting-Host headers, rendering them
     # useless for hashing purposes.  In these instances the NPH and PHR filter
@@ -1029,7 +1029,7 @@ sub filter_art {
             and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
             and not is_binary() and not $gr{alltest}
             and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phl_exempt})/o
-            and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o
+            and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o
             and not ($gr{binary} and $lines > 100
                 and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
                     return reject('EMP (phl)', 'EMP')
@@ -1041,7 +1041,7 @@ sub filter_art {
             and not $gr{alltest} and not $gr{allmod}
             and not ($gr{binary} and $lines > 100)) {
                 if ($hdr{'NNTP-Posting-Host'}
-                and not $hdr{'$NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
+                and not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{bad_nph_hosts})/o) {
                     if (not $hdr{'NNTP-Posting-Host'} =~ /(?:$config{phn_exempt})/o) {
                         return reject('EMP (phn nph)', 'EMP')
                             if $PHNhistory->add("$hdr{'NNTP-Posting-Host'} $sortgrps");
