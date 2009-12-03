@@ -201,14 +201,14 @@ sub get_config {
 
     ### Exclude these Newsgroups from the NNTP-Posting-Host / Lines filter
     phl_exclude => 'comp\.lang\.ruby|^microsoft\.|^alt\.bestjobsusa'.
-        '|\.bbs\.|relcom\.hot-news',
+        '|\.bbs\.|^relcom\.hot-news|^szn\.news\.',
 
     ### Exclude these Newsgroups from the NNTP-Posting-Host / Newsgroup filter
     phn_exclude => '^local\.|^alt\.anonymous\.messages'.
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters|^perl\.'.
-        '|\.marketplace|\.ebay|\.forsale|relcom\.hot-news',
+        '|\.marketplace|\.ebay|\.forsale|^relcom\.hot-news|^szn\.news\.',
 
     # These hosts create unlinkable NNTP-Posting-Host headers, rendering them
     # useless for hashing purposes.  In these instances the NPH and PHR filter
