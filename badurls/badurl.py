@@ -24,6 +24,17 @@ import re
 import sys
 from pysqlite2 import dbapi2 as sqlite
 
+def CommandArgs(args):
+    """Check arguements passed on the command line"""
+    if len(args) > 1:
+        if args[1].startswith('--'):
+            option = args[1] [2:]
+            if len(args) > 2:
+                content = args[2]
+                return option, content
+            return True, None
+    return False, None
+
 def CheckTables():
     """Check if a given tablename exists.  If not, create it."""
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -108,6 +119,11 @@ def DB_Read():
     cursor.execute('''SELECT hit, sum(count) as total FROM master
                     GROUP BY hit ORDER BY total''')
     return cursor.fetchall()
+
+def DB_Delete(hit):
+    count = cursor.execute('''DELETE FROM master WHERE hit = '%s' ''' % hit).rowcount
+    con.commit()
+    return count
 
 def DB_Expire(hours):
     cursor.execute('''SELECT COUNT(hit) FROM master WHERE
@@ -210,7 +226,7 @@ def ScanFiles(files):
             hash = hashlib.sha1(fingerprint).hexdigest()
             timestamp = HasRotated(filename, hash)
 
-            # onbody toggles as we switch between headers a body in our
+            # onbody toggles as we switch between headers and body in our
             # logfile.
             onbody = False
             # hits is a dictionary of regex matches containing a hit count.
@@ -262,19 +278,17 @@ def ScanFiles(files):
                     DB_Update(hit, filename, hits[hit], timestamp)
             file.close()
 
-def Main():
-    global con
-    con = sqlite.connect(config.dbfile)
-    global cursor
-    cursor = con.cursor()
-    CheckTables()
+def ProcessLogfiles():
     # Logfiles to be read by default.  This can be overridden by command line args.
     logfiles = File2List(config.filelist)
     # URL's to exclude from processing.  Entries can be plain-text or regex.
     exclude = File2List(config.exclude)
     include = File2List(config.include)
 
+    # Run the expiry process to get rid of any entries over expire_hours old.
     print "Expired: ", DB_Expire(config.expire_hours)
+
+
     ScanFiles(logfiles)
     results = DB_Read()
 
@@ -301,6 +315,8 @@ def Main():
             # Regex Safe mode ensures text output is escaped.
             if config.regex_safe:
                 hit = RegexSafe(hit)
+            #else:
+            #    entry = hit
             if not inc and not exc:
                 badurl.write("%-40s # %d\n" % (hit, count))
                 print "%-40s %d" % (hit, count)
@@ -313,9 +329,29 @@ def Main():
             else:
                 badurl.write("#%-39s # %d Error: Matches Include and Exclude\n" % (hit, count))
                 print "# %-38s %d Error: Matches Include and Exclude" % (hit, count)
-        
     # Close the file and shelves
     badurl.close()
+
+
+def Main():
+    global con
+    con = sqlite.connect(config.dbfile)
+    global cursor
+    cursor = con.cursor()
+    # Check tables exist
+    CheckTables()
+
+    cmd, opt = CommandArgs(sys.argv)
+    if not cmd:
+        ProcessLogfiles()
+    elif cmd and opt:
+        if cmd == 'insert':
+            DB_Insert(opt, "Manual", 10000, utcnow())
+        if cmd == 'delete':
+            count = DB_Delete(opt)
+            if count:
+                print "Deleted: %d" % count
+
 
 if (__name__ == "__main__"):
     Main()
