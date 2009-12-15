@@ -167,7 +167,7 @@ sub get_config {
     html_allowed => '^microsoft\.|^relcom\.',
 
     ### MIME HTML allowed here (if block_mime_html is turned on)
-    mime_html_allowed => '',
+    mime_html_allowed => '^relcom\.',
 
     test_groups => '\.test(ing)?(?:$|\.)|^es\.pruebas|^borland\.public\.test2'.
         '|^cern\.testnews',
@@ -901,14 +901,22 @@ sub filter_art {
             }; # End of moderated groups
         }; # End of block binaries
 
-        # mime-encapsulated HTML (attached *.html file)
         if ($config{block_mime_html} and not $gr{mime_html}) {
+            # MIME encapsulated HTML (attached *.html file)
             return reject('HTML file attachment')
                 if $lch{'content-type'} =~ /multipart/
                 and ($hdr{__BODY__} =~ /^Content-Disposition:.*filename.*\.html?/imo
                 or $hdr{__BODY__} =~ /^Content-Base:.*file:.*\.html?/imo);
+
+            # MIME HTML without Text
+            return reject('HTML Multipart without Text/Plain.')
+                if $lch{'content-type'} =~ /multipart/
+                and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
+                and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
         };
 
+        # Embedded HTML IMG tags are frequently used to trick readers into
+        # disclosing their IP address to the image's hosting service.
         if ($config{block_html_img} and not $gr{html}) {
             return reject('HTML embedded image')
                 if $lch{'content-type'} =~ m#text/html|multipart#
@@ -920,13 +928,6 @@ sub filter_art {
             # HTML formatted postings
                 return reject('HTML post')
                     if $lch{'content-type'} =~ m#text/html#;
-            
-
-            # MIME HTML without Text
-            return reject('HTML Multipart without Text/Plain.')
-                if $lch{'content-type'} =~ /multipart/
-                and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
-                and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
         };
 
         # MIME Multipart/Alternative
