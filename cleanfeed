@@ -102,11 +102,8 @@ sub get_config {
     max_base64_lines => 200,    # Allow x lines of content containing Base64
                                 # in non-binary groups
 
-    block_mime_html => 1,       # block MIME encapsulated HTML (attached files)
-                                #  (NOT straight or multipart/alternative)
-    block_html_img => 1,        # Block embedded images
-    block_html => 1,            # block text/html but not multipart/alternative
-    block_multi_alt => 0,       # block multipart/alternative articles
+    block_mime_html => 1,       # block MIME encapsulated HTML
+    block_html => 1,            # block native HTML (Content-Type text/html)
 
     active_file => '',  # active file to determine which groups are moderated
 
@@ -915,25 +912,12 @@ sub filter_art {
                 and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
         };
 
-        # Embedded HTML IMG tags are frequently used to trick readers into
-        # disclosing their IP address to the image's hosting service.
-        if ($config{block_html_img} and not $gr{html}) {
-            return reject('HTML embedded image')
-                if $lch{'content-type'} =~ m#text/html|multipart#
-                and $hdr{__BODY__} =~ /<img\s+src=/i;
-        };
-
-        # HTML inline and MIME checks
+        # HTML Inline
         if ($config{block_html} and not $gr{html}) {
             # HTML formatted postings
                 return reject('HTML post')
                     if $lch{'content-type'} =~ m#text/html#;
         };
-
-        # MIME Multipart/Alternative
-        return reject('MIME Multipart/Alternative')
-            if $config{block_multi_alt} and not $gr{html}
-                and $lch{'content-type'} =~ m#multipart/alternative#;
 
         # bot checks #########################################################
         return reject('MID-Bot', 'Bot signature')
