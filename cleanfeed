@@ -90,17 +90,15 @@ sub get_config {
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
     off_topic1_maxgroups => 1,  # How many off topic groups allowed in a distro
-    on_topic1_maxgroups => 2,   # How many on-topic groups allowed in a distro
+    on_topic1_maxgroups => 5,   # How many on-topic groups allowed in a distro
     on_topic1_mingroups => 2,   # How many on topic groups req'd to trigger
                                 # topic filters
-    off_topic2_maxgroups => 1,
-    on_topic2_maxgroups => 2,
+    off_topic2_maxgroups => 2,
+    on_topic2_maxgroups => 5,
     on_topic2_mingroups => 2,
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
-    max_encoded_lines => 15,    # number of encoded binary lines to allow
-    max_base64_lines => 200,    # Allow x lines of content containing Base64
-                                # in non-binary groups
+    max_base64_lines => 50,     # Allow x lines Base64 encoding in non-bin grps
 
     block_mime_html => 1,       # block MIME encapsulated HTML
     block_html => 1,            # block native HTML (Content-Type text/html)
@@ -711,7 +709,7 @@ sub filter_art {
     # regular articles #######################################################
     if (not $hdr{Control}) {
         # Good Usenet lines are terminated with CRLF
-        $goodlines = ($hdr{__BODY__} =~ s/\r\n/\r\n/g) - 1;
+        $badlines = ($hdr{__BODY__} =~ s/([^\r]\n)/$1/g);
         # count the lines in the article - late-model INN does this for us.
         if (defined $hdr{__LINES__}) {
             $lines = $hdr{__LINES__};
@@ -1220,7 +1218,7 @@ sub filter_art {
             }
 
             $score .= "!!SubImage" if $lines < 30 and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
-            $score .= "!Lines:$lines-$hdr{Lines}" if $lines ne $hdr{Lines};
+            $score .= "!!MalfLines($badlines)" if $badlines > 0;
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
@@ -1544,22 +1542,13 @@ sub is_binary {
         return $Cache_Is_Binary;
     };
 
-#TODO: This check is not ideal, it doesn't match the number of base64 lines,
-#      just the total number of lines.  This is because Cleanfeed dies when
-#      trying to match 100's of lines in a Regex.
-    return 0 unless $lines > $config{max_base64_lines};
-    if ($hdr{__BODY__} =~ /
-            (?:
-                ^[ \t|>]*
-                (?>
-                    [A-Za-z0-9\+\/]{59,76}
-                )
-                \s*\r?\n
-            ){10}
-        /mox) {
-        $Cache_Is_Binary = 'Base64';
+    $b64lines = 0;
+    $b64lines++ while $hdr{__BODY__} =~ /^\s*[A-Za-z0-9\+\/]{59,76}\s*$/gmo;
+    if ($b64lines > $config{max_base64_lines}) {
+        $Cache_Is_Binary = "Base64 ($b64lines lines)";
         return $Cache_Is_Binary;
     };
+
     # Message is not binary
     $Cache_Is_Binary = 0;
     return 0;
@@ -1917,7 +1906,8 @@ sub logart {
         print LOCAL "Followup_Count: $fupcnt\n" if $fupcnt;
         print LOCAL "GrpFup_Count: $grpfupcnt\n" if $grpfupcnt;
         print LOCAL "INN_Lines: $lines\n" if $lines;
-        print LOCAL "Good_Lines: $goodlines\n" if $goodlines;
+        print LOCAL "Bad_Lines: $badlines\n" if $badlines;
+        print LOCAL "Base64_Lines: $b64lines\n" if $b64lines;
         print LOCAL "Body_Has_URL: $body_has_url\n" if $body_has_url;
         print LOCAL "Binary: $Cache_Is_Binary\n" if $Cache_Is_Binary;
         print LOCAL "Binary_Extension: $file_extension\n" if $file_extension;
