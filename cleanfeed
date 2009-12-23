@@ -710,6 +710,8 @@ sub filter_art {
 
     # regular articles #######################################################
     if (not $hdr{Control}) {
+        # Good Usenet lines are terminated with CRLF
+        $goodlines = ($hdr{__BODY__} =~ s/\r\n/\r\n/g) - 1;
         # count the lines in the article - late-model INN does this for us.
         if (defined $hdr{__LINES__}) {
             $lines = $hdr{__LINES__};
@@ -1290,7 +1292,7 @@ sub filter_art {
             and $lines < 4000 and not is_binary()
             and not $hdr{'Content-Transfer-Encoding'} =~ /base64/
             and not $charset =~ /iso-2022|koi8-r/) {
-                $fuzzy = $body;
+                $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
@@ -1504,37 +1506,26 @@ sub is_binary {
 
     # yEnc checks: According to yEnc spec, all encoded parts start with
     # =ybegin.
-    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin (.+)\n(.+)/o) {
+    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin\s+(.+)/o) {
         local $_ = $1;
-        # ypart will be true is the line following ybegin starts with =ypart.
-        # We also cut some slack when part=1 to allow for misuse of yEnc.
-        local $ypart = ($2 =~ /^=ypart\s/ && not /part=1\s/);
         # Further confirmation that this is a yEnc message and extract
-        # the file extension.
+        # the file extension.  Greedy is good in this instance.
         if (/line=/ and /size=/ and /name=.*\.(\w{2,4})/) {
             $file_extension = $1;
-            # If this is a multipart yEnc, we declare it as binary without
-            # further consideration.
-            if ($ypart) {
-                $Cache_Is_Binary = "yEnc Multipart";
-                return $Cache_Is_Binary;
-            # If not a multipart yEnc then we only declare it binary if it
-            # exceeds an acceptable number of encoded lines.
-            } elsif ($lines > $config{max_encoded_lines}) {
-                $Cache_Is_Binary = "yEnc Encoded";
-                return $Cache_Is_Binary;
-            } else {
-                # It's yEnc, not multi-part and under max encoded lines so
-                # return False.
-                $Cache_Is_Binary = 0;
-                return 0;
-            };
+            $Cache_Is_Binary = "yEnc Encoded";
+            return $Cache_Is_Binary;
         };
     };
 
-    # Except for multipart yEnc, we allow small encoded binaries up to a
-    # specified number of lines.
-    return 0 unless $lines > $config{max_encoded_lines};
+    # uuEncoded check
+    if ($hdr{__BODY__} =~ /(?:^|\n)begin\s+(.+)/io) {
+        local $_ = $1;
+        if (/[0-7]{3,4}\s.*\.(\w{2,4})/o) {
+            $file_extension = $1;
+            $Cache_Is_Binary = "uuencoded new";
+            return $Cache_Is_Binary;
+        };
+    };
 
     if ($hdr{__BODY__} =~ /
         ^[bB][eE][gG][iI][nN][ \t]+     # begin
@@ -1922,6 +1913,11 @@ sub logart {
 
     # Debug Cleanfeed Internals
     if ($format & 256) {
+        print LOCAL "Group_Count: $grpcnt\n" if $grpcnt;
+        print LOCAL "Followup_Count: $fupcnt\n" if $fupcnt;
+        print LOCAL "GrpFup_Count: $grpfupcnt\n" if $grpfupcnt;
+        print LOCAL "INN_Lines: $lines\n" if $lines;
+        print LOCAL "Good_Lines: $goodlines\n" if $goodlines;
         print LOCAL "Body_Has_URL: $body_has_url\n" if $body_has_url;
         print LOCAL "Binary: $Cache_Is_Binary\n" if $Cache_Is_Binary;
         print LOCAL "Binary_Extension: $file_extension\n" if $file_extension;
@@ -1929,6 +1925,10 @@ sub logart {
         print LOCAL "Spam_Source: $spamsource\n" if $spamsource;
         print LOCAL "URL_Count: $urlcount\n" if $urlcount;
         print LOCAL "Charset: $charset\n" if $charset;
+        print LOCAL "Letters: $letters\n" if $letters;
+        print LOCAL "Uppercase: $uppercase\n" if $uppercase;
+        print LOCAL "Symbols: $symbols\n" if $symbols;
+
         foreach (sort keys %gr) {
             print LOCAL "gr{$_}: $gr{$_}\n" if $gr{$_};
         };
