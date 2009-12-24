@@ -709,7 +709,8 @@ sub filter_art {
     # regular articles #######################################################
     if (not $hdr{Control}) {
         # Good Usenet lines are terminated with CRLF
-        $badlines = ($hdr{__BODY__} =~ s/([^\r]\n)/$1/g);
+        $badlines = 0;
+        $badlines++ while $hdr{__BODY__} =~ /[^\r]\n/g;
         # count the lines in the article - late-model INN does this for us.
         if (defined $hdr{__LINES__}) {
             $lines = $hdr{__LINES__};
