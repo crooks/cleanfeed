@@ -89,7 +89,7 @@ sub get_config {
 
     low_xpost_maxgroups => 6,   # max xposts in low_xpost_groups
     meow_ext_maxgroups => 2,    # max xposts from meow_groups to other groups
-    off_topic1_maxgroups => 1,  # How many off topic groups allowed in a distro
+    off_topic1_maxgroups => 2,  # How many off topic groups allowed in a distro
     on_topic1_maxgroups => 5,   # How many on-topic groups allowed in a distro
     on_topic1_mingroups => 2,   # How many on-topic groups req'd to trigger
                                 # off-topic filter

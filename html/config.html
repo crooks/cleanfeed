@@ -77,6 +77,16 @@ server and its downstream peers.</td>
 </tr>
 
 <tr>
+<td class='oneBod'><a name='block_all_binaries'>block_all_binaries</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>If enabled, Cleanfeed will reject all binary postings,
+<i>regardless</i> of the distribution.  This is useful for text-only services
+that wish to avoid the bandwidth overhead of propagating binaries in the event
+of a misconfigured upstream peer.</td>
+<td class='oneBod'>0</td>
+</tr>
+
+<tr>
 <td class='oneBod'><a name='block_late_cancels'>block_late_cancels</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>Should Cleanfeed block cancels of already rejected articles.
@@ -471,15 +481,6 @@ groups in question are unlikely to appreciate it.</td>
 </tr>
 
 <tr>
-<td class='oneBod'><a name='max_encoded_lines'>max_encoded_lines</a></td>
-<td class='oneBod'>Replace</td>
-<td class='oneBod'>A binary posting may contain up to this number of lines
-without being rejected.  Please don't set this too low as it will reject PGP
-signed messages.</td>
-<td class='oneBod'>15</td>
-</tr>
-
-<tr>
 <td class='oneBod'><a name='block_mime_html'>block_mime_html</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>Block MIME encapsulated HTML.  HTML is considered evil on
@@ -498,26 +499,60 @@ href='regex.html#html_allowed'>html_allowed</a> Regular Expression.</td>
 </tr>
 
 <tr>
-<td class='oneBod'><a name='off_topic_maxgroups'>off_topic_maxgroups</a></td>
+<td class='oneBod'><a name='off_topic1_maxgroups'>off_topic1_maxgroups</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>Define how many off-topic groups are permitted when a
 distribution contains a number of groups defined in <a
 href='regex.html#topic1_groups'>topic1_groups</a> or <a
 href='regex.html#topic2_groups'>topic2_groups</a>.  The number of on-topic
 groups required to trigger the filters is defined in <a
-href='#on_topic_mingroups'>on_topic_mingroups</a>.</td>
+href='#on_topic1_mingroups'>on_topic1_mingroups</a>.</td>
 <td class='oneBod'>2</td>
 </tr>
 
 <tr>
-<td class='oneBod'><a name='on_topic_mingroups'>on_topic_mingroups</a></td>
+<td class='oneBod'><a name='on_topic1_mingroups'>on_topic1_mingroups</a></td>
 <td class='oneBod'>Replace</td>
 <td class='oneBod'>This relates to the above <a
-href='#off_topic_maxgroups'>off_topic_maxgroups</a> It defines how many groups
-must match <a href='regex.html#topic1_groups'>topic1_groups</a> or <a
+href='#off_topic1_maxgroups'>off_topic1_maxgroups</a> It defines how many
+groups must match <a href='regex.html#topic1_groups'>topic1_groups</a> or <a
 href='regex.html#topic2_groups'>topic2_groups</a> in order to trigger the topic
 filters.</td>
-<td class='oneBod'>1</td>
+<td class='oneBod'>2</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='on_topic1_maxgroups'>on_topic1_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>This relates to the above <a
+href='#off_topic1_maxgroups'>off_topic1_maxgroups</a>. It defines the maximum
+permissible number of groups that match <a
+href='regex.html#topic1_groups'>topic1_groups</a>.</td>
+<td class='oneBod'>5</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='off_topic2_maxgroups'>off_topic2_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a
+href='#off_topic1_maxgroups'>off_topic1_maxgroups</a>.</td>
+<td class='oneBod'>2</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='on_topic2_mingroups'>on_topic2_mingroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a
+href='#on_topic1_mingroups'>on_topic1_mingroups</a>.</td>
+<td class='oneBod'>2</td>
+</tr>
+
+<tr>
+<td class='oneBod'><a name='on_topic2_maxgroups'>on_topic2_maxgroups</a></td>
+<td class='oneBod'>Replace</td>
+<td class='oneBod'>See <a
+href='#on_topic1_maxgroups'>on_topic1_maxgroups</a>.</td>
+<td class='oneBod'>5</td>
 </tr>
 
 <tr>
