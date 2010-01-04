@@ -5,6 +5,10 @@
 # and the cleanfeed file in /var/www/cleanfeed.  This is kind of messy but it
 # works for now.
 
+####################################
+# Run this *after* running cfsign. #
+####################################
+
 BASEDIR='/usr/local/news/tmp'
 BUILDDIR="${BASEDIR}/cleanfeed"
 SAMPLESOURCE='/usr/local/news/dev/cleanfeed/trunk/samples'

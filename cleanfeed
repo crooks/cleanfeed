@@ -41,7 +41,7 @@ sub get_config {
     block_binaries => 1,        # block misplaced binaries
     block_all_binaries => 0,    # Reject all binary regardless of distribution
     block_late_cancels => 0,    # block cancels of rejected articles
-    block_user_spamcancels => 1,# reject spam cancels with X-Trace or N-P-H
+    block_user_spamcancels => 1,# reject spam cancels
     block_user_cancels => 0,    # accept only spam cancels
     block_extra_reposts => 1,   # block reposts for articles not cancelled
 
@@ -211,7 +211,7 @@ sub get_config {
     # filter will ignore posts from these hosts.
     bad_nph_hosts => 'newsdawg\.com',
     
-    ### Exempt these hosts from the NNTP-Posting-Host / Lines filter
+    ### Exempt these hosts from the Posting-Host / Lines filter
     phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
         '|^freebsd\.csie\.nctu\.edu\.tw$|^ddt\.demos\.su$|^onlyNews customer$'.
         '|localhost\.pld-linux\.org',
@@ -363,6 +363,8 @@ $WebHost = ($] >= 5.005 ? '(?<![\w.])' : '' ) .
 $HTTP = '(?:www\.|https?:\/\/)';
 $HOST = '[\w\-.]+'; # characters for the hostname
 $PORT = '(?::\d+)?'; # always optional
+$Hostname = '^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]+[a-zA-Z0-9])'.
+            '(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]+[a-zA-Z0-9]))+)';
 
 $url = $HTTP.$HOST.'|'.$WebHost . $HOST .'\.'. "$TLDs|$HTTP(?:$IP|$StealthIP)";
 # requires the http:// part but accepts any hostname or tld, or IP-based url.
@@ -576,6 +578,15 @@ sub filter_art {
         $postinghost = $hdr{'NNTP-Posting-Host'};
     } else {
         $postinghost = 0;
+    };
+
+    # Try and ascertain the source news service.
+    if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
+        $postingservice = "$1"
+    } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
+        $postingservice = "$1"
+    } else {
+        $postingservice = 0;
     };
 
     # break out newsgroups into an array
@@ -1020,7 +1031,7 @@ sub filter_art {
         if (not $gr{reports}) {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
-            and $hdr{'NNTP-Posting-Host'} and not $gr{phlskip}
+            and $postinghost and not $gr{phlskip}
             and not is_binary() and not $gr{alltest}
             and not $postinghost =~ /(?:$config{phl_exempt})/o
             and not $postinghost =~ /(?:$config{bad_nph_hosts})/o
@@ -1105,7 +1116,7 @@ sub filter_art {
         }
 
         if ($config{do_supersedes_filter} and $hdr{Supersedes}
-            and not $hdr{'NNTP-Posting-Host'}=~/$config{supersedes_exempt}/o) {
+            and not $postinghost =~ /$config{supersedes_exempt}/o) {
             my $source;
             if ($postinghost) {
                 $source = lc $postinghost;
@@ -1408,7 +1419,7 @@ sub filter_art {
 
         return reject('User-issued spam cancel')
             if $config{block_user_spamcancels}
-                and $hdr{'X-Trace'} and $postinghost
+                and $postingservice and $postinghost
                 and $hdr{Path} =~ /!cyberspam!/;
 
         return reject('User-issued cancel')
@@ -1861,7 +1872,7 @@ sub logart {
     # 3(4)   = Include Body
     # 4(8)   = Truncate Body (On / Off)
     # 5(16)  = Processed Body (Lowercase, Truncated, Base64 Decoded)
-    # 6(32)  = Just NNTP-Posting-Host
+    # 6(32)  = Just Posting-Host
     # 7(64)  = Just Newsgroups
     # 8(128) = Just Message-ID
     # 9(256) = Debug Cleanfeed Internals
@@ -1977,8 +1988,7 @@ sub saveart {
 
     # Get format 3 out of the way first as there's not much to do.
     if ($format == 3) {
-        print LOCAL "$postinghost\n"
-            if $hdr{'NNTP-Posting-Host'};
+        print LOCAL "$postinghost\n" if $postinghost;
         close LOCAL;
         return;
     };
