@@ -1921,6 +1921,7 @@ sub logart {
     # Debug Cleanfeed Internals
     if ($format & 256) {
         print LOCAL "Posting-Host: $postinghost\n" if $postinghost;
+        print LOCAL "Posting-Service: $postingservice\n" if $postingservice;
         print LOCAL "Group_Count: $grpcnt\n" if $grpcnt;
         print LOCAL "Followup_Count: $fupcnt\n" if $fupcnt;
         print LOCAL "GrpFup_Count: $grpfupcnt\n" if $grpfupcnt;
