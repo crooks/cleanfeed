@@ -1970,11 +1970,9 @@ sub logart {
 }; # End of logart
 
 sub saveart {
-    # We currently recognise various formatting options:
+    # We recognise two formatting options:
     # 0: Header and body truncated if over 50 lines (Default)
     # 1: Header and full body regardless of length
-    # 2: Header only
-    # 3: Just Posting-Host (If it exists in the message)
 
     my ($file, $info, $format) = @_;
     $format ||= 0;
@@ -1987,19 +1985,10 @@ sub saveart {
         return;
     }
 
-    # Get format 3 out of the way first as there's not much to do.
-    if ($format == 3) {
-        print LOCAL "$postinghost\n" if $postinghost;
-        close LOCAL;
-        return;
-    };
-
     # Headers common to all remaining report types.
-    print LOCAL "$CutmarkHead\n";
     print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
     print LOCAL "INFO: $info\n" if $info;
     print LOCAL "Score: $score\n" if $score;
-    print LOCAL "Charset: $charset\n" if defined $charset;
     print LOCAL "Binary: $Cache_Is_Binary\n"
         if is_binary();
     foreach (sort keys %hdr) {
@@ -2007,16 +1996,8 @@ sub saveart {
         print LOCAL "$_: $hdr{$_}\n";
     };
 
-    # Format 2 is headers only; just insert newline.
-    if ($format == 2) {
-        print LOCAL "\n";
-        close LOCAL;
-        return;
-    };
-
     # Format 1 - Full message payload.
     if ($format == 1) {
-        print LOCAL "$CutmarkBody\n";
         print LOCAL "$hdr{__BODY__}\n";
         close LOCAL;
         return;
@@ -2024,12 +2005,10 @@ sub saveart {
 
     # Format 0 - Cropped payload
     if ($format == 0) {
-        print LOCAL "$CutmarkBody\n";
         print LOCAL substr($hdr{__BODY__}, 0, 3000) . "\n\n";
         close LOCAL;
         return;
     };
-
     # Undefined format, give up, go home.
     close LOCAL;
     return;
