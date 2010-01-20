@@ -1538,25 +1538,20 @@ sub is_binary {
         local $_ = $1;
         if (/[0-7]{3,4}\s.*\.(\w{2,4})/o) {
             $file_extension = $1;
-            $Cache_Is_Binary = "uuencoded new";
+            $Cache_Is_Binary = "uuencoded";
             return $Cache_Is_Binary;
         };
     };
 
     if ($hdr{__BODY__} =~ /
-        ^[bB][eE][gG][iI][nN][ \t]+     # begin
-        [0-7]{3,4}[ \t]+                # Permissions
-        .+\.(\w{2,4})                   # Get file extension
-        \s*\n                           # End of line
         (?:
-            ^[ \t|>]*                   # Skip quote marks
+            [\s|>]*                     # Skip Quote Marks
             (?>                         # Disable Backtracking
             M[\x20-\x60]{60,61}         # uuencoded line
-            )\s*\n                      # End of line
-        ){2}                            # Require at least two encoded lines
-    /mox) {
-        $file_extension = $1;
-        $Cache_Is_Binary = "uuencoded";
+            )\s*\x0D?\x0A               # End of line
+        ){4}                            # Require at least four encoded lines
+    /ox) {
+        $Cache_Is_Binary = "uuencoded multi-part";
         return $Cache_Is_Binary;
     };
 
@@ -1920,24 +1915,12 @@ sub logart {
 
     # Debug Cleanfeed Internals
     if ($format & 256) {
-        print LOCAL "Posting-Host: $postinghost\n" if $postinghost;
-        print LOCAL "Posting-Service: $postingservice\n" if $postingservice;
-        print LOCAL "Group_Count: $grpcnt\n" if $grpcnt;
-        print LOCAL "Followup_Count: $fupcnt\n" if $fupcnt;
-        print LOCAL "GrpFup_Count: $grpfupcnt\n" if $grpfupcnt;
-        print LOCAL "INN_Lines: $lines\n" if $lines;
-        print LOCAL "Bad_Lines: $badlines\n" if $badlines;
-        print LOCAL "Base64_Lines: $b64lines\n" if $b64lines;
-        print LOCAL "Body_Has_URL: $body_has_url\n" if $body_has_url;
-        print LOCAL "Binary: $Cache_Is_Binary\n" if $Cache_Is_Binary;
-        print LOCAL "Binary_Extension: $file_extension\n" if $file_extension;
-        print LOCAL "Local_Feed: $localfeed\n" if $localfeed;
-        print LOCAL "Spam_Source: $spamsource\n" if $spamsource;
-        print LOCAL "URL_Count: $urlcount\n" if $urlcount;
-        print LOCAL "Charset: $charset\n" if $charset;
-        print LOCAL "Letters: $letters\n" if $letters;
-        print LOCAL "Uppercase: $uppercase\n" if $uppercase;
-        print LOCAL "Symbols: $symbols\n" if $symbols;
+        foreach (qw(postinghost postingservice grpcnt fupcnt grpfupcnt lines
+                    badlines b64lines bad_has_url Cache_Is_Binary
+                    file_extension localfeed spamsource urlcount charset
+                    letters uppercase symbols)) {
+            print LOCAL "$_: $$_\n" if defined $$_;
+        };
 
         foreach (sort keys %gr) {
             print LOCAL "gr{$_}: $gr{$_}\n" if $gr{$_};
