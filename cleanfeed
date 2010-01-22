@@ -1858,6 +1858,99 @@ sub trimhashes {
 ##############################################################################
 # debugging functions to save articles
 ##############################################################################
+sub logart2 {
+    # Output format is controlled at a bit level.
+    # Some args are ambiguous, for example if bit 3 (Include Body) is 0 then
+    # bits 4 and 5 are ignored.
+    # 1(1)   = Include Post Headers
+    # 2(2)   = Cleanfeed Internals
+    # 3(4)   = Include Body
+    # 4(8)   = Truncate Body (On / Off)
+    # 5(16)  = Processed Body (Lowercase, Truncated, Base64 Decoded)
+    # 6(32)  = Just Posting-Host
+    # 7(64)  = Just Newsgroups
+    # 8(128) = Just Message-ID
+    # 9(256) = Debug Cleanfeed Internals
+
+    my ($file, $info, $format) = @_;
+    # Default format value is 15.
+    $format ||= 15;
+
+    return if not $config{debug_batch_directory};
+    checkrotate("$config{debug_batch_directory}/$file");
+
+    if (not open(LOCAL, ">>$config{debug_batch_directory}/$file")) {
+        slog('E', "Cannot open $file: $!");
+        return;
+    }
+
+    # Begin Header cutmark
+    if ($format & 259) {
+        print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
+    };
+
+    # Cleanfeed Internals
+    if ($format & 2) {
+        print LOCAL "INFO: $info\n" if $info;
+        print LOCAL "Score: $score\n" if $score;
+        print LOCAL "Binary: $Cache_Is_Binary\n" if $Cache_Is_Binary
+            and not $format & 256;
+    };
+
+    # Article Headers
+    if ($format & 1) {
+        foreach (sort keys %hdr) {
+            next if $_ eq '__BODY__' or $_ eq '__LINES__';
+            print LOCAL "$_: $hdr{$_}\n";
+        };
+    } else {
+        # Just Posting-Host
+        print LOCAL "$postinghost\n" if $format & 32;
+        # Just Newsgroups
+        print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64;
+        # Just Message-ID
+        print LOCAL "$hdr{'Message-ID'}\n" if $format & 128;
+    };
+
+    # Debug Cleanfeed Internals
+    if ($format & 256) {
+        foreach (qw(postinghost postingservice grpcnt fupcnt grpfupcnt lines
+                    badlines b64lines bad_has_url Cache_Is_Binary
+                    file_extension localfeed spamsource urlcount charset
+                    letters uppercase symbols)) {
+            print LOCAL "$_: $$_\n" if defined $$_;
+        };
+
+        foreach (sort keys %gr) {
+            print LOCAL "gr{$_}: $gr{$_}\n" if $gr{$_};
+        };
+    };
+
+    # End of headers cutmark
+    if ($format & 259) {
+        print LOCAL "\n";
+    };
+
+    if ($format & 4) {
+        # Truncated and processed __BODY__
+        if (not $format & 16) {
+            # Full, unprocessed body
+            print LOCAL "$hdr{__BODY__}\n" if not $format & 8;
+            # Truncated, unprocessed body
+            print LOCAL substr($hdr{__BODY__}, 0, 4000) . "\n\n"
+            if $format & 8 and not is_binary();
+            # Make binary even shorter
+            print LOCAL substr($hdr{__BODY__}, 0, 320) . "\n\n"
+            if $format & 8 and is_binary();
+        } else {
+            # processed body (Both truncated or not)
+            print LOCAL "$body\n\n";
+        };
+    }; # End of body
+    close LOCAL;
+    return;
+}; # End of logart
+
 sub logart {
     # Output format is controlled at a bit level.
     # Some args are ambiguous, for example if bit 3 (Include Body) is 0 then
