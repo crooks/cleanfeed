@@ -1915,7 +1915,7 @@ sub logart2 {
     # Debug Cleanfeed Internals
     if ($format & 256) {
         foreach (qw(postinghost postingservice grpcnt fupcnt grpfupcnt lines
-                    badlines b64lines bad_has_url Cache_Is_Binary
+                    badlines b64lines body_has_url Cache_Is_Binary
                     file_extension localfeed spamsource urlcount charset
                     letters uppercase symbols)) {
             print LOCAL "$_: $$_\n" if defined $$_;
