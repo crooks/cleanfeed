@@ -1975,20 +1975,14 @@ sub saveart {
         print LOCAL "$_: $hdr{$_}\n";
     };
 
-    # Format 1 - Full message payload.
-    if ($format == 1) {
+    if ($format == 1) {     # Format 1 - Full message payload.
         print LOCAL "$hdr{__BODY__}\n";
-        close LOCAL;
-        return;
+    } elsif ($format == 0) {     # Format 0 - Cropped payload
+        print LOCAL substr($hdr{__BODY__}, 0, 3000) . "\n\n";
+    } else {    # Undefined format, give up (just headers logged)
+        print LOCAL "\n";
     };
 
-    # Format 0 - Cropped payload
-    if ($format == 0) {
-        print LOCAL substr($hdr{__BODY__}, 0, 3000) . "\n\n";
-        close LOCAL;
-        return;
-    };
-    # Undefined format, give up, go home.
     close LOCAL;
     return;
 };
