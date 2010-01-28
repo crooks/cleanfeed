@@ -206,6 +206,9 @@ def ScanFiles(files):
         regex = re.compile(config.regex)
     else:
         regex = re.compile(config.regex, re.I | re.M)
+    # The following two regexs match the beginning and end of mbox articles
+    from_regex = re.compile('From foo\@bar', re.M)
+    empty_regex = re.compile('^$')
     for filename in files:
         if IsFile(filename):
             print "Scanning", filename
@@ -234,12 +237,11 @@ def ScanFiles(files):
             # From this point we are dealing with lines within a logfile.
             for line in file:
                 line = line.strip()
-                # All our logfiles contain cutmarks to separate headers from
-                # bodies.
-                if line == '----- End Message Headers -----':
+                # Two checks to determine if we're looking at headers or body
+                if empty_regex.match(line) and not onbody:
                     onbody = True
                     continue
-                if line == '----- Begin Message Headers -----':
+                if from_regex.match(line) and onbody:
                     onbody = False
                     continue
                 # Are we processing headers or body
