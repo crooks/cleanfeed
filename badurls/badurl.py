@@ -304,7 +304,7 @@ def ProcessLogfiles():
     for hit in include:
         if hit.startswith('/') and hit.endswith('/'):
             hit = hit[1:-1]
-        else:
+        elif config.regex_safe:
             hit = RegexSafe(hit)
         badurl.write("%-40s # Manually included\n" % (hit,))
         print "%-40s Manually included" % (hit,)
