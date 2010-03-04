@@ -568,6 +568,15 @@ sub filter_art {
         $status{bad_reloaded} = $status{accepted};
     }
 
+    # Try and ascertain the source news service.
+    if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
+        $postingservice = "$1"
+    } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
+        $postingservice = "$1"
+    } else {
+        $postingservice = first_path_host($hdr{Path});
+    };
+
     # Try and ascertain the Posting-Host info
     if ($hdr{'Injection-Info'} =~ /posting-host\s*=\s*"?([^";]+)/) {
         $postinghost = "$1";
@@ -575,15 +584,6 @@ sub filter_art {
         $postinghost = $hdr{'NNTP-Posting-Host'};
     } else {
         $postinghost = 0;
-    };
-
-    # Try and ascertain the source news service.
-    if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
-        $postingservice = "$1"
-    } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
-        $postingservice = "$1"
-    } else {
-        $postingservice = 0;
     };
 
     # break out newsgroups into an array
@@ -1049,20 +1049,8 @@ sub filter_art {
                             if $PHNhistory->add("$postinghost $sortgrps");
                     };
                 } elsif ($config{phn_aggressive}) {
-                    my $server;
-                    $server = lc "$hdr{Path}";
-                    # Remove trailing entries with no . in them
-                    $server =~ s/(![^\.]+)+$//;
-                    # Count how many !'s there are.
-                    my $exc_count = ($server =~ tr/!//);
-                    # We need a couple of entries, otherwise we might
-                    # block our peers.
-                    if ($exc_count > 1) {
-                        # Strip everything to the left of the last entry.
-                        $server =~ s/.*!//;
-                        return reject('EMP (phn path)', 'EMP')
-                            if $PHNhistory->add("$server $sortgrps");
-                    };
+                    return reject('EMP (phn path)', 'EMP')
+                        if $PHNhistory->add("$postingservice $sortgrps");
                 }; # End of aggressive mode
             }; # End of PHN filter
 
@@ -1562,6 +1550,14 @@ sub is_binary {
     # Message is not binary
     $Cache_Is_Binary = 0;
     return 0;
+};
+
+# Extract the right-most FQDN from a Path header
+sub first_path_host{
+    my $_ = shift;
+    s/(![^\.]+)+$//; # Strip RH non-FQDNs
+    s/.*!//; # Strip all but RH path entry
+    return $_;
 };
 
 # Attempt to determine the client software
