@@ -52,6 +52,7 @@ sub get_config {
     do_fsl => 1,                # do the from/subject/lines EMP check?
     do_scoring_filter => 1,     # use the scoring filter?
     do_ratio_scoring => 0,      # Score articles based on Caps/Sym/URL ratios?
+    bad_url_score => 5,         # What score to apply to bad_url hits
 
     do_emp_dump => 1,           # dump EMP histories to a file for persistence?
     emp_dump_file => '',        # file to dump EMP histories to
@@ -209,7 +210,7 @@ sub get_config {
     # useless for hashing purposes.  In these instances the NPH and PHR filter
     # will use the Path header instead, (if phn_aggressive is true).  The PHL
     # filter will ignore posts from these hosts.
-    bad_nph_hosts => 'newsdawg\.com',
+    bad_nph_hosts => 'newsguy\.com|tornevall\.net',
     
     ### Exempt these hosts from the Posting-Host / Lines filter
     phl_exempt => '^localhost$|webtv\.net$|^newscene\.newscene\.com$'.
@@ -566,24 +567,24 @@ sub filter_art {
         read_hashes();
         # Prevent looping whilst waiting for another accepted article
         $status{bad_reloaded} = $status{accepted};
-    }
+    };
 
     # Try and ascertain the source news service.
     if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
-        $postingservice = "$1"
+        $injection_host = "$1"
     } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
-        $postingservice = "$1"
+        $injection_host = "$1"
     } else {
-        $postingservice = first_path_host($hdr{Path});
+        $injection_host = first_path_host($hdr{Path});
     };
 
     # Try and ascertain the Posting-Host info
     if ($hdr{'Injection-Info'} =~ /posting-host\s*=\s*"?([^";]+)/) {
-        $postinghost = "$1";
+        $posting_host = "$1";
     } elsif ($hdr{'NNTP-Posting-Host'}) {
-        $postinghost = $hdr{'NNTP-Posting-Host'};
+        $posting_host = $hdr{'NNTP-Posting-Host'};
     } else {
-        $postinghost = 0;
+        $posting_host = 0;
     };
 
     # break out newsgroups into an array
@@ -592,7 +593,7 @@ sub filter_art {
         @followups = split(/[,\s]+/, $hdr{'Followup-To'});
     } else {
         @followups = @groups;
-    }
+    };
 
     # Produce a Newsgroups string sorted alphanumerically.  This is
     # useful for filters on Newsgroups where spammers manipulate the
@@ -697,9 +698,9 @@ sub filter_art {
     };
 
     # checks common to all article types #####################################
-    return reject("Bad host ($postinghost)", 'Bad site')
-        if exists $Bad_Hosts{$postinghost}
-        or exists $Bad_Hosts_Central{$postinghost};
+    return reject("Bad host ($posting_host)", 'Bad site')
+        if exists $Bad_Hosts{$posting_host}
+        or exists $Bad_Hosts_Central{$posting_host};
 
     @Path_Entries = split(/!/, $hdr{Path});
     foreach (@Path_Entries) {
@@ -1028,29 +1029,29 @@ sub filter_art {
         if (not $gr{reports}) {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
-            and $postinghost and not $gr{phlskip}
+            and $posting_host and not $gr{phlskip}
             and not is_binary() and not $gr{alltest}
-            and not $postinghost =~ /(?:$config{phl_exempt})/o
-            and not $postinghost =~ /(?:$config{bad_nph_hosts})/o
+            and not $posting_host =~ /(?:$config{phl_exempt})/o
+            and not $injection_host =~ /(?:$config{bad_nph_hosts})/o
             and not ($gr{binary} and $lines > 100
                 and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
                     return reject('EMP (phl)', 'EMP')
-                        if $PHLhistory->add("$postinghost $lines");
+                        if $PHLhistory->add("$posting_host $lines");
             }; # End of PHL filter
 
             # create posting-host/newsgroups hash
             if ($config{do_phn} and not $gr{phrinc} and not $gr{phnskip}
             and not $gr{alltest} and not $gr{allmod}
             and not ($gr{binary} and $lines > 100)) {
-                if ($postinghost
-                and not $postinghost =~ /(?:$config{bad_nph_hosts})/o) {
-                    if (not $postinghost =~ /(?:$config{phn_exempt})/o) {
+                if ($posting_host
+                and not $injection_host =~ /(?:$config{bad_nph_hosts})/o) {
+                    if (not $posting_host =~ /(?:$config{phn_exempt})/o) {
                         return reject('EMP (phn nph)', 'EMP')
-                            if $PHNhistory->add("$postinghost $sortgrps");
+                            if $PHNhistory->add("$posting_host $sortgrps");
                     };
                 } elsif ($config{phn_aggressive}) {
                     return reject('EMP (phn path)', 'EMP')
-                        if $PHNhistory->add("$postingservice $sortgrps");
+                        if $PHNhistory->add("$injection_host $sortgrps");
                 }; # End of aggressive mode
             }; # End of PHN filter
 
@@ -1072,11 +1073,11 @@ sub filter_art {
         # create high-risk newsgroups hash
         if ($config{do_phr} and $gr{phrinc}
             and not ($gr{binary} and $lines > 100)) {
-            if ($postinghost
-            and not $postinghost =~ /(?:$config{bad_nph_hosts})/o) {
-                if (not $postinghost =~ /(?:$config{phr_exempt})/o) {
+            if ($posting_host
+            and not $injection_host =~ /(?:$config{bad_nph_hosts})/o) {
+                if (not $posting_host =~ /(?:$config{phr_exempt})/o) {
                     return reject('EMP (phr nph)', 'EMP')
-                        if $PHRhistory->add("$postinghost");
+                        if $PHRhistory->add("$posting_host");
                 }
             } elsif ($config{phr_aggressive}) {
                 my $server;
@@ -1101,10 +1102,10 @@ sub filter_art {
         }
 
         if ($config{do_supersedes_filter} and $hdr{Supersedes}
-            and not $postinghost =~ /$config{supersedes_exempt}/o) {
+            and not $posting_host =~ /$config{supersedes_exempt}/o) {
             my $source;
-            if ($postinghost) {
-                $source = lc $postinghost;
+            if ($posting_host) {
+                $source = lc $posting_host;
                 $source =~ tr/a-z.//cd;
             }
 
@@ -1118,7 +1119,7 @@ sub filter_art {
                 else                    { $max = 6  }
 
                 return reject('Excessive Supersedes '
-                        ."($postinghost)", 'Excessive Supersedes')
+                        ."($posting_host)", 'Excessive Supersedes')
                     if $Suphistory->add2($source, $max);
             }
         }
@@ -1256,10 +1257,12 @@ sub filter_art {
             #        and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($Bad_URL and $body_has_url) {
-                $score .= "!!!!!bad_url" if $body =~ $Bad_URL_RE;
+                $score .= "!" x $config{'bad_url_score'} . 'bad_url'
+                    if $body =~ $Bad_URL_RE;
             };
             if ($Bad_URL_Central and $body_has_url) {
-                $score .= "!!!!!bad_url_cen" if $body =~ $Bad_URL_Central_RE;
+                $score .= "!" x $config{'bad_url_score'} . 'bad_url_cen'
+                    if $body =~ $Bad_URL_Central_RE;
             };
 
             if ($hdr{References}) {
@@ -1404,7 +1407,7 @@ sub filter_art {
 
         return reject('User-issued spam cancel')
             if $config{block_user_spamcancels}
-                and $postingservice and $postinghost
+                and $injection_host and $posting_host
                 and $hdr{Path} =~ /!cyberspam!/;
 
         return reject('User-issued cancel')
@@ -1898,7 +1901,7 @@ sub logart {
         };
     } else {
         # Just Posting-Host
-        print LOCAL "$postinghost\n" if $format & 32;
+        print LOCAL "$posting_host\n" if $format & 32;
         # Just Newsgroups
         print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64;
         # Just Message-ID
@@ -1907,7 +1910,7 @@ sub logart {
 
     # Debug Cleanfeed Internals
     if ($format & 256) {
-        foreach (qw(postinghost postingservice grpcnt fupcnt grpfupcnt lines
+        foreach (qw(posting_host injection_host grpcnt fupcnt grpfupcnt lines
                     badlines b64lines body_has_url Cache_Is_Binary
                     file_extension localfeed spamsource urlcount charset
                     letters uppercase symbols)) {
