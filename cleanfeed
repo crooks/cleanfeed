@@ -99,7 +99,7 @@ sub get_config {
     on_topic2_mingroups => 2,
 
     binaries_in_mod_groups => 0,    # allow binaries in moderated groups?
-    max_base64_lines => 50,     # Allow x lines Base64 encoding in non-bin grps
+    max_base64_lines => 150,    # Allow x lines Base64 encoding in non-bin grps
 
     block_mime_html => 1,       # block MIME encapsulated HTML
     block_html => 1,            # block native HTML (Content-Type text/html)
@@ -253,7 +253,11 @@ sub get_config {
     not_adult_groups => 'sexual\.abuse|^soc.sex|^fr\.soc\.homosexualite'.
         '|^alt\.(?:support|teens|answers)',
 
-    faq_groups => '\.faqs?$|\.answers$|^news\.announce\.newgroups$'
+    faq_groups => '\.faqs?$|\.answers$|^news\.announce\.newgroups$',
+
+    local_approved_groups => 'alt\.|news\.admin\.net-abuse\.'.
+    '|fr\.misc\.bavardages\.dinosaures|alt\.sysadmin\.recovery'.
+    '|alt\.tech-support\.recovery|alt\.dev\.null'
 
     );
 
@@ -307,7 +311,7 @@ sub get_config {
                     refuse_messageids net_abuse_groups spam_report_groups
                     adult_groups not_adult_groups faq_groups ratio_exclude 
                     image_allowed image_extensions meow_groups
-                    topic1_groups topic2_groups)) {
+                    topic1_groups topic2_groups local_approved_groups)) {
                 if (defined $config_append{$_}) {
                     $config{$_} .= "|$config_append{$_}";
                     $config{$_} =~ s/\|\|/\|/g;
@@ -376,6 +380,7 @@ $stealthURL = "$HTTP(?:$IP|$StealthIP)";
 # match the whole URL including path (used by body_urls() )
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
+$spacecom = 'www[^a-z\.]+[a-zA-Z0-9\-]+[^a-z\.]+com';
 # URL redirection services (Commonly used to obfuscate spam links).
 #$shorturl = 'tinyurl\.com|useurl\.us|linkurl\.r8\.org|urlbrief\.com'.
 #            '|sites\.google\.com/site/|groups\.google\.com/group/'.
@@ -587,6 +592,20 @@ sub filter_art {
         $posting_host = 0;
     };
 
+    # Provide a user-defined function for tagging posts that are fed from
+    # sources the operator considers local.  Note: This includes, but is
+    # not limited to articles received via nnrpd.
+    if (defined &local_flag_localfeed) {
+        $localfeed = local_flag_localfeed();
+    };
+
+    # Provide a user-defined function for tagging posts that are fed from
+    # sources the operator considers spam friendly.  These could easily be
+    # hardcoded but doing so might get me kneecapped.
+    if (defined &local_flag_spamsource) {
+        $spamsource = local_flag_spamsource();
+    };
+
     # break out newsgroups into an array
     @groups = sort(split(/[,\s]+/, $hdr{Newsgroups}));
     if ($hdr{'Followup-To'}) {
@@ -641,8 +660,13 @@ sub filter_art {
             $gr{mod}++ if $Moderated{$_};
         } elsif (defined &INN::newsgroup) {
             $gr{mod}++ if INN::newsgroup($_) eq 'm';
-        }
-    }
+        };
+
+        if ($localfeed and $hdr{Approved}) {
+            return reject("Forged approval in $_ ($hdr{Approved})")
+                if not /$config{local_approved_groups}/o;
+        };
+    };
 
     # As above but check Newsgroups and Followup-To headers
     for (@grpfup) {
@@ -746,20 +770,6 @@ sub filter_art {
         $lch{sender}        = lc $hdr{Sender} || '';
         $lch{organization}  = lc $hdr{Organization} || '';
         $lch{'content-type'}= lc $hdr{'Content-Type'} || '';
-
-        # Provide a user-defined function for tagging posts that are fed from
-        # sources the operator considers local.  Note: This includes, but is
-        # not limited to articles received via nnrpd.
-        if (defined &local_flag_localfeed) {
-            $localfeed = local_flag_localfeed();
-        };
-
-        # Provide a user-defined function for tagging posts that are fed from
-        # sources the operator considers spam friendly.  These could easily be
-        # hardcoded but doing so might get me kneecapped.
-        if (defined &local_flag_spamsource) {
-            $spamsource = local_flag_spamsource();
-        };
 
         if (defined &local_filter_first) {
             my @result = local_filter_first();
@@ -1245,6 +1255,7 @@ sub filter_art {
                 if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\s+per\bmin)/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
+            $score .= "!!!!SpaceCom" if $body =~ /$spacecom/o;
             # Power Post generates lots of spam.
             $score .= "!!!PowerPost" if $hdr{'X-Newsposter'} and not $gr{binary};
 
