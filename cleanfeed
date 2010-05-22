@@ -663,7 +663,8 @@ sub filter_art {
         };
 
         if ($localfeed and $hdr{Approved}) {
-            return reject("Forged approval in $_ ($hdr{Approved})")
+            return reject("Forged approval in $_ ($hdr{Approved})",
+                          'Forged Approval')
                 if not /$config{local_approved_groups}/o;
         };
     };
