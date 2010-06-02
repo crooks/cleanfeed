@@ -153,11 +153,9 @@ these local articles. The operator should define one or more conditional rules t
 cause the function to return True if the source of the article is local.  For example:<br>
 <pre>
 sub local_flag_localfeed {
-    if ($hdr{'X-Trace'} =~ /\.mydomain\.com/
-      or $hdr{Path} =~ /^not\-for\-mail$/
-      or $hdr{'Message-ID'} =~ /\@mydomain.com>$/) {
-        return 1;
-    };
+    return 1 if $hdr{'X-Trace'} =~ /\.mydomain\.com/;
+    return 1 if $hdr{Path} =~ /^not\-for\-mail$/;
+    return 1 if $hdr{'Message-ID'} =~ /\@mydomain.com>$/;
     return 0;
 };
 <pre>
@@ -167,8 +165,8 @@ True.</td>
 </tr>
 <td class='oneBod'><a name='local_flag_spamsource'>local_flag_spamsource</a></td>
 <td class='oneBod'>Define a set of rules that return True if a posting
-originates from a source that is considered spam friendly.  One such example
-might be:<br>
+originates from a news-service that is considered a frequent source of spam.
+One such example might be:<br>
 <pre>
 sub local_flag_spamsource {
     return 1 if $hdr{'Injection-Info'} =~ /googlegroups\.com/;
@@ -177,7 +175,9 @@ sub local_flag_spamsource {
 };
 </pre>
 When True is returned, the Cleanfeed global variable $spamsource will be set
-True.</td>
+True. Besides user-defined functions, this variable is only used within
+Cleanfeed's scoring functions.  Consequently if scoring is disabled, it will do
+nothing.</td>
 </tr>
 </tr>
 <tr>
@@ -213,12 +213,45 @@ filters in.</td>
 </tr>
 <tr>
 <td class='oneBod'>local_filter_cancel</td>
-<td class='oneBod'>This function isn't applied to normal messages, only Control Cancel ones.
-It runs after the internal Cleanfeed Cancel checks and offers a means to define local policies for
-the handling of Cancel messages.  Some operators choose not to honour Cancels at all.</td>
+<td class='oneBod'>This function isn't applied to normal messages, only Control
+Cancel ones.  It runs after the internal Cleanfeed Cancel checks and offers a
+means to define local policies for the handling of Cancel messages.  Some
+operators choose not to honour Cancels at all, as per this example:
+<pre>
+sub local_filter_cancel {
+    # Reject all locally posted cancel messages.
+    if ($localfeed) {
+        logart('local.cancel', 'Local Cancel');
+        return reject('Cancels forbidden');
+    };
+};
+</pre>
+</td>
 </tr>
 <tr>
-<td class='oneBod'>local_filter_reject</td>
+<td class='oneBod'><a name='local_filter_control'>local_filter_control</a></td>
+<td class='oneBod'>This function is called on messages containing a newgroup or
+rmgroup Control header and after internal checks have been processed.  Should
+the Cleanfeed internal checks cause a message to be rejected, processing will
+complete before this function is called.  In these instances, <a
+href='#local_filter_reject'>local_filter_reject</a> should be used for further
+actions, such as logging. All rejected Control messages have a short reason of
+<b>Bad control message</b>. Example local_filter_cancel:
+<pre>
+sub local_filter_control {
+    # Log locally posted Control messages.
+    if ($localfeed) {
+        logart('ctrl_rmgroup', 'rmgroup', 271)
+            if $hdr{Control} =~ /^\s*rmgroup/i;
+        logart('ctrl_newgroup', 'newgroup', 271)
+            if $hdr{Control} =~ /^\s*newgroup/i;
+    };
+};
+</pre>
+</td>
+</tr>
+<tr>
+<td class='oneBod'><a name='local_filter_reject'>local_filter_reject</a></td>
 <td class='oneBod'>The function doesn't quite fit the mould of the others.
 Instructions within it are only processed on articles that have <b>already</b>
 been rejected.  This is a good place to define log files for rejected articles.
