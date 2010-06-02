@@ -1398,10 +1398,8 @@ sub filter_art {
                 }
             }
 
-            # Cut adult groups some slack
-
-            #TODO Uncomment the following after scoring testing
-            #$score += local_filter_scoring() if defined &local_filter_scoring;
+            # Call local_filter_scoring
+            $score .= local_filter_scoring() if defined &local_filter_scoring;
             
             $scoreval = ($score =~ tr/!//) - ($score =~ tr/*//);
 
