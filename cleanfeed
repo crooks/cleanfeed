@@ -656,17 +656,13 @@ sub filter_art {
             and not /$config{not_adult_groups}/o;
         $gr{faq}++ if /$config{faq_groups}/o;
         $gr{ratio}++ if /$config{ratio_exclude}/o;
+        $gr{approved}++ if /$config{local_approved_groups}/o;
         if ($config{active_file}) {
             $gr{mod}++ if $Moderated{$_};
         } elsif (defined &INN::newsgroup) {
             $gr{mod}++ if INN::newsgroup($_) eq 'm';
         };
 
-        if ($localfeed and $hdr{Approved}) {
-            return reject("Forged approval in $_ ($hdr{Approved})",
-                          'Forged Approval')
-                if not /$config{local_approved_groups}/o;
-        };
     };
 
     # As above but check Newsgroups and Followup-To headers
@@ -701,6 +697,7 @@ sub filter_art {
     $gr{alltest} = ($gr{test} == $grpcnt);
     $gr{alladult} = ($gr{adult} == $grpcnt);
     $gr{ratio} = ($gr{ratio} == $grpcnt);
+    $gr{approved} = ($gr{approved} == $grpcnt);
 
     # Same as above but include Followup_To in addition to Newsgroups
     $gr{skip} = ($gr{skip} == $grpfupcnt);
@@ -798,6 +795,13 @@ sub filter_art {
                     if exists $Bad_Adult_Path{$_};
             }
         }
+        # If an article is fed locally and contains an Approved header, reject
+        # it unless all groups match config{local_approved_groups}.
+        if ($localfeed and $hdr{Approved}) {
+            return reject("Forged approval: $hdr{Approved}",
+                          'Forged Approval')
+                unless $gr{approved};
+        };
 
         # Do any elements of the Path appear more than once.
         # TODO Wow, this filter catches a lot.  Too much!  Need to make it a
@@ -1485,6 +1489,11 @@ sub filter_art {
             if $control_type eq 'newgroup'
                 and $control_group =~ /$config{poison_groups}/o;
 
+        if (defined &local_filter_control) {
+            my @result = local_filter_control();
+            return reject(@result) if $result[0];
+        };
+
     # other control messages #################################################
     } elsif ($hdr{Control} =~ /^\s*(\w+)(?:\s+(.*))?/) {
         my $control_type = $1;
@@ -1493,10 +1502,10 @@ sub filter_art {
         return reject("$control_type with Supersedes header")
             if $hdr{Supersedes};
 
-        return reject("Unwanted $1 message", 'Bad control message')
+        return reject("Obsolete $1 control message", 'Bad control message')
             if $config{drop_useless_controls}
-                and $control_type =~ /^(sendsys|senduuname|version)$/;
-        return reject("Unwanted $1 message", 'Bad control message')
+                and $control_type =~ /^(sendsys|senduuname|version|whogets)$/;
+        return reject("Unwanted $1 control message", 'Bad control message')
             if $config{drop_ihave_sendme}
                 and $control_type =~ /^(ihave|sendme)$/;
 
