@@ -19,6 +19,7 @@
 <h2>Contents</h2>
 <ol>
 <li><a href='#bad_word_body'>How do I score on bad words in the message body?</a></li>
+<li><a href='#xnewsreader'>Can a filter be done on X-Newsreader?</a></li>
 </ol>
 <hr>
 <h3><a name='bad_word_body'>How do I score on bad words in the message body?</a></h3>
@@ -31,6 +32,25 @@ sub local_filter_scoring {
   $score .= "!Body1Pt" while $body =~ /$one_point_words/go;
   $score .= "!!Body2Pt" while $body =~ /$two_point_words/go;
   return $score;
+};
+</pre>
+<hr>
+<h3><a name='#xnewsreader'>Can a filter be done on X-Newsreader?</a></h3>
+Yes, this example would reject any articles posted with an X-Newsreader
+header beginning with "Microsoft".
+<pre>
+sub local.filter.last {
+    if ($hdr{'X-Newsreader'} =~ /^Microsoft/) {
+        return reject('Microsoft Newsreader', 'Bad Reader');
+    };
+};
+</pre>
+Additionally this would log rejects with a short reason of "Bad Reader"
+to a file called cf.readers.
+<pre>
+sub local_filter_reject {
+    my ($vr, $sr) = @_;
+    logart('cf.readers', $vr) if $sr =~ /^Bad\sReader/;
 };
 </pre>
 <hr>
