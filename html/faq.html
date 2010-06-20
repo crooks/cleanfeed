@@ -1,0 +1,38 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+<meta http-equiv="Content-Style-Type" content="text/css2" />
+<meta name="keywords" content="Cleanfeed Usenet INN Filter">
+<title>Cleanfeed</title>
+<link rel="StyleSheet" href="cleanfeed.css" type="text/css">
+<link rel="StyleSheet" href="tables.css" type="text/css">
+</head>
+
+<body>
+<p>
+<a href='index.html'>Home</a> &gt;
+<a href='faq.html'>FAQ</a>
+</p>
+
+<h1>Frequently Asked Questions</h1>
+<h2>Contents</h2>
+<ol>
+<li><a href='#bad_word_body'>How do I score on bad words in the message body?</a></li>
+</ol>
+<hr>
+<h3><a name='bad_word_body'>How do I score on bad words in the message body?</a></h3>
+Cleanfeed doesn't usually score bad words in the message body, only in specific
+headers: Subject, From, Message-ID and Organization.  To extend this scoring
+into the body, add the following to cleanfeed.local.
+<pre>
+sub local_filter_scoring {
+  my $score = '';
+  $score .= "!Body1Pt" while $body =~ /$one_point_words/go;
+  $score .= "!!Body2Pt" while $body =~ /$two_point_words/go;
+  return $score;
+};
+</pre>
+<hr>
+</body>
+</html>
