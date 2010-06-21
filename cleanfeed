@@ -357,7 +357,8 @@ $TLDs = '(?:[Cc][Oo][Mm]|[Nn][Ee][Tt]|[Oo][Rr][Gg]|[Ee][Dd][Uu]' .
     '|[Cc][Oo]\.[Uu][Kk]|[Ff][Rr]' .
     '|[Cc][Oo][Mm]\.[Aa][Uu]|[Nn][Ll]|[Dd][Ee]|[Nn][Oo]|[Dd][Kk]|[Cc][Hh]' .
     '|[Ss][Ee]|[Nn][Uu]|[Tt][Oo]|[Rr][Uu]|[Uu][Aa]|[Cc][Aa]|[Cc][Xx])';
-$IP = '\d\d\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?\b';
+#$IP = '\d\d\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?\b';
+$IP = '(?:\d{1,3}\.){3}\d{1,3}\b';
 $StealthIP = '(?:\d{10}|0[0-7]+\.0[0-7]+\.0[0-7]+\.0[0-7]+)';
 # Make $WebHost only match if there's nothing before it (requires 5.005).
 $WebHost = ($] >= 5.005 ? '(?<![\w.])' : '' ) .
@@ -1272,19 +1273,22 @@ sub filter_art {
             #    if $body_has_url
             #        and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
-            if ($Bad_URL and $body_has_url) {
-                $score .= "!" x $config{'bad_url_score'} . 'bad_url'
+            if ($body_has_url) {
+                if ($Bad_URL) {
+                    $score .= "!" x $config{'bad_url_score'} . 'bad_url'
                     if $body =~ $Bad_URL_RE;
-            };
-            if ($Bad_URL_Central and $body_has_url) {
-                $score .= "!" x $config{'bad_url_score'} . 'bad_url_cen'
+                };
+                if ($Bad_URL_Central) {
+                    $score .= "!" x $config{'bad_url_score'} . 'bad_url_cen'
                     if $body =~ $Bad_URL_Central_RE;
+                };
+
+                $score .= "!!EmphURL" if $body =~ />>\s*$url.*<</o;
             };
 
+
             if ($hdr{References}) {
-                #$score -= 3;
                 $score .= "**Refs";
-                #$score -= 2 if $hdr{References} =~ /^<[^>]+>\s+</;
                 $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
 
                 if ($lines > 0) {

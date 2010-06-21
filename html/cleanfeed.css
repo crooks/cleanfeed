@@ -56,7 +56,7 @@ li {
 	font-style: normal;
 	font-weight: normal;
 	text-transform: none;
-	margin-top: 10px;
+	margin-top: 0px;
 }
 
 ul {
@@ -65,4 +65,13 @@ ul {
 	font-style: normal;
 	font-weight: normal;
 	text-transform: none;
+}
+
+ol {
+	font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: normal;
+	text-transform: none;
+	margin-top: 10px
 }

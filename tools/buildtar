@@ -13,7 +13,8 @@ BASEDIR='/usr/local/news/tmp'
 BUILDDIR="${BASEDIR}/cleanfeed"
 SAMPLESOURCE='/usr/local/news/dev/cleanfeed/trunk/samples'
 CFSOURCE='/var/www/cleanfeed'
-DESTFILE="/var/www/cleanfeed/cleanfeed.tar"
+DATE=`date +%Y%m%d`
+DESTFILE="/var/www/cleanfeed/cleanfeed-$DATE.tar"
 
 # Check if the build directory exists.  If it does then empty it, else create
 # it along with the required subdirs which cannot exist without a parent.
