@@ -364,8 +364,6 @@ $StealthIP = '(?:\d{10}|0[0-7]+\.0[0-7]+\.0[0-7]+\.0[0-7]+)';
 $WebHost = ($] >= 5.005 ? '(?<![\w.])' : '' ) .
     '(?:[Ww][Ww][Ww]\d?|[Ww][Ee][Bb]\d?|[Mm][Ee][Mm][Bb][Ee][Rr][Ss]' .
     '|[Uu][Ss][Ee][Rr][Ss]?|[Hh][Oo][Mm][Ee])';
-# http:// plus optional username/password.
-#$HTTP = '[Hh][Tt][Tt][Pp][Ss]?:\/\/?(?:\w+(?::\w+)?@)?';
 $HTTP = '(?:www\.|https?:\/\/)';
 $HOST = '[\w\-.]+'; # characters for the hostname
 $PORT = '(?::\d+)?'; # always optional
@@ -378,6 +376,7 @@ $url2 = "$HTTP(?:$HOST|$IP|$StealthIP)";
 # http:// is optional if $WebHost matches, any tld accepted.
 $url3 = "(?:$HTTP|$WebHost)$HOST";
 $stealthURL = "$HTTP(?:$IP|$StealthIP)";
+$simpleURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?';
 # match the whole URL including path (used by body_urls() )
 $fullURL = $HTTP . $HOST . $PORT . '(?:\/[^\s<>]+)?'.
     "|(?:$WebHost\.$HOST\.$TLDs)$PORT" . '(?:\/[^\s<>]+)?';
@@ -398,6 +397,8 @@ $drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
 $phone = '\b[89]\d{2}[\.\s\-_*\)]*\d{2,3}[\.\s\-_*]*\d{4}\b'.
          '|[\s\-_*0][89]\d{2,3}[\s\-_*]+\d{6}';
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
+# ASCII Symbols, excluding space/tab.
+$SYMBOL = '[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]';
 
 # Re-enable the following when we fix the false positives in the scoring section.
 #$site_desc = "$desc1|password";
@@ -1284,8 +1285,15 @@ sub filter_art {
                     if $body =~ $Bad_URL_Central_RE;
                 };
 
-                $score .= "!!EmphURL" if $body =~ />>\s*$url.*<</o;
-            };
+                # Emphasized URL (>>> http://www.foo <<<)
+                if (not $hdr{References}) {
+                    if ($body =~ /$SYMBOL{3}[\x09\x20]+$simpleURL[\x09\x20]+$SYMBOL{3}/o) {
+                        $score .= "!!!EmphURL3";
+                    } elsif ($body =~ /$SYMBOL{3}[\x09\x20]+$simpleURL/o) {
+                        $score .= "!EmphURL1";
+                    };
+                }; # End of References
+            }; # End of body_has_url
 
 
             if ($hdr{References}) {
@@ -1366,7 +1374,7 @@ sub filter_art {
             }; # End of do_ratio_scoring
 
             # High Spam Sources.  Some sources are responsible for high volumes
-            # of Spam.  We rate thesee a low spam risk if there's a References
+            # of Spam.  We rate these a low spam risk if there's a References
             # header.  If there isn't, then the risk is based on url content
             # within the payload.  If we don't have url data, we assume a
             # mid-score of 2.
@@ -1581,7 +1589,7 @@ sub is_binary {
 
 # Extract the right-most FQDN from a Path header
 sub first_path_host{
-    my $_ = shift;
+    local $_ = shift;
     s/(![^\.]+)+$//; # Strip RH non-FQDNs
     s/.*!//; # Strip all but RH path entry
     return $_;
