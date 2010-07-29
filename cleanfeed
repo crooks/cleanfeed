@@ -421,13 +421,14 @@ $one_point_words = "pre.?teen|\bteen|\bsex|$free|credit|amateur|horne?y".
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
     '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties|bang'.
     '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture'.
-    'suduc(?:e|tress)|cuckold';
+    'suduc(?:e|tress)|cuckold|wicked';
 $two_point_words = "$drugs".
     '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
     '|le[sz]b(?:ian|o)|\btits?\b|dick(?!.?berg)|blow.?job|cock|clit'.
     '|twat|cunt|hard-?core|[^x]xxx|facial|gangbang|strap.on|submissive'.
     '|(?:live|real|innocent).girl|phone.{0,5}(?:sex|fun|play)|she.?male'.
-    '|lolita|dildo|whore|fingering|barely.?(?:18|legal)';
+    '|lolita|dildo|whore|fingering|barely.?(?:18|legal)|[gm]ilf|no.?limit'.
+    '|uncensored|age.?play';
 
 # assorted spamware names found in X-Newreader/X-Mailer/etc headers
 $Xbot = '^2\.\d\.(?:\d\d? [a-z]|\d\d?)$|newsgroup bulk mailer'
