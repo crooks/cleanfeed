@@ -1355,12 +1355,6 @@ sub filter_art {
                             $score .= "!SymRat($symratio)";
                         };
                     };
-                    # Score messages where more than 25% of the lines have no
-                    # lowercase letters in them.
-                    $nolc = 0;
-                    $nolc++ while $hdr{__BODY__} =~ /^[^a-z]+?$/mg;
-                    $lcratio = int(($nolc / $lines) * 100);
-                    $score .= '!!LCratio' if $lcratio > 25;
                 }; # End of charset conditional
 
                 # Grant some slack to posts with no url's in them.
@@ -1952,7 +1946,7 @@ sub logart {
         foreach (qw(posting_host injection_host grpcnt fupcnt grpfupcnt lines
                     badlines b64lines body_has_url Cache_Is_Binary
                     file_extension localfeed spamsource urlcount charset
-                    letters uppercase symbols nolc lcratio)) {
+                    letters uppercase symbols)) {
             print LOCAL "$_: $$_\n" if defined $$_;
         };
 
