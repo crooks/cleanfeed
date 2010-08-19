@@ -1376,16 +1376,13 @@ sub filter_art {
             # High Spam Sources.  Some sources are responsible for high volumes
             # of Spam.  We rate these a low spam risk if there's a References
             # header.  If there isn't, then the risk is based on url content
-            # within the payload.  If we don't have url data, we assume a
-            # mid-score of 2.
+            # within the payload.
             if ($spamsource) {
                 if ($hdr{References}) {
                     $score .= "!SpamSrc";
-                } elsif (defined $urlcount) {
-                    $score .= "!SpamSrc+NoUrl" if $urlcount == 0;
-                    $score .= "!!!SpamSrc+Url" if $urlcount >= 1;
                 } else {
-                    $score .= "!!SpamSrc";
+                    $score .= "!SpamSrc+NoUrl" if not $body_has_url;
+                    $score .= "!!!SpamSrc+Url" if $body_has_url;
                 }; # End of References
             }; # End of SpamSrc
 
@@ -1393,11 +1390,9 @@ sub filter_art {
             if ($gr{alladult}) {
                 if ($hdr{References}) {
                     $score .= "***Adult";
-                } elsif (defined $urlcount) {
-                    $score .= "**Adult" if $urlcount == 0;
-                    $score .= "#Adult+Url" if $urlcount >= 1;
                 } else {
-                    $score .= "*Adult";
+                    $score .= "**Adult" if not $body_has_url;
+                    $score .= "#Adult+Url" if $body_has_url;
                 };
             }; # End of Adult slack
 
