@@ -391,7 +391,7 @@ $spacecom = 'www[^a-z\.]+[a-zA-Z0-9\-]+[^a-z\.]+com';
 $sex = 'sex|xxx|fuck';
 $free = 'free(?!dom|bsd|ppp|xp)';
 $pics = 'pi(?:c|x)';
-$drugs = 'carisoprodol|caverta|cialis|diazepam|kamagra|levitra|nizoral'.
+$drugs = 'ativan|carisoprodol|caverta|\bcialis|diazepam|kamagra|levitra|nizoral'.
          'sildenafil|tadalafil|valium|viagra|vicodin|xanax';
 # US Phone 800-123-1234  UK Phone 09096-400141
 $phone = '\b[89]\d{2}[\.\s\-_*\)]*\d{2,3}[\.\s\-_*]*\d{4}\b'.
@@ -417,7 +417,7 @@ $sex_adjs = "$desc1|$sex|erotic|gay|amateur|lesbian|blow.?job|fetish".
     '|pre.?teen|nude|celeb|school.?girl|bondage|rape|torture';
 $porn = "(?:$sex_adjs).{0,25}(?:$pics|video|dvd|image|porn|photo|mpeg)";
 
-$one_point_words = "pre.?teen|\bteen|\bsex|$free|credit|amateur|horne?y".
+$one_point_words = "pre.?teen|\bteen|\bsex|credit|amateur|horne?y".
     '|anal(?!yst)|oral|bondage|breast|vid(?:eo|s)|dvd|kink(?:y|ier)|mistress'.
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
     '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties|bang'.
@@ -1216,14 +1216,18 @@ sub filter_art {
             $score .= "!!!!SubDigitJPG" if $lch{subject} =~ /\s\d{1,3}\.jpg$/;
             $score .= "!SubSymbols" if $hdr{Subject} =~ /^\W{3}/;
             $score .= "!!!SubPhone" if $hdr{Subject} =~ /$phone/;
-            $score .= "!!SubCR" if $hdr{Subject} =~ /\r/;
-            $score .= "!!SubLength" if length($hdr{Subject}) > 210;
-            $score .= "!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
+            $score .= "!SubCR" if $hdr{Subject} =~ /\r/;
+            $score .= "!SubLength" if length($hdr{Subject}) > 210;
+            $score .= "!!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
             $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\s+){8}/o;
 
+            # Job Spam
+            $score .= "!!!Jobs" if $hdr{Newsgroups} =~ /\.jobs|\.bestjobs/
+                and $hdr{From} =~ /job/;
+
             if ($config{aggressive}) {
-                $score .= "!Sub1Pt" while $lch{subject} =~ /$one_point_words/go;
-                $score .= "!!Sub2Pt" while $lch{subject} =~ /$two_point_words/go;
+                $score .= "!Sub1Pt($1)" while $lch{subject} =~ /($one_point_words)/go;
+                $score .= "!!Sub2Pt($1)" while $lch{subject} =~ /($two_point_words)/go;
                 $score .= "!From1Pt" while $lch{from} =~ /$one_point_words/go;
                 $score .= "!!From2Pt" while $lch{from} =~ /$two_point_words/go;
                 $score .= "!MID1Pt" while $lch{'message-id'} =~ /$one_point_words/go;
@@ -1324,7 +1328,7 @@ sub filter_art {
             if ($config{do_ratio_scoring} and not $gr{ratio}
             and $lines < 4000 and not is_binary()
             and not $hdr{'Content-Transfer-Encoding'} =~ /base64/
-            and not $charset =~ /iso-2022|koi8-r/) {
+            and not $charset =~ /big5|iso-2022|koi8-r/) {
                 $fuzzy = $hdr{__BODY__};
                 $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
@@ -1345,7 +1349,7 @@ sub filter_art {
                             $score .= "!CapRat($capratio)";
                         };
                     };
-                    if ($letters > 0 and not $hdr{References}) {
+                    if ($letters > 10 and not $hdr{References}) {
                         $symratio = int(($symbols / $letters) * 100) / 100;
                         if ($symratio > 1) {
                             $score .= "!!!SymRat($symratio)";
@@ -1830,6 +1834,11 @@ sub writestats {
     foreach my $item (sort keys %config) {
         print FILE "$item: $config{$item}\n"
     }
+
+    print FILE "\n\nBad Regular Expressions from Files:\n\n";
+    foreach (qw(Bad_From Bad_Body Bad_Subject Bad_URL Bad_URL_Central)) {
+        print FILE "$_:\n$$_\n" if defined $$_;
+    };
 
     close FILE;
 }
