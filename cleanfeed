@@ -1835,9 +1835,26 @@ sub writestats {
         print FILE "$item: $config{$item}\n"
     }
 
-    print FILE "\n\nBad Regular Expressions from Files:\n\n";
+    # Report on bad_ files read as Hash tables
+    print FILE "\n\nBad Hashes from Files:\n\n";
+    foreach (qw(Bad_Path Bad_Cancel_Path Bad_Adult_Path Bad_Hosts
+                Bad_Hosts_Central)) {
+        print FILE "$_:\n";
+        if (keys(%$_) > 0) {
+            for my $hitem ( sort keys %$_ ) {
+                print FILE "$hitem\n";
+            };
+        } else {
+            print FILE "Not Defined\n";
+        };
+        print FILE "\n";
+    };
+
+    # Report on bad_ files read as Regexs
+    print FILE "\nBad Regular Expressions from Files:\n\n";
     foreach (qw(Bad_From Bad_Body Bad_Subject Bad_URL Bad_URL_Central)) {
-        print FILE "$_:\n$$_\n" if defined $$_;
+        print FILE "$_:\n$$_\n" if $$_;
+        print FILE "$_:\nNot Defined\n\n" if not $$_;
     };
 
     close FILE;
