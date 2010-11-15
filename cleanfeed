@@ -102,6 +102,7 @@ sub get_config {
     max_base64_lines => 150,    # Allow x lines Base64 encoding in non-bin grps
 
     block_mime_html => 1,       # block MIME encapsulated HTML
+    block_html_multipart => 1,  # Block all multipart with html sections
     block_html => 1,            # block native HTML (Content-Type text/html)
 
     active_file => '',  # active file to determine which groups are moderated
@@ -941,11 +942,24 @@ sub filter_art {
                 and ($hdr{__BODY__} =~ /^Content-Disposition:.*filename.*\.html?/imo
                 or $hdr{__BODY__} =~ /^Content-Base:.*file:.*\.html?/imo);
 
+            # Only one of the following two subsections can be applied,
+            # depending on the state of config{block_html_multipart}.  If it's
+            # True then all multipart mime with html elements will be
+            # rejected.  If it's false, only multipart *without* text/plain
+            # elements will be rejected.
+
             # MIME HTML without Text
             return reject('HTML Multipart without Text/Plain.')
-                if $lch{'content-type'} =~ /multipart/
+                if not $config{block_html_multipart}
+                and $lch{'content-type'} =~ /multipart/
                 and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
                 and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
+
+            # MIME HTML regardless of text/plain element
+            return reject('HTML Multipart')
+                if $config{block_html_multipart}
+                and $lch{'content-type'} =~ /multipart/
+                and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo;
         };
 
         # HTML Inline
