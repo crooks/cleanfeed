@@ -102,8 +102,9 @@ sub get_config {
     max_base64_lines => 150,    # Allow x lines Base64 encoding in non-bin grps
 
     block_mime_html => 1,       # block MIME encapsulated HTML
-    block_html_multipart => 1,  # Block all multipart with html sections
+    block_html_multipart => 1,  # block all multipart with html sections
     block_html => 1,            # block native HTML (Content-Type text/html)
+    block_html_images => 1,     # block <img src> in non text/plain messages
 
     active_file => '',  # active file to determine which groups are moderated
 
@@ -160,11 +161,11 @@ sub get_config {
     ### Exclude matching Newsgroups from the scoring filters
     score_exclude => 'alt\.anonymous\.messages',
 
-    ### HTML allowed here (if block_html or block_multi_alt is turned on)
-    html_allowed => '^microsoft\.|^relcom\.',
+    ### MIME HTML allowed here (if block_mime_html is True)
+    mime_html_allowed => '^pgsql\.|^mailing\.|^linux\.|^relcom\.|^gmane\.',
 
-    ### MIME HTML allowed here (if block_mime_html is turned on)
-    mime_html_allowed => '^relcom\.',
+    ### HTML allowed here (if block_html is True)
+    html_allowed => "^relcom\.|^microsoft\.",
 
     test_groups => '\.test(ing)?(?:$|\.)|^es\.pruebas|^borland\.public\.test2'.
         '|^cern\.testnews',
@@ -937,7 +938,7 @@ sub filter_art {
 
         if ($config{block_mime_html} and not $gr{mime_html}) {
             # MIME encapsulated HTML (attached *.html file)
-            return reject('HTML file attachment')
+            return reject('HTML file attachment', 'HTML')
                 if $lch{'content-type'} =~ /multipart/
                 and ($hdr{__BODY__} =~ /^Content-Disposition:.*filename.*\.html?/imo
                 or $hdr{__BODY__} =~ /^Content-Base:.*file:.*\.html?/imo);
@@ -948,15 +949,15 @@ sub filter_art {
             # rejected.  If it's false, only multipart *without* text/plain
             # elements will be rejected.
 
-            # MIME HTML without Text
-            return reject('HTML Multipart without Text/Plain.')
+            # MIME text/html without text/plain
+            return reject('HTML Multipart without Text/Plain.', 'HTML')
                 if not $config{block_html_multipart}
                 and $lch{'content-type'} =~ /multipart/
                 and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo
                 and not $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/plain#imo;
 
             # MIME HTML regardless of text/plain element
-            return reject('HTML Multipart')
+            return reject('HTML Multipart', 'HTML')
                 if $config{block_html_multipart}
                 and $lch{'content-type'} =~ /multipart/
                 and $hdr{__BODY__} =~ m#^Content-Type:[\t ]+text/html#imo;
@@ -965,9 +966,18 @@ sub filter_art {
         # HTML Inline
         if ($config{block_html} and not $gr{html}) {
             # HTML formatted postings
-                return reject('HTML post')
+                return reject('HTML post', 'HTML')
                     if $lch{'content-type'} =~ m#text/html#;
         };
+
+        # Some consider <img> tags as a greater evil than other HTML.
+        if ($config{block_html_images}
+        and $lch{'content-type'} !~ m#text/plain#) {
+            return reject('HTML Image Tags', 'HTML')
+            if $hdr{__BODY__} =~ /\<img\s+src/i;
+        };
+
+            
 
         # bot checks #########################################################
         return reject('MID-Bot', 'Bot signature')
@@ -1218,6 +1228,7 @@ sub filter_art {
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
             $score .= "!FromNoLC" if $lch{from} !~ /[a-z]/o;
+            $score .= "!FromNo@" if $lch{from} !~ /\@/;
             $score .= "!FromLen" if length($hdr{From}) > 80;
 
             $score .= "!SubURL" if $lch{subject} =~ /$url/o;
@@ -1555,7 +1566,7 @@ sub is_binary {
 
     # yEnc checks: According to yEnc spec, all encoded parts start with
     # =ybegin.
-    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin\s+(.+)/o) {
+    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin\h+(.+)/o) {
         local $_ = $1;
         # Further confirmation that this is a yEnc message and extract
         # the file extension.  Greedy is good in this instance.
@@ -1567,9 +1578,9 @@ sub is_binary {
     };
 
     # uuEncoded check
-    if ($hdr{__BODY__} =~ /(?:^|\n)begin\s+(.+)/io) {
+    if ($hdr{__BODY__} =~ /(?:^|\n)begin\h+(.+)/io) {
         local $_ = $1;
-        if (/[0-7]{3,4}\s.*\.(\w{2,4})/o) {
+        if (/[0-7]{3,4}\h.*\.(\w{2,4})/o) {
             $file_extension = $1;
             $Cache_Is_Binary = "uuencoded";
             return $Cache_Is_Binary;
@@ -1578,10 +1589,10 @@ sub is_binary {
 
     if ($hdr{__BODY__} =~ /
         (?:
-            [\s|>]*                     # Skip Quote Marks
+            [\h|>]*                     # Skip Quote Marks
             (?>                         # Disable Backtracking
             M[\x20-\x60]{60,61}         # uuencoded line
-            )\s*\x0D?\x0A               # End of line
+            )\h*\x0D?\x0A               # End of line
         ){4}                            # Require at least four encoded lines
     /ox) {
         $Cache_Is_Binary = "uuencoded multi-part";
@@ -1589,7 +1600,7 @@ sub is_binary {
     };
 
     $b64lines = 0;
-    $b64lines++ while $hdr{__BODY__} =~ /^\s*[A-Za-z0-9\+\/]{59,76}\s*$/gmo;
+    $b64lines++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\s*$/gmo;
     if ($b64lines > $config{max_base64_lines}) {
         $Cache_Is_Binary = "Base64 ($b64lines lines)";
         return $Cache_Is_Binary;
