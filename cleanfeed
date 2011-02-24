@@ -1600,7 +1600,7 @@ sub is_binary {
     };
 
     $b64lines = 0;
-    $b64lines++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\s*$/gmo;
+    $b64lines++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
     if ($b64lines > $config{max_base64_lines}) {
         $Cache_Is_Binary = "Base64 ($b64lines lines)";
         return $Cache_Is_Binary;
