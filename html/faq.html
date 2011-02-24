@@ -20,6 +20,7 @@
 <ol>
 <li><a href='#bad_word_body'>How do I score on bad words in the message body?</a></li>
 <li><a href='#xnewsreader'>Can a filter be done on X-Newsreader?</a></li>
+<li><a href='#linelimit'>Can we limit the number of lines in a posting?</a></li>
 </ol>
 <hr>
 <h3><a name='bad_word_body'>How do I score on bad words in the message body?</a></h3>
@@ -51,6 +52,16 @@ to a file called cf.readers.
 sub local_filter_reject {
     my ($vr, $sr) = @_;
     logart('cf.readers', $vr) if $sr =~ /^Bad\sReader/;
+};
+</pre>
+<hr>
+<h3><a name='#linelimit'>Can we limit the number of lines in a posting?</a></h3>
+The following code will reject articles over a given number of lines.
+<pre>
+sub local_filter_first {
+    if ($lines > 50) {
+        return reject('Line limit exceeded', 'Too many lines');
+    };
 };
 </pre>
 <hr>
