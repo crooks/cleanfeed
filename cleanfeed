@@ -558,6 +558,13 @@ sub filter_art {
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
 
+    # count the lines in the article - late-model INN does this for us.
+    if (defined $hdr{__LINES__}) {
+        $lines = $hdr{__LINES__};
+    } else {
+        $lines = ($hdr{__BODY__} =~ tr/\n//);
+    };
+
     # Study the message BODY.  This used to be in the local config file but
     # this seems more logical.
     # TODO: Make the number of lines configurable.
@@ -566,8 +573,8 @@ sub filter_art {
     and $hdr{'Content-Type'} =~ /^text/i) {
         $body = lc substr(MIME::Base64::decode($hdr{__BODY__}), 0, 4000);
     } else {
-        study $hdr{__BODY__} if $hdr{__LINES__} <= 250;
         $body = lc substr($hdr{__BODY__}, 0, 4000);
+        study $hdr{__BODY__} if $lines <= 250;
     };
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
@@ -755,13 +762,6 @@ sub filter_art {
         # Good Usenet lines are terminated with CRLF
         $badlines = 0;
         $badlines++ while $hdr{__BODY__} =~ /[^\r]\n/g;
-        # count the lines in the article - late-model INN does this for us.
-        if (defined $hdr{__LINES__}) {
-            $lines = $hdr{__LINES__};
-        } else {
-            $lines = ($hdr{__BODY__} =~ tr/\n//);
-        }
-
         # lowercase some headers for later
         undef %lch;
         $lch{from}          = lc $hdr{From}
