@@ -156,13 +156,13 @@ sub get_config {
                     : '|^alt\.hipcrime|^us\.hipcrime|^hipcrime|h\dpcr\dme'),
 
     ### no checks done if groups match
-    allexclude => '^mailing\.',
+    allexclude => '^mailing\.|^linux\.',
 
     ### Exclude matching Newsgroups from the scoring filters
     score_exclude => 'alt\.anonymous\.messages',
 
     ### MIME HTML allowed here (if block_mime_html is True)
-    mime_html_allowed => '^pgsql\.|^mailing\.|^linux\.|^relcom\.|^gmane\.',
+    mime_html_allowed => '^pgsql\.|^relcom\.|^gmane\.',
 
     ### HTML allowed here (if block_html is True)
     html_allowed => "^relcom\.|^microsoft\.",
