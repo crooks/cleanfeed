@@ -544,26 +544,38 @@ sub setup_stuff {
 sub filter_art {
     $now = time;
     undef $body;
-    undef $body_has_url;    # Flag. Ture if body contains a URL
-    undef $file_extension;  # File extension on yEnc or UUencoded binaries
-    undef $Cache_Is_Binary; # Flag. True if content is Binary
-    undef $localfeed;       # Flag. True if article source is local
-    undef $spamsource;      # Flag. True if article origin is spam friendly
-    undef $XReader;         # Newsreader application, if specified
     undef $score;           # String representation of article score
-    undef $scoreval;        # Numeric representation of article score
-    undef $urlcount;        # Number of URL's in an article
-    undef $charset;         # Article charset (if defined in Content-Type)
+    %state = ();            # Initialize our state hash
+    ##### State Keys #####
+    # body_has_url;     Bool:   True if body contains a URL
+    # file_extension;   Str:    File extension on yEnc or UUencoded binaries
+    # cache_is_binary;  Flag:   True if content is Binary
+    # localfeed;        Flag:   True if article source is local
+    # spamsource;       Flag:   True if article origin is spam friendly
+    # xreader;          Str:    Newsreader application, if specified
+    # scoreval;         Int:    Numeric representation of article score
+    # urlcount;         Int:    Number of URL's in an article
+    # charset;          Str:    Article charset (if defined in Content-Type)
+    # posting_host:     Str:    Posting host/address
+    # injection_host    Str:    Injection host
+    # grpcnt:           Int:    Count of groups in Newsgroups header
+    # fupcnt            Int:    Count of groups in Followup-To header
+    # grpfupcnt:        Int:    Count of combined grpcnt and fupcnt (Unique)
+    # lines             Int:    Number of lines reported by inn
+    # letters           Int:    Number of letters in the post [a-zA-Z]
+    # uppercase         Int:    Number of uppercase letters in the post [A-Z]
+    # symbols           Int:    Number of symbols [!"#$%&'()*+,-:;=?@{|}~]
 
     $status{articles}++;
     $timer{articles}++ if $config{timer_info};
 
     # count the lines in the article - late-model INN does this for us.
     if (defined $hdr{__LINES__}) {
-        $lines = $hdr{__LINES__};
+        $state{lines} = $hdr{__LINES__};
     } else {
-        $lines = ($hdr{__BODY__} =~ tr/\n//);
+        $state{lines} = ($hdr{__BODY__} =~ tr/\n//);
     };
+    $lines = $state{lines}; # TODO Remove after grace period.
 
     # Study the message BODY.  This used to be in the local config file but
     # this seems more logical.
@@ -574,7 +586,7 @@ sub filter_art {
         $body = lc substr(MIME::Base64::decode($hdr{__BODY__}), 0, 4000);
     } else {
         $body = lc substr($hdr{__BODY__}, 0, 4000);
-        study $hdr{__BODY__} if $lines <= 250;
+        study $hdr{__BODY__} if $state{lines} <= 250;
     };
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
@@ -588,34 +600,34 @@ sub filter_art {
 
     # Try and ascertain the source news service.
     if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
-        $injection_host = "$1"
+        $state{injection_host} = "$1"
     } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
-        $injection_host = "$1"
+        $state{injection_host} = "$1"
     } else {
-        $injection_host = first_path_host($hdr{Path});
+        $state{injection_host} = first_path_host($hdr{Path});
     };
 
     # Try and ascertain the Posting-Host info
     if ($hdr{'Injection-Info'} =~ /posting-host\s*=\s*"?([^";]+)/) {
-        $posting_host = "$1";
+        $state{posting_host} = "$1";
     } elsif ($hdr{'NNTP-Posting-Host'}) {
-        $posting_host = $hdr{'NNTP-Posting-Host'};
+        $state{posting_host} = $hdr{'NNTP-Posting-Host'};
     } else {
-        $posting_host = 0;
+        $state{posting_host} = 0;
     };
 
     # Provide a user-defined function for tagging posts that are fed from
     # sources the operator considers local.  Note: This includes, but is
     # not limited to articles received via nnrpd.
     if (defined &local_flag_localfeed) {
-        $localfeed = local_flag_localfeed();
+        $state{localfeed} = local_flag_localfeed();
     };
 
     # Provide a user-defined function for tagging posts that are fed from
     # sources the operator considers spam friendly.  These could easily be
     # hardcoded but doing so might get me kneecapped.
     if (defined &local_flag_spamsource) {
-        $spamsource = local_flag_spamsource();
+        $state{spamsource} = local_flag_spamsource();
     };
 
     # break out newsgroups into an array
@@ -638,9 +650,9 @@ sub filter_art {
     my @grpfup = grep { ! $merge{ $_ }++ } (@groups, @followups);
 
     # Count the number of groups in the distribution
-    $grpcnt = scalar @groups;
-    $fupcnt = scalar @followups;
-    $grpfupcnt = scalar @grpfup;
+    $state{grpcnt} = scalar @groups;
+    $state{fupcnt} = scalar @followups;
+    $state{grpfupcnt} = scalar @grpfup;
 
     trimhashes() if $now - $Last_Trim >= $config{trim_interval};
     writestats() if $now - $Last_Stats >= $config{stats_interval};
@@ -699,42 +711,42 @@ sub filter_art {
     };
 
     # These only count if all Newsgroups match
-    $gr{image} = (($gr{image} + $gr{binary}) >= $grpcnt);
-    $gr{binary} = ($gr{binary} == $grpcnt);
-    $gr{reports} = ($gr{reports} == $grpcnt);
+    $gr{image} = (($gr{image} + $gr{binary}) >= $state{grpcnt});
+    $gr{binary} = ($gr{binary} == $state{grpcnt});
+    $gr{reports} = ($gr{reports} == $state{grpcnt});
     $gr{binary} = 0 if $gr{bad_bin};
-    $gr{html} = ($gr{html} == $grpcnt);
-    $gr{mime_html} = ($gr{mime_html} == $grpcnt);
-    $gr{allmod} = ($gr{mod} == $grpcnt);
-    $gr{alltest} = ($gr{test} == $grpcnt);
-    $gr{alladult} = ($gr{adult} == $grpcnt);
-    $gr{ratio} = ($gr{ratio} == $grpcnt);
-    $gr{approved} = ($gr{approved} == $grpcnt);
+    $gr{html} = ($gr{html} == $state{grpcnt});
+    $gr{mime_html} = ($gr{mime_html} == $state{grpcnt});
+    $gr{allmod} = ($gr{mod} == $state{grpcnt});
+    $gr{alltest} = ($gr{test} == $state{grpcnt});
+    $gr{alladult} = ($gr{adult} == $state{grpcnt});
+    $gr{ratio} = ($gr{ratio} == $state{grpcnt});
+    $gr{approved} = ($gr{approved} == $state{grpcnt});
 
     # Same as above but include Followup_To in addition to Newsgroups
-    $gr{skip} = ($gr{skip} == $grpfupcnt);
-    $gr{fslskip} = ($gr{fslskip} == $grpfupcnt);
-    $gr{md5skip} = ($gr{md5skip} == $grpfupcnt);
-    $gr{phnskip} = ($gr{phnskip} == $grpfupcnt);
-    $gr{phlskip} = ($gr{phlskip} == $grpfupcnt);
-    $gr{scoreskip} = ($gr{scoreskip} == $grpfupcnt);
-    $gr{alllocal} = ($gr{localhier} == $grpfupcnt);
+    $gr{skip} = ($gr{skip} == $state{grpfupcnt});
+    $gr{fslskip} = ($gr{fslskip} == $state{grpfupcnt});
+    $gr{md5skip} = ($gr{md5skip} == $state{grpfupcnt});
+    $gr{phnskip} = ($gr{phnskip} == $state{grpfupcnt});
+    $gr{phlskip} = ($gr{phlskip} == $state{grpfupcnt});
+    $gr{scoreskip} = ($gr{scoreskip} == $state{grpfupcnt});
+    $gr{alllocal} = ($gr{localhier} == $state{grpfupcnt});
 
     # If all newsgroups are excluded from filtering, bail now
     return '' if $gr{skip};
 
     foreach (@Restricted_List) {
-        $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == $grpcnt);
+        $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == $state{grpcnt});
     }
 
     if ($hdr{'Content-Type'} =~ /charset=([a-zA-Z0-9.:()_-]+)/io) {
-        $charset = lc($1);
+        $state{charset} = lc($1);
     };
 
     # checks common to all article types #####################################
-    return reject("Bad host ($posting_host)", 'Bad site')
-        if exists $Bad_Hosts{$posting_host}
-        or exists $Bad_Hosts_Central{$posting_host};
+    return reject("Bad host ($state{posting_host})", 'Bad site')
+        if exists $Bad_Hosts{$state{posting_host}}
+        or exists $Bad_Hosts_Central{$state{posting_host}};
 
     @Path_Entries = split(/!/, $hdr{Path});
     foreach (@Path_Entries) {
@@ -760,8 +772,8 @@ sub filter_art {
     # regular articles #######################################################
     if (not $hdr{Control}) {
         # Good Usenet lines are terminated with CRLF
-        $badlines = 0;
-        $badlines++ while $hdr{__BODY__} =~ /[^\r]\n/g;
+        $state{badlines} = 0;
+        $state{badlines}++ while $hdr{__BODY__} =~ /[^\r]\n/g;
         # lowercase some headers for later
         undef %lch;
         $lch{from}          = lc $hdr{From}
@@ -802,7 +814,7 @@ sub filter_art {
         }
         # If an article is fed locally and contains an Approved header, reject
         # it unless all groups match config{local_approved_groups}.
-        if ($localfeed and $hdr{Approved}) {
+        if ($state{localfeed} and $hdr{Approved}) {
             return reject("Forged approval: $hdr{Approved}",
                           'Forged Approval')
                 unless $gr{approved};
@@ -820,33 +832,33 @@ sub filter_art {
             if $gr{rg_net} and $hdr{Distribution} !~ /^[ \t]*4[Gg][Hh][ \t]*$/;
 
         return reject('U2 violation - excessive crossposting', 'U2 violation')
-            if $gr{rg_net} and $fupcnt > 3;
+            if $gr{rg_net} and $state{fupcnt} > 3;
 
         return reject('bofh violation - excessive crossposting','U2 violation')
-            if $gr{rg_bofh} and $fupcnt > 3;
+            if $gr{rg_bofh} and $state{fupcnt} > 3;
 
         return reject('bofh violation - invalid distribution', 'U2 violation')
             if $gr{rg_bofh}
                 and $hdr{Distribution} !~ /^[ \t]*[Bb][Oo][Ff][Hh][ \t]*$/;
 
         return reject('Too many newsgroups')
-            if $fupcnt > $config{maxgroups};
+            if $state{fupcnt} > $config{maxgroups};
 
         return reject('Too many newsgroups (low_xpost)', 'Too many newsgroups')
             if $gr{low_xpost}
-                and $fupcnt > $config{low_xpost_maxgroups};
+                and $state{fupcnt} > $config{low_xpost_maxgroups};
 
         return reject('Too many newsgroups (meow)', 'Too many newsgroups')
             if $gr{meow}
                 #and $gr{meow} != scalar @groups
                 and $config{meow_ext_maxgroups}
-                and ($fupcnt - $gr{meow}) > $config{meow_ext_maxgroups};
+                and ($state{fupcnt} - $gr{meow}) > $config{meow_ext_maxgroups};
 
         return reject('Topic Filter (Off-Topic1)', 'Topic Filter')
             if $gr{topic1}
                 and $gr{topic1} >= $config{on_topic1_mingroups}
                 and $config{off_topic1_maxgroups}
-                and $fupcnt - $gr{topic1} > $config{off_topic1_maxgroups};
+                and $state{fupcnt} - $gr{topic1} > $config{off_topic1_maxgroups};
 
         return reject('Topic Filter (On-Topic1)', 'Topic Filter')
             if $gr{topic1} and $config{on_topic1_maxgroups}
@@ -856,7 +868,7 @@ sub filter_art {
             if $gr{topic2}
                 and $gr{topic2} >= $config{on_topic2_mingroups}
                 and $config{off_topic2_maxgroups}
-                and $fupcnt - $gr{topic2} > $config{off_topic2_maxgroups};
+                and $state{fupcnt} - $gr{topic2} > $config{off_topic2_maxgroups};
 
         return reject('Topic Filter (On-Topic2)', 'Topic Filter')
             if $gr{topic2} and $config{on_topic2_maxgroups}
@@ -866,12 +878,12 @@ sub filter_art {
             'Too many newsgroups') if $gr{test} > 2;
 
         return reject('Excessively crossposted test article',
-            'Too many newsgroups') if $gr{test} and $fupcnt > 4;
+            'Too many newsgroups') if $gr{test} and $state{fupcnt} > 4;
 
         return reject('Adult group ECP', 'Too many newsgroups')
-            if $fupcnt > 6 and $gr{adult} > $grpcnt / 2;
+            if $state{fupcnt} > 6 and $gr{adult} > $state{grpcnt} / 2;
 
-        return reject('Poison newsgroup') if $gr{poison} and $grpcnt > 1;
+        return reject('Poison newsgroup') if $gr{poison} and $state{grpcnt} > 1;
 
         foreach (@Restricted_List) {
             return reject("hierarchy violation - crosspost outside $_")
@@ -886,7 +898,7 @@ sub filter_art {
 
         # short uuencoded html, text, exe, url files
         return reject("UUencoded $1")
-            if $lines > 3 and $lines < 2000
+            if $state{lines} > 3 and $state{lines} < 2000
                 and $hdr{__BODY__} =~ /
                     ^[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
                     \S?.{0,45}?\S*          # file name
@@ -913,15 +925,15 @@ sub filter_art {
                 if (is_binary()) {
                     # Is the binary an image?
                     if ($config{image_extensions}
-                    and $file_extension =~ /$config{image_extensions}/) {
-                        return reject("Binary Image: misplaced $file_extension")
+                    and $state{file_extension} =~ /$config{image_extensions}/) {
+                        return reject("Binary Image: misplaced $state{file_extension}")
                         if not $gr{image};
                         # gr{image} is true when distro matches bin_allowed
                         # or image_allowed
                         # gr{binary} is true when distro matches bin_allowed
                     } else {
-                        if ($file_extension) {
-                            return reject("Binary: misplaced $file_extension")
+                        if ($state{file_extension}) {
+                            return reject("Binary: misplaced $state{file_extension}")
                             if not $gr{binary};
                         } else {
                             return reject("Binary: non-binary distribution")
@@ -1021,9 +1033,9 @@ sub filter_art {
             }
         } # no X-Mailer/X-Newsreader/User-Agent header
 
-        $XReader = x_reader();
-        return reject("X-Bot ($XReader)", 'Bot signature')
-            if $XReader =~ /$Xbot/;
+        $state{xreader} = x_reader();
+        return reject("X-Bot ($state{xreader})", 'Bot signature')
+            if $state{xreader} =~ /$Xbot/;
 
         return reject('Email Platinum', 'Bot signature')
             if $lch{organization} =~ /email platinum/;
@@ -1046,14 +1058,15 @@ sub filter_art {
         if ($config{do_md5} and not $gr{md5skip} and not $gr{alltest}
                 and not ($hdr{References} and $config{md5_skips_followups})
                 and (($config{md5_max_length}
-                        and $lines < $config{md5_max_length})
+                        and $state{lines} < $config{md5_max_length})
                     or not $config{md5_max_length})
-                and $lines > 0 and ($lines > 2
-                    or ($lines < 3 and $hdr{__BODY__} !~ /^\s{0,8}$/))) {
+                and $state{lines} > 0 and ($state{lines} > 2
+                    or ($state{lines} < 3
+                    and $hdr{__BODY__} !~ /^\s{0,8}$/))) {
             my $mbody;
             if ($config{fuzzy_md5}
                     and (($config{fuzzy_max_length}
-                            and $lines < $config{fuzzy_max_length})
+                            and $state{lines} < $config{fuzzy_max_length})
                         or not $config{fuzzy_max_length})
                     and not is_binary()) {
                 $mbody = lc $hdr{__BODY__};
@@ -1061,7 +1074,7 @@ sub filter_art {
                 $mbody =~ s/^>+\s.*//mg;  # Strip quoted lines
                 $mbody =~ s/\r{3}.*$//mg;
                 $mbody =~ s/\s+$//;
-                $mbody =~ s/^[^\n]*\Z//m if $lines > 5;
+                $mbody =~ s/^[^\n]*\Z//m if $state{lines} > 5;
                 $mbody =~ tr/a-z0-9//cd;
             }
             return reject('EMP (md5)', 'EMP')
@@ -1071,29 +1084,29 @@ sub filter_art {
         if (not $gr{reports}) {
             # create posting-host/lines hash
             if ($config{do_phl} and not $gr{allmod}
-            and $posting_host and not $gr{phlskip}
+            and $state{posting_host} and not $gr{phlskip}
             and not is_binary() and not $gr{alltest}
-            and not $posting_host =~ /(?:$config{phl_exempt})/o
-            and not $injection_host =~ /(?:$config{bad_nph_hosts})/o
-            and not ($gr{binary} and $lines > 100
+            and not $state{posting_host} =~ /(?:$config{phl_exempt})/o
+            and not $state{injection_host} =~ /(?:$config{bad_nph_hosts})/o
+            and not ($gr{binary} and $state{lines} > 100
                 and $hdr{Subject} =~ /[\(\[]\d+\/\d+[\)\]]/)) {
                     return reject('EMP (phl)', 'EMP')
-                        if $PHLhistory->add("$posting_host $lines");
+                        if $PHLhistory->add("$state{posting_host} $state{lines}");
             }; # End of PHL filter
 
             # create posting-host/newsgroups hash
             if ($config{do_phn} and not $gr{phrinc} and not $gr{phnskip}
             and not $gr{alltest} and not $gr{allmod}
-            and not ($gr{binary} and $lines > 100)) {
-                if ($posting_host
-                and not $injection_host =~ /(?:$config{bad_nph_hosts})/o) {
-                    if (not $posting_host =~ /(?:$config{phn_exempt})/o) {
+            and not ($gr{binary} and $state{lines} > 100)) {
+                if ($state{posting_host}
+                and not $state{injection_host} =~ /(?:$config{bad_nph_hosts})/o) {
+                    if (not $state{posting_host} =~ /(?:$config{phn_exempt})/o) {
                         return reject('EMP (phn nph)', 'EMP')
-                            if $PHNhistory->add("$posting_host $sortgrps");
+                            if $PHNhistory->add("$state{posting_host} $sortgrps");
                     };
                 } elsif ($config{phn_aggressive}) {
                     return reject('EMP (phn path)', 'EMP')
-                        if $PHNhistory->add("$injection_host $sortgrps");
+                        if $PHNhistory->add("$state{injection_host} $sortgrps");
                 }; # End of aggressive mode
             }; # End of PHN filter
 
@@ -1107,19 +1120,19 @@ sub filter_art {
                 };
                 $hash1 =~ s/\d+$//;
                 $hash1 =~ tr/a-z0-9\@\x80-\xFF//cd;
-                $hash1 = "$hash1 $lines";
+                $hash1 = "$hash1 $state{lines}";
                 return reject('EMP (fsl)', 'EMP') if $FSLhistory->add($hash1);
             }; # End of FSL filter
         }; # not reports groups
 
         # create high-risk newsgroups hash
         if ($config{do_phr} and $gr{phrinc}
-            and not ($gr{binary} and $lines > 100)) {
-            if ($posting_host
-            and not $injection_host =~ /(?:$config{bad_nph_hosts})/o) {
-                if (not $posting_host =~ /(?:$config{phr_exempt})/o) {
+            and not ($gr{binary} and $state{lines} > 100)) {
+            if ($state{posting_host}
+            and not $state{injection_host} =~ /(?:$config{bad_nph_hosts})/o) {
+                if (not $state{posting_host} =~ /(?:$config{phr_exempt})/o) {
                     return reject('EMP (phr nph)', 'EMP')
-                        if $PHRhistory->add("$posting_host");
+                        if $PHRhistory->add("$state{posting_host}");
                 }
             } elsif ($config{phr_aggressive}) {
                 my $server;
@@ -1144,10 +1157,10 @@ sub filter_art {
         }
 
         if ($config{do_supersedes_filter} and $hdr{Supersedes}
-            and not $posting_host =~ /$config{supersedes_exempt}/o) {
+            and not $state{posting_host} =~ /$config{supersedes_exempt}/o) {
             my $source;
-            if ($posting_host) {
-                $source = lc $posting_host;
+            if ($state{posting_host}) {
+                $source = lc $state{posting_host};
                 $source =~ tr/a-z.//cd;
             }
 
@@ -1161,7 +1174,7 @@ sub filter_art {
                 else                    { $max = 6  }
 
                 return reject('Excessive Supersedes '
-                        ."($posting_host)", 'Excessive Supersedes')
+                        ."($state{posting_host})", 'Excessive Supersedes')
                     if $Suphistory->add2($source, $max);
             }
         }
@@ -1194,7 +1207,7 @@ sub filter_art {
         # Set a flag if the message body contains a URL.  This means later,
         # more complex tests can be bypassed on many messages.
         if ($body =~ /$HTTP/io) {
-            $body_has_url = 1;
+            $state{body_has_url} = 1;
         };
 
         # Check payload against bad_body and bad_url files.
@@ -1220,10 +1233,12 @@ sub filter_art {
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
             # Score poor netiquette on Follow-up's
-            $score .= "!!ExpFup($grpcnt-$grpfupcnt)" if $grpfupcnt > $grpcnt;
+            $score .= "!!ExpFup($state{grpcnt}-$state{grpfupcnt})"
+                if $state{grpfupcnt} > $state{grpcnt};
             if (not $hdr{'Followup-To'}) {
-                $score .= "!NoFup($grpcnt)" if $grpcnt > 1 and $grpcnt < 4;
-                $score .= "!!NoFup($grpcnt)" if $grpcnt >= 4;
+                $score .= "!NoFup($state{grpcnt})"
+                    if $state{grpcnt} > 1 and $state{grpcnt} < 4;
+                $score .= "!!NoFup($state{grpcnt})" if $state{grpcnt} >= 4;
             };
 
             $score .= "!!!!FromURL2" if $lch{from} =~ /$url2/o;
@@ -1268,8 +1283,9 @@ sub filter_art {
                 $score .= "!SubPorn" if /(?:$free_stuff|$porn)/o;
             }
 
-            $score .= "!!SubImage" if $lines < 30 and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
-            $score .= "!!MalfLines($badlines)" if $badlines > 0;
+            $score .= "!!SubImage" if $state{lines} < 30
+                and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
+            $score .= "!!MalfLines($state{badlines})" if $state{badlines} > 0;
             $score .= "!!!NoOrg" if $lch{organization} =~ /<no organization>/;
             $score .= "!!!!!!!StealthOrg" if $lch{organization} =~ /$stealthURL/o;
             $score .= "!!!!!MIDDigit" if $hdr{'Message-ID'}=~/^<(?:\d{8}\.?\d{4}|\d{4,5})\@/;
@@ -1297,14 +1313,14 @@ sub filter_art {
             $score .= "!!!PowerPost" if $hdr{'X-Newsposter'} and not $gr{binary};
 
             # only URL
-            $score .= "!!!!!!OnlyURL" if $lines < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
+            $score .= "!!!!!!OnlyURL" if $state{lines} < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
 
             # Contains a link to a URL abbreviation service
             #$score .= "!!!URLShortener"
             #    if $body_has_url
             #        and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
-            if ($body_has_url) {
+            if ($state{body_has_url}) {
                 if ($Bad_URL) {
                     $score .= "!" x $config{'bad_url_score'} . 'bad_url'
                     if $body =~ $Bad_URL_RE;
@@ -1329,16 +1345,16 @@ sub filter_art {
                 $score .= "**Refs";
                 $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
 
-                if ($lines > 0) {
+                if ($state{lines} > 0) {
                     # How much of the post is quoted?
                     $reflines = 0;
                     $reflines++ while $body =~ /^>/mg;
-                    $pctrefs = int(($reflines / $lines) * 100) / 100;
-                    if ($pctrefs > 0.9 and $lines > 50) {
+                    $pctrefs = int(($reflines / $state{lines}) * 100) / 100;
+                    if ($pctrefs > 0.9 and $state{lines} > 50) {
                         $score .= "!!PctQuote($pctrefs)";
-                    } elsif ($pctrefs > 0.7 and $lines > 30) {
+                    } elsif ($pctrefs > 0.7 and $state{lines} > 30) {
                         $score .= "!PctQuote($pctrefs)";
-                    } elsif ($reflines == 0 and $lines > 5) {
+                    } elsif ($reflines == 0 and $state{lines} > 5) {
                         $score .= "!NoQuote";
                     };
                 };
@@ -1351,21 +1367,21 @@ sub filter_art {
 
             # Check messages for high ratios of upper case and urls.
             if ($config{do_ratio_scoring} and not $gr{ratio}
-            and $lines < 4000 and not is_binary()
+            and $state{lines} < 4000 and not is_binary()
             and not $hdr{'Content-Transfer-Encoding'} =~ /base64/
-            and not $charset =~ /big5|iso-2022|koi8-r/) {
+            and not $state{charset} =~ /big5|iso-2022|koi8-r/) {
                 $fuzzy = $hdr{__BODY__};
-                $urlcount = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
-                $urlcount += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
+                $state{urlcount} = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
+                $state{urlcount} += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
-                $letters = $fuzzy =~ y/a-zA-Z//;    # Count letters
-                $uppercase = $fuzzy =~ y/A-Z//;     # Count upper
-                $symbols = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
+                $state{letters} = $fuzzy =~ y/a-zA-Z//;    # Count letters
+                $state{uppercase} = $fuzzy =~ y/A-Z//;     # Count upper
+                $state{symbols} = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
                 undef $fuzzy;
-                if (not $charset =~ /iso-2022|koi8-r/) {
-                    if ($uppercase > 50) {
-                        $capratio = int(($uppercase / $letters) * 100) / 100;
+                if (not $state{charset} =~ /iso-2022|koi8-r/) {
+                    if ($state{uppercase} > 50) {
+                        $capratio = int(($state{uppercase} / $state{letters}) * 100) / 100;
                         if ($capratio > 0.8) {
                             $score .= "!!!CapRat($capratio)";
                         } elsif ($capratio > 0.5) {
@@ -1374,8 +1390,8 @@ sub filter_art {
                             $score .= "!CapRat($capratio)";
                         };
                     };
-                    if ($letters > 10 and not $hdr{References}) {
-                        $symratio = int(($symbols / $letters) * 100) / 100;
+                    if ($state{letters} > 10 and not $hdr{References}) {
+                        $symratio = int(($state{symbols} / $state{letters}) * 100) / 100;
                         if ($symratio > 1) {
                             $score .= "!!!SymRat($symratio)";
                         } elsif ($symratio > 0.5) {
@@ -1387,16 +1403,16 @@ sub filter_art {
                 }; # End of charset conditional
 
                 # Grant some slack to posts with no url's in them.
-                $score .= "**NoUrl" if $urlcount == 0;
-                if ($lines > 0 and $urlcount > 1) {
-                    $urlratio = int(($urlcount / $lines) * 100) / 100;
-                    if ($urlratio > 0.8 and  $lines > 80) {
+                $score .= "**NoUrl" if $state{urlcount} == 0;
+                if ($state{lines} > 0 and $state{urlcount} > 1) {
+                    $urlratio = int(($state{urlcount} / $state{lines}) * 100) / 100;
+                    if ($urlratio > 0.8 and  $state{lines} > 80) {
                         $score .= "!!!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.5 and  $lines > 40) {
+                    } elsif ($urlratio > 0.5 and  $state{lines} > 40) {
                         $score .= "!!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.3 and  $lines > 10) {
+                    } elsif ($urlratio > 0.3 and  $state{lines} > 10) {
                         $score .= "!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.1 and  $lines > 5) {
+                    } elsif ($urlratio > 0.1 and  $state{lines} > 5) {
                         $score .= "!UrlRat($urlratio)";
                     };
                 };
@@ -1406,12 +1422,12 @@ sub filter_art {
             # of Spam.  We rate these a low spam risk if there's a References
             # header.  If there isn't, then the risk is based on url content
             # within the payload.
-            if ($spamsource) {
+            if ($state{spamsource}) {
                 if ($hdr{References}) {
                     $score .= "!SpamSrc";
                 } else {
-                    $score .= "!SpamSrc+NoUrl" if not $body_has_url;
-                    $score .= "!!!SpamSrc+Url" if $body_has_url;
+                    $score .= "!SpamSrc+NoUrl" if not $state{body_has_url};
+                    $score .= "!!!SpamSrc+Url" if $state{body_has_url};
                 }; # End of References
             }; # End of SpamSrc
 
@@ -1420,8 +1436,8 @@ sub filter_art {
                 if ($hdr{References}) {
                     $score .= "***Adult";
                 } else {
-                    $score .= "**Adult" if not $body_has_url;
-                    $score .= "#Adult+Url" if $body_has_url;
+                    $score .= "**Adult" if not $state{body_has_url};
+                    $score .= "#Adult+Url" if $state{body_has_url};
                 };
             }; # End of Adult slack
 
@@ -1438,10 +1454,10 @@ sub filter_art {
             # Call local_filter_scoring
             $score .= local_filter_scoring() if defined &local_filter_scoring;
             
-            $scoreval = ($score =~ tr/!//) - ($score =~ tr/*//);
+            $state{scoreval} = ($score =~ tr/!//) - ($score =~ tr/*//);
 
-            return reject("Scoring filter ($scoreval)", "Scoring filter")
-                if $scoreval > 7;
+            return reject("Scoring filter ($state{scoreval})", "Scoring filter")
+                if $state{scoreval} > 7;
         }; # End of Scoring filters
 
         if (defined &local_filter_last) {
@@ -1458,7 +1474,7 @@ sub filter_art {
 
         return reject('User-issued spam cancel')
             if $config{block_user_spamcancels}
-                and $injection_host and $posting_host
+                and $state{injection_host} and $state{posting_host}
                 and $hdr{Path} =~ /!cyberspam!/;
 
         return reject('User-issued cancel')
@@ -1554,14 +1570,14 @@ sub filter_art {
 
 # Return true if the article is a binary, false otherwise.
 sub is_binary {
-    return $Cache_Is_Binary if defined $Cache_Is_Binary;
+    return $state{cache_is_binary} if defined $state{cache_is_binary};
 
     # Return False if the article is Base64 encoded.  We want to match binary
     # content, *not* Base64 encoding.
     if ($hdr{'Content-Transfer-Encoding'} =~ /^base64$/i
     and $hdr{'Content-Type'} =~ /^text/i) {
-        $Cache_Is_Binary = 0;
-        return $Cache_Is_Binary
+        $state{cache_is_binary} = 0;
+        return $state{cache_is_binary};
     };
 
     # yEnc checks: According to yEnc spec, all encoded parts start with
@@ -1571,9 +1587,9 @@ sub is_binary {
         # Further confirmation that this is a yEnc message and extract
         # the file extension.  Greedy is good in this instance.
         if (/line=/ and /size=/ and /name=.*\.(\w{2,4})/) {
-            $file_extension = $1;
-            $Cache_Is_Binary = "yEnc Encoded";
-            return $Cache_Is_Binary;
+            $state{file_extension} = $1;
+            $state{cache_is_binary} = "yEnc Encoded";
+            return $state{cache_is_binary};
         };
     };
 
@@ -1581,9 +1597,9 @@ sub is_binary {
     if ($hdr{__BODY__} =~ /(?:^|\n)begin\h+(.+)/io) {
         local $_ = $1;
         if (/[0-7]{3,4}\h.*\.(\w{2,4})/o) {
-            $file_extension = $1;
-            $Cache_Is_Binary = "uuencoded";
-            return $Cache_Is_Binary;
+            $state{file_extension} = $1;
+            $state{cache_is_binary} = "uuencoded";
+            return $state{cache_is_binary};
         };
     };
 
@@ -1595,19 +1611,19 @@ sub is_binary {
             )\h*\x0D?\x0A               # End of line
         ){4}                            # Require at least four encoded lines
     /ox) {
-        $Cache_Is_Binary = "uuencoded multi-part";
-        return $Cache_Is_Binary;
+        $state{cache_is_binary} = "uuencoded multi-part";
+        return $state{cache_is_binary};
     };
 
-    $b64lines = 0;
-    $b64lines++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
-    if ($b64lines > $config{max_base64_lines}) {
-        $Cache_Is_Binary = "Base64 ($b64lines lines)";
-        return $Cache_Is_Binary;
+    $state{b64lines} = 0;
+    $state{b64lines}++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
+    if ($state{b64lines} > $config{max_base64_lines}) {
+        $state{cache_is_binary} = "Base64 ($state{b64lines} lines)";
+        return $state{cache_is_binary};
     };
 
     # Message is not binary
-    $Cache_Is_Binary = 0;
+    $state{cache_is_binary} = 0;
     return 0;
 };
 
@@ -1968,7 +1984,7 @@ sub logart {
     if ($format & 2) {
         print LOCAL "INFO: $info\n" if $info;
         print LOCAL "Score: $score\n" if $score;
-        print LOCAL "Binary: $Cache_Is_Binary\n" if $Cache_Is_Binary
+        print LOCAL "Binary: $state{cache_is_binary}\n" if $state{cache_is_binary}
             and not $format & 256;
     };
 
@@ -1980,7 +1996,7 @@ sub logart {
         };
     } else {
         # Just Posting-Host
-        print LOCAL "$posting_host\n" if $format & 32;
+        print LOCAL "$state{posting_host}\n" if $format & 32;
         # Just Newsgroups
         print LOCAL "$hdr{'Newsgroups'}\n" if $format & 64;
         # Just Message-ID
@@ -1989,13 +2005,9 @@ sub logart {
 
     # Debug Cleanfeed Internals
     if ($format & 256) {
-        foreach (qw(posting_host injection_host grpcnt fupcnt grpfupcnt lines
-                    badlines b64lines body_has_url Cache_Is_Binary
-                    file_extension localfeed spamsource urlcount charset
-                    letters uppercase symbols)) {
-            print LOCAL "$_: $$_\n" if defined $$_;
+        foreach (sort keys %state) {
+            print LOCAL "state{$_}: $state{$_}\n" if $state{$_};
         };
-
         foreach (sort keys %gr) {
             print LOCAL "gr{$_}: $gr{$_}\n" if $gr{$_};
         };
@@ -2046,7 +2058,7 @@ sub saveart {
     print LOCAL "From foo\@bar Thu Jan  1 00:00:01 1970\n";
     print LOCAL "INFO: $info\n" if $info;
     print LOCAL "Score: $score\n" if $score;
-    print LOCAL "Binary: $Cache_Is_Binary\n"
+    print LOCAL "Binary: $state{cache_is_binary}\n"
         if is_binary();
     foreach (sort keys %hdr) {
         next if $_ eq '__BODY__' or $_ eq '__LINES__';
