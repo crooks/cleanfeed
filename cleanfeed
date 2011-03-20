@@ -1586,7 +1586,7 @@ sub is_binary {
 
     # yEnc checks: According to yEnc spec, all encoded parts start with
     # =ybegin.
-    if ($hdr{__BODY__} =~ /(?:^|\n)=ybegin\h+(.+)/o) {
+    if ($body =~ /(?:^|\n)=ybegin\h+(.+)/o) {
         local $_ = $1;
         # Further confirmation that this is a yEnc message and extract
         # the file extension.  Greedy is good in this instance.
@@ -1598,7 +1598,7 @@ sub is_binary {
     };
 
     # uuEncoded check
-    if ($hdr{__BODY__} =~ /(?:^|\n)begin\h+(.+)/io) {
+    if ($body =~ /(?:^|\n)begin\h+(.+)/io) {
         local $_ = $1;
         if (/[0-7]{3,4}\h.*\.(\w{2,4})/o) {
             $state{file_extension} = $1;
