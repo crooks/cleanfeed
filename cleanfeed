@@ -599,16 +599,16 @@ sub filter_art {
     };
 
     # Try and ascertain the source news service.
-    if ($hdr{'Injection-Info'} =~ /^\s*($Hostname)[\s;]/) {
+    if ($hdr{'Injection-Info'} =~ /^\h*($Hostname)[\h;]/) {
         $state{injection_host} = "$1"
-    } elsif ($hdr{'X-Trace'} =~ /^\s*($Hostname)\s/) {
+    } elsif ($hdr{'X-Trace'} =~ /^\h*($Hostname)\h/) {
         $state{injection_host} = "$1"
     } else {
         $state{injection_host} = first_path_host($hdr{Path});
     };
 
     # Try and ascertain the Posting-Host info
-    if ($hdr{'Injection-Info'} =~ /posting-host\s*=\s*"?([^";]+)/) {
+    if ($hdr{'Injection-Info'} =~ /posting-host\h*=\h*"?([^";]+)/) {
         $state{posting_host} = "$1";
     } elsif ($hdr{'NNTP-Posting-Host'}) {
         $state{posting_host} = $hdr{'NNTP-Posting-Host'};
@@ -900,7 +900,7 @@ sub filter_art {
         return reject("UUencoded $1")
             if $state{lines} > 3 and $state{lines} < 2000
                 and $hdr{__BODY__} =~ /
-                    ^[Bb][Ee][Gg][Ii][Nn][ \t]+[0-7]{3,4}[ \t]+ # begin 666
+                    ^[Bb][Ee][Gg][Ii][Nn]\h+[0-7]{3,4}\h+ # begin 666
                     \S?.{0,45}?\S*          # file name
                     \.(                     # file extensions
                         [Tt][Ee]?[Xx][Tt]|
@@ -908,13 +908,13 @@ sub filter_art {
                         [Ee][Xx][Ee]|
                         [Uu][Rr][Ll]
                     )
-                    \s+                     # end of line
+                    \h+                     # end of line
                     (?:
                         ^[ \t|>]*           # skip quoting marks, if any
                         (?>                 # disable backtracking
                         M[\x20-\x60]{60,61} # uuencoded line
                         )
-                        \s*\n               # trailing spaces and end of line
+                        \h*\n               # trailing spaces and end of line
                     ){2,}?                  # 0 or > 2 lines
                 /mx;
 
@@ -986,7 +986,7 @@ sub filter_art {
         if ($config{block_html_images}
         and $lch{'content-type'} !~ m#text/plain#) {
             return reject('HTML Image Tags', 'HTML')
-            if $hdr{__BODY__} =~ /\<img\s+src/i;
+            if $hdr{__BODY__} =~ /\<img\h+src/i;
         };
 
             
@@ -1073,7 +1073,7 @@ sub filter_art {
                 $mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
                 $mbody =~ s/^>+\s.*//mg;  # Strip quoted lines
                 $mbody =~ s/\r{3}.*$//mg;
-                $mbody =~ s/\s+$//;
+                $mbody =~ s/\h+$//;
                 $mbody =~ s/^[^\n]*\Z//m if $state{lines} > 5;
                 $mbody =~ tr/a-z0-9//cd;
             }
@@ -1259,7 +1259,7 @@ sub filter_art {
             $score .= "!SubCR" if $hdr{Subject} =~ /\r/;
             $score .= "!SubLength" if length($hdr{Subject}) > 210;
             $score .= "!!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
-            $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\s+){8}/o;
+            $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\h+){8}/o;
 
             # Job Spam
             $score .= "!!!Jobs" if $hdr{Newsgroups} =~ /\.jobs|\.bestjobs/
@@ -1296,7 +1296,7 @@ sub filter_art {
                 $score .= "!!!!!!!HTMLPopup" if $body =~ /window\.open\(/;
                 $score .= "!!!!!!HTMLJava" if $body =~ /<script language=.?javascript/;
                 $score .= "!!!!!!HTMLLive" if $body =~ /<script language=.?livescript/;
-                $score .= "!!HTMLAlternate" if $body =~ /^content-type:\s+multipart\/alternative/m;
+                $score .= "!!HTMLAlternate" if $body =~ /^content-type:\h+multipart\/alternative/m;
             }
 
             #$score .= "!CR" if $body =~ /\r/;
@@ -1305,7 +1305,7 @@ sub filter_art {
             $score .= "!!Phone" if $body =~ /$phone/;
             # Score rates per minute (1.99/m or 1.99 per min)
             $score .= "!!!Rate"
-                if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\s+per\bmin)/;
+                if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\h+per\bmin)/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
             $score .= "!!!!SpaceCom" if $body =~ /$spacecom/o;
@@ -1313,7 +1313,8 @@ sub filter_art {
             $score .= "!!!PowerPost" if $hdr{'X-Newsposter'} and not $gr{binary};
 
             # only URL
-            $score .= "!!!!!!OnlyURL" if $state{lines} < 3 and $body =~ /^[\t ]*$url3\S*[\t ]*$/o;
+            $score .= "!!!!!!OnlyURL"
+                if $state{lines} < 3 and $body =~ /^\h*$url3\S*\h*$/o;
 
             # Contains a link to a URL abbreviation service
             #$score .= "!!!URLShortener"
@@ -1343,7 +1344,7 @@ sub filter_art {
 
             if ($hdr{References}) {
                 $score .= "**Refs";
-                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\s+</;
+                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\h+</;
 
                 if ($state{lines} > 0) {
                     # How much of the post is quoted?
@@ -1381,23 +1382,25 @@ sub filter_art {
                 undef $fuzzy;
                 if (not $state{charset} =~ /iso-2022|koi8-r/) {
                     if ($state{uppercase} > 50) {
-                        $capratio = int(($state{uppercase} / $state{letters}) * 100) / 100;
-                        if ($capratio > 0.8) {
-                            $score .= "!!!CapRat($capratio)";
-                        } elsif ($capratio > 0.5) {
-                            $score .= "!!CapRat($capratio)";
-                        } elsif ($capratio > 0.2) {
-                            $score .= "!CapRat($capratio)";
+                        $state{capratio} = int(($state{uppercase} /
+                            $state{letters}) * 100) / 100;
+                        if ($state{capratio} > 0.8) {
+                            $score .= "!!!CapRat($state{capratio})";
+                        } elsif ($state{capratio} > 0.5) {
+                            $score .= "!!CapRat($state{capratio})";
+                        } elsif ($state{capratio} > 0.2) {
+                            $score .= "!CapRat($state{capratio})";
                         };
                     };
                     if ($state{letters} > 10 and not $hdr{References}) {
-                        $symratio = int(($state{symbols} / $state{letters}) * 100) / 100;
-                        if ($symratio > 1) {
-                            $score .= "!!!SymRat($symratio)";
-                        } elsif ($symratio > 0.5) {
-                            $score .= "!!SymRat($symratio)";
-                        } elsif ($symratio > 0.3) {
-                            $score .= "!SymRat($symratio)";
+                        $state{symratio} = int(($state{symbols} /
+                            $state{letters}) * 100) / 100;
+                        if ($state{symratio} > 1) {
+                            $score .= "!!!SymRat($state{symratio})";
+                        } elsif ($state{symratio} > 0.5) {
+                            $score .= "!!SymRat($state{symratio})";
+                        } elsif ($state{symratio} > 0.3) {
+                            $score .= "!SymRat($state{symratio})";
                         };
                     };
                 }; # End of charset conditional
@@ -1405,15 +1408,16 @@ sub filter_art {
                 # Grant some slack to posts with no url's in them.
                 $score .= "**NoUrl" if $state{urlcount} == 0;
                 if ($state{lines} > 0 and $state{urlcount} > 1) {
-                    $urlratio = int(($state{urlcount} / $state{lines}) * 100) / 100;
-                    if ($urlratio > 0.8 and  $state{lines} > 80) {
-                        $score .= "!!!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.5 and  $state{lines} > 40) {
-                        $score .= "!!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.3 and  $state{lines} > 10) {
-                        $score .= "!!UrlRat($urlratio)";
-                    } elsif ($urlratio > 0.1 and  $state{lines} > 5) {
-                        $score .= "!UrlRat($urlratio)";
+                    $state{urlratio} = int(($state{urlcount} /
+                        $state{lines}) * 100) / 100;
+                    if ($state{urlratio} > 0.8 and  $state{lines} > 80) {
+                        $score .= "!!!!UrlRat($state{urlratio})";
+                    } elsif ($state{urlratio} > 0.5 and  $state{lines} > 40) {
+                        $score .= "!!!UrlRat($state{urlratio})";
+                    } elsif ($state{urlratio} > 0.3 and  $state{lines} > 10) {
+                        $score .= "!!UrlRat($state{urlratio})";
+                    } elsif ($state{urlratio} > 0.1 and  $state{lines} > 5) {
+                        $score .= "!UrlRat($state{urlratio})";
                     };
                 };
             }; # End of do_ratio_scoring
@@ -1466,7 +1470,7 @@ sub filter_art {
         }
 
     # cancel messages ########################################################
-    } elsif ($hdr{Control} =~ /^\s*cancel/) {
+    } elsif ($hdr{Control} =~ /^\h*cancel/) {
         foreach (@Path_Entries) {
             return reject("Cancel with $_ in path", 'Rogue cancel')
                 if exists $Bad_Cancel_Path{$_};
@@ -1485,7 +1489,7 @@ sub filter_art {
             if $gr{no_cancel} and not $hdr{Path} =~ /!cyberspam!/;
 
         if ($config{block_late_cancels}
-                and $hdr{Control} =~ /^cancel\s+(.+)$/) {
+                and $hdr{Control} =~ /^cancel\h+(.+)$/) {
             return reject('Cancel for rejected article')
                 if $MIDhistory->check($1);
         }
@@ -1512,7 +1516,7 @@ sub filter_art {
         }
 
     # newgroup and rmgroup messages ##########################################
-    } elsif ($hdr{Control} =~ /^\s*((?:new|rm)group)\s+(.*)/) {
+    } elsif ($hdr{Control} =~ /^\h*((?:new|rm)group)\h+(.*)/) {
         my $control_type = $1;
         my $control_group = $2;
 
@@ -1546,7 +1550,7 @@ sub filter_art {
         };
 
     # other control messages #################################################
-    } elsif ($hdr{Control} =~ /^\s*(\w+)(?:\s+(.*))?/) {
+    } elsif ($hdr{Control} =~ /^\h*(\w+)(?:\h+(.*))?/) {
         my $control_type = $1;
         my $control_group = $2;
     
@@ -1615,11 +1619,16 @@ sub is_binary {
         return $state{cache_is_binary};
     };
 
-    $state{b64lines} = 0;
-    $state{b64lines}++ while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
-    if ($state{b64lines} > $config{max_base64_lines}) {
-        $state{cache_is_binary} = "Base64 ($state{b64lines} lines)";
-        return $state{cache_is_binary};
+    # We only need to count Base64 lines if the number of lines in the post
+    # exceeds the configured Base64 maximum allowed.
+    if ($state{lines} > $config{max_base64_lines}) {
+        $state{b64lines} = 0;
+        $state{b64lines}++
+            while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
+        if ($state{b64lines} > $config{max_base64_lines}) {
+            $state{cache_is_binary} = "Base64 ($state{b64lines} lines)";
+            return $state{cache_is_binary};
+        };
     };
 
     # Message is not binary
@@ -2187,7 +2196,7 @@ sub read_file {
     }
     while (<FILE>) {
         s/#.*//;
-        s/^\s*(.*?)\s*$/$1/;
+        s/^\h*(.*?)\h*$/$1/;
         next if /^$/;
         if (/\s/) {
             push @$array, split;
