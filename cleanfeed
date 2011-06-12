@@ -494,6 +494,13 @@ sub setup_stuff {
     # Read all the bad_* files
     read_hashes();
 
+    #Initialise status counters
+    %status = ();
+    $status{accepted} = 0;
+    $status{rejected} = 0;
+    $status{refused} = 0;
+    $status{do_mid_filter} = 0;
+
     # initialise the rate filters
     if ($config{do_md5}) {
         $MD5history = new Cleanfeed::RateLimit;
@@ -1348,14 +1355,15 @@ sub filter_art {
 
                 if ($state{lines} > 0) {
                     # How much of the post is quoted?
-                    $reflines = 0;
-                    $reflines++ while $body =~ /^>/mg;
-                    $pctrefs = int(($reflines / $state{lines}) * 100) / 100;
-                    if ($pctrefs > 0.9 and $state{lines} > 50) {
-                        $score .= "!!PctQuote($pctrefs)";
-                    } elsif ($pctrefs > 0.7 and $state{lines} > 30) {
-                        $score .= "!PctQuote($pctrefs)";
-                    } elsif ($reflines == 0 and $state{lines} > 5) {
+                    $state{reflines} = 0;
+                    $state{reflines}++ while $hdr{__BODY__} =~ /^>/mg;
+                    $state{pctrefs} = int(($state{reflines} /
+                        $state{lines}) * 100) / 100;
+                    if ($state{pctrefs} > 0.9 and $state{lines} > 50) {
+                        $score .= "!!PctQuote($state{pctrefs})";
+                    } elsif ($state{pctrefs} > 0.7 and $state{lines} > 30) {
+                        $score .= "!PctQuote($state{pctrefs})";
+                    } elsif ($state{reflines} == 0 and $state{lines} > 5) {
                         $score .= "!NoQuote";
                     };
                 };
@@ -1724,8 +1732,6 @@ sub filter_stats {
     my $phnhashentries = $PHNhistory ? $PHNhistory->count : 0;
     my $phrhashentries = $PHRhistory ? $PHRhistory->count : 0;
     my $fslhashentries = $FSLhistory ? $FSLhistory->count : 0;
-    my $superentries   = $Suphistory ? $Suphistory->count : 0;
-    my $midhistentries = $MIDhistory->count;
   
     my $string = "Pass: $status{accepted}  Reject: $status{rejected}";
     $string .= "  Refuse: $status{refused}" if $config{do_mid_filter};
