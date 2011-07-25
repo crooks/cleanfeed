@@ -255,7 +255,8 @@ sub get_config {
     not_adult_groups => 'sexual\.abuse|^soc.sex|^fr\.soc\.homosexualite'.
         '|^alt\.(?:support|teens|answers)',
 
-    faq_groups => '\.faqs?$|\.answers$|^news\.announce\.newgroups$',
+    faq_groups => '\.faqs?$|\.answers$|^news\.announce\.newgroups$'.
+        '|^news\.admin\.hierarchies$',
 
     local_approved_groups => 'alt\.|news\.admin\.net-abuse\.'.
     '|fr\.misc\.bavardages\.dinosaures|alt\.sysadmin\.recovery'.
@@ -401,6 +402,7 @@ $phone = '\b[89]\d{2}[\.\s\-_*\)]*\d{2,3}[\.\s\-_*]*\d{4}\b'.
 $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adult";
 # ASCII Symbols, excluding space/tab.
 $SYMBOL = '[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]';
+$hws = '(?:[\t ])'; # Horizontal whitespace. (From Perl 5.10, this can be \h.)
 
 # Re-enable the following when we fix the false positives in the scoring section.
 #$site_desc = "$desc1|password";
@@ -606,16 +608,16 @@ sub filter_art {
     };
 
     # Try and ascertain the source news service.
-    if ($hdr{'Injection-Info'} =~ /^\h*($Hostname)[\h;]/) {
+    if ($hdr{'Injection-Info'} =~ /^$hws*($Hostname)[ \t;]/) {
         $state{injection_host} = "$1"
-    } elsif ($hdr{'X-Trace'} =~ /^\h*($Hostname)\h/) {
+    } elsif ($hdr{'X-Trace'} =~ /^$hws*($Hostname)$hws/) {
         $state{injection_host} = "$1"
     } else {
         $state{injection_host} = first_path_host($hdr{Path});
     };
 
     # Try and ascertain the Posting-Host info
-    if ($hdr{'Injection-Info'} =~ /posting-host\h*=\h*"?([^";]+)/) {
+    if ($hdr{'Injection-Info'} =~ /posting-host$hws*=$hws*"?([^";]+)/) {
         $state{posting_host} = "$1";
     } elsif ($hdr{'NNTP-Posting-Host'}) {
         $state{posting_host} = $hdr{'NNTP-Posting-Host'};
@@ -907,7 +909,7 @@ sub filter_art {
         return reject("UUencoded $1")
             if $state{lines} > 3 and $state{lines} < 2000
                 and $hdr{__BODY__} =~ /
-                    ^[Bb][Ee][Gg][Ii][Nn]\h+[0-7]{3,4}\h+ # begin 666
+                    ^[Bb][Ee][Gg][Ii][Nn]$hws+[0-7]{3,4}$hws+ # begin 666
                     \S?.{0,45}?\S*          # file name
                     \.(                     # file extensions
                         [Tt][Ee]?[Xx][Tt]|
@@ -915,13 +917,13 @@ sub filter_art {
                         [Ee][Xx][Ee]|
                         [Uu][Rr][Ll]
                     )
-                    \h+                     # end of line
+                    $hws+                     # end of line
                     (?:
                         ^[ \t|>]*           # skip quoting marks, if any
                         (?>                 # disable backtracking
                         M[\x20-\x60]{60,61} # uuencoded line
                         )
-                        \h*\n               # trailing spaces and end of line
+                        $hws*\n               # trailing spaces and end of line
                     ){2,}?                  # 0 or > 2 lines
                 /mx;
 
@@ -993,7 +995,7 @@ sub filter_art {
         if ($config{block_html_images}
         and $lch{'content-type'} !~ m#text/plain#) {
             return reject('HTML Image Tags', 'HTML')
-            if $hdr{__BODY__} =~ /\<img\h+src/i;
+            if $hdr{__BODY__} =~ /\<img$hws+src/i;
         };
 
             
@@ -1080,7 +1082,7 @@ sub filter_art {
                 $mbody =~ s/^(?!http)\S{7,70}\r?$//mg;
                 $mbody =~ s/^>+\s.*//mg;  # Strip quoted lines
                 $mbody =~ s/\r{3}.*$//mg;
-                $mbody =~ s/\h+$//;
+                $mbody =~ s/$hws+$//;
                 $mbody =~ s/^[^\n]*\Z//m if $state{lines} > 5;
                 $mbody =~ tr/a-z0-9//cd;
             }
@@ -1266,7 +1268,7 @@ sub filter_art {
             $score .= "!SubCR" if $hdr{Subject} =~ /\r/;
             $score .= "!SubLength" if length($hdr{Subject}) > 210;
             $score .= "!!SubNoLC" if $hdr{Subject} !~ /[a-z]/;
-            $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w\h+){8}/o;
+            $score .= "!!!SubSpaced" if $hdr{Subject} =~ /(\w$hws+){8}/o;
 
             # Job Spam
             $score .= "!!!Jobs" if $hdr{Newsgroups} =~ /\.jobs|\.bestjobs/
@@ -1303,7 +1305,7 @@ sub filter_art {
                 $score .= "!!!!!!!HTMLPopup" if $body =~ /window\.open\(/;
                 $score .= "!!!!!!HTMLJava" if $body =~ /<script language=.?javascript/;
                 $score .= "!!!!!!HTMLLive" if $body =~ /<script language=.?livescript/;
-                $score .= "!!HTMLAlternate" if $body =~ /^content-type:\h+multipart\/alternative/m;
+                $score .= "!!HTMLAlternate" if $body =~ /^content-type:$hws+multipart\/alternative/m;
             }
 
             #$score .= "!CR" if $body =~ /\r/;
@@ -1312,7 +1314,7 @@ sub filter_art {
             $score .= "!!Phone" if $body =~ /$phone/;
             # Score rates per minute (1.99/m or 1.99 per min)
             $score .= "!!!Rate"
-                if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|\h+per\bmin)/;
+                if $body =~ /\d\.\d{2}\s?(?:[\\\/]\s?m|$hws+per\bmin)/;
             $score .= "!!!!!HttpIP" if $body =~ /$HTTP$IP/o;
             $score .= "!!!!!!!Stealth" if $body =~ /$HTTP$StealthIP/o;
             $score .= "!!!!SpaceCom" if $body =~ /$spacecom/o;
@@ -1321,7 +1323,7 @@ sub filter_art {
 
             # only URL
             $score .= "!!!!!!OnlyURL"
-                if $state{lines} < 3 and $body =~ /^\h*$url3\S*\h*$/o;
+                if $state{lines} < 3 and $body =~ /^$hws*$url3\S*$hws*$/o;
 
             # Contains a link to a URL abbreviation service
             #$score .= "!!!URLShortener"
@@ -1351,7 +1353,7 @@ sub filter_art {
 
             if ($hdr{References}) {
                 $score .= "**Refs";
-                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>\h+</;
+                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>$hws+</;
 
                 if ($state{lines} > 0) {
                     # How much of the post is quoted?
@@ -1478,7 +1480,7 @@ sub filter_art {
         }
 
     # cancel messages ########################################################
-    } elsif ($hdr{Control} =~ /^\h*cancel/) {
+    } elsif ($hdr{Control} =~ /^$hws*cancel/) {
         foreach (@Path_Entries) {
             return reject("Cancel with $_ in path", 'Rogue cancel')
                 if exists $Bad_Cancel_Path{$_};
@@ -1497,7 +1499,7 @@ sub filter_art {
             if $gr{no_cancel} and not $hdr{Path} =~ /!cyberspam!/;
 
         if ($config{block_late_cancels}
-                and $hdr{Control} =~ /^cancel\h+(.+)$/) {
+                and $hdr{Control} =~ /^cancel$hws+(.+)$/) {
             return reject('Cancel for rejected article')
                 if $MIDhistory->check($1);
         }
@@ -1524,7 +1526,7 @@ sub filter_art {
         }
 
     # newgroup and rmgroup messages ##########################################
-    } elsif ($hdr{Control} =~ /^\h*((?:new|rm)group)\h+(.*)/) {
+    } elsif ($hdr{Control} =~ /^$hws*((?:new|rm)group)$hws+(.*)/) {
         my $control_type = $1;
         my $control_group = $2;
 
@@ -1558,7 +1560,7 @@ sub filter_art {
         };
 
     # other control messages #################################################
-    } elsif ($hdr{Control} =~ /^\h*(\w+)(?:\h+(.*))?/) {
+    } elsif ($hdr{Control} =~ /^$hws*(\w+)(?:$hws+(.*))?/) {
         my $control_type = $1;
         my $control_group = $2;
     
@@ -1594,7 +1596,7 @@ sub is_binary {
 
     # yEnc checks: According to yEnc spec, all encoded parts start with
     # =ybegin.
-    if ($body =~ /(?:^|\n)=ybegin\h+(.+)/o) {
+    if ($body =~ /(?:^|\n)=ybegin$hws+(.+)/o) {
         local $_ = $1;
         # Further confirmation that this is a yEnc message and extract
         # the file extension.  Greedy is good in this instance.
@@ -1606,9 +1608,9 @@ sub is_binary {
     };
 
     # uuEncoded check
-    if ($body =~ /(?:^|\n)begin\h+(.+)/io) {
+    if ($body =~ /(?:^|\n)begin$hws+(.+)/io) {
         local $_ = $1;
-        if (/[0-7]{3,4}\h.*\.(\w{2,4})/o) {
+        if (/[0-7]{3,4}$hws.*\.(\w{2,4})/o) {
             $state{file_extension} = $1;
             $state{cache_is_binary} = "uuencoded";
             return $state{cache_is_binary};
@@ -1617,10 +1619,10 @@ sub is_binary {
 
     if ($hdr{__BODY__} =~ /
         (?:
-            [\h|>]*                     # Skip Quote Marks
+            [ \t|>]*                     # Skip Quote Marks
             (?>                         # Disable Backtracking
             M[\x20-\x60]{60,61}         # uuencoded line
-            )\h*\x0D?\x0A               # End of line
+            )$hws*\x0D?\x0A               # End of line
         ){4}                            # Require at least four encoded lines
     /ox) {
         $state{cache_is_binary} = "uuencoded multi-part";
@@ -1632,7 +1634,7 @@ sub is_binary {
     if ($state{lines} > $config{max_base64_lines}) {
         $state{b64lines} = 0;
         $state{b64lines}++
-            while $hdr{__BODY__} =~ /^\h*[A-Za-z0-9\+\/]{59,76}\h*$/gmo;
+            while $hdr{__BODY__} =~ /^$hws*[A-Za-z0-9\+\/]{59,76}$hws*$/gmo;
         if ($state{b64lines} > $config{max_base64_lines}) {
             $state{cache_is_binary} = "Base64 ($state{b64lines} lines)";
             return $state{cache_is_binary};
@@ -2202,7 +2204,7 @@ sub read_file {
     }
     while (<FILE>) {
         s/#.*//;
-        s/^\h*(.*?)\h*$/$1/;
+        s/^$hws*(.*?)$hws*$/$1/;
         next if /^$/;
         if (/\s/) {
             push @$array, split;
