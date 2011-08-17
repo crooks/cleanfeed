@@ -1241,6 +1241,16 @@ sub filter_art {
             #    and $hdr{'NNTP-Posting-Host'} !~ /webtv\.net$/
             #    and $lch{'message-id'} !~ /webtv\.net>$/;
 
+            # Score the huge volume of commercial sex spam currently posted
+            # to these groups. (20110817)
+            if ($state{spamsource}
+                and $hdr{Newsgroups} =~ /\.sex\.|^alt\.fan\.utb\./) {
+                $score .= "!!!LongSexLine" if $hdr{__BODY__} =~ /^.{150}/m;
+                $score .= "!!SexLines1" if $state{lines} > 100;
+                $score .= "!!SexLines2" if $state{lines} > 200;
+                $score .= "!!SexURL" if $state{body_has_url};
+            };
+
             # Score poor netiquette on Follow-up's
             $score .= "!!ExpFup($state{grpcnt}-$state{grpfupcnt})"
                 if $state{grpfupcnt} > $state{grpcnt};
