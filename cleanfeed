@@ -65,7 +65,7 @@ sub get_config {
     PHLRateBaseInterval => 3600,
     PHNRateCutoff => 150,
     PHNRateCeiling => 200,
-    PHNRateBaseInterval => 3600,
+    PHNRateBaseInterval => 1800,
     PHRRateCutoff => 10,
     PHRRateCeiling => 80,
     PHRRateBaseInterval => 3600,
@@ -433,7 +433,7 @@ $two_point_words = "$drugs".
     '|twat|cunt|hard-?core|[^x]xxx|facial|gangbang|strap.on|submissive'.
     '|(?:live|real|innocent).girl|phone.{0,5}(?:sex|fun|play)|she.?male'.
     '|lolita|dildo|whore|fingering|barely.?(?:18|legal)|[gm]ilf|no.?limit'.
-    '|uncensored|age.?play';
+    '|uncensored|age.?play|pedo\b|pedophile';
 
 # assorted spamware names found in X-Newreader/X-Mailer/etc headers
 $Xbot = '^2\.\d\.(?:\d\d? [a-z]|\d\d?)$|newsgroup bulk mailer'
@@ -1247,8 +1247,9 @@ sub filter_art {
                 and $hdr{Newsgroups} =~ /\.sex\.|^alt\.fan\.utb\./) {
                 $score .= "!!!LongSexLine" if $hdr{__BODY__} =~ /^.{150}/m;
                 $score .= "!!SexLines1" if $state{lines} > 100;
-                $score .= "!!SexLines2" if $state{lines} > 200;
+                $score .= "!!SexLines2" if $state{lines} > 175;
                 $score .= "!!SexURL" if $state{body_has_url};
+                $score .= "!SexNoRef" if not $hdr{References};
             };
 
             # Score poor netiquette on Follow-up's
@@ -1284,7 +1285,7 @@ sub filter_art {
             $score .= "!!!Jobs" if $hdr{Newsgroups} =~ /\.jobs|\.bestjobs/
                 and $hdr{From} =~ /job/;
 
-            if ($config{aggressive}) {
+            if ($config{aggressive} and not $gr{alladult}) {
                 $score .= "!Sub1Pt($1)" while $lch{subject} =~ /($one_point_words)/go;
                 $score .= "!!Sub2Pt($1)" while $lch{subject} =~ /($two_point_words)/go;
                 $score .= "!From1Pt" while $lch{from} =~ /$one_point_words/go;
@@ -1300,7 +1301,7 @@ sub filter_art {
                 #$score .= "!!!!!SubServices" if /$services/o;
                 #$score .= "!!!SubSiteDesc" if /$site_desc.{0,20}site/o;
                 $score .= "!SubPorn" if /(?:$free_stuff|$porn)/o;
-            }
+            };
 
             $score .= "!!SubImage" if $state{lines} < 30
                 and $lch{subject}=~ /\w\.(?:jpe?g|gif)/;
@@ -1316,7 +1317,7 @@ sub filter_art {
                 $score .= "!!!!!!HTMLJava" if $body =~ /<script language=.?javascript/;
                 $score .= "!!!!!!HTMLLive" if $body =~ /<script language=.?livescript/;
                 $score .= "!!HTMLAlternate" if $body =~ /^content-type:$hws+multipart\/alternative/m;
-            }
+            };
 
             #$score .= "!CR" if $body =~ /\r/;
             $score .= "!!!2CR" if $body =~ /\r\r/;
@@ -1334,11 +1335,6 @@ sub filter_art {
             # only URL
             $score .= "!!!!!!OnlyURL"
                 if $state{lines} < 3 and $body =~ /^$hws*$url3\S*$hws*$/o;
-
-            # Contains a link to a URL abbreviation service
-            #$score .= "!!!URLShortener"
-            #    if $body_has_url
-            #        and $body =~ /(?:www\.|http:\/\/(?:www\.)?)\S*(?:$shorturl)/io;
 
             if ($state{body_has_url}) {
                 if ($Bad_URL) {
@@ -1359,7 +1355,6 @@ sub filter_art {
                     };
                 }; # End of References
             }; # End of body_has_url
-
 
             if ($hdr{References}) {
                 $score .= "**Refs";
@@ -1442,21 +1437,9 @@ sub filter_art {
                 };
             }; # End of do_ratio_scoring
 
-            # High Spam Sources.  Some sources are responsible for high volumes
-            # of Spam.  We rate these a low spam risk if there's a References
-            # header.  If there isn't, then the risk is based on url content
-            # within the payload.
-            if ($state{spamsource}) {
-                if ($hdr{References}) {
-                    $score .= "!SpamSrc";
-                } else {
-                    $score .= "!SpamSrc+NoUrl" if not $state{body_has_url};
-                    $score .= "!!!SpamSrc+Url" if $state{body_has_url};
-                }; # End of References
-            }; # End of SpamSrc
-
-            # Grant some slack to adult groups.
-            if ($gr{alladult}) {
+            # Grant some slack to adult groups posts, providing they don't
+            # originate from a spam source.
+            if ($gr{alladult} and not $state{spamsource}) {
                 if ($hdr{References}) {
                     $score .= "***Adult";
                 } else {
@@ -1472,14 +1455,10 @@ sub filter_art {
                 } elsif ($gr{mod}) {
                     #$score -= 4;
                     $score .= "****Mod";
-                }
-            }
+                };
+            };
 
-            # Call local_filter_scoring
-            $score .= local_filter_scoring() if defined &local_filter_scoring;
-            
             $state{scoreval} = ($score =~ tr/!//) - ($score =~ tr/*//);
-
             return reject("Scoring filter ($state{scoreval})", "Scoring filter")
                 if $state{scoreval} > 7;
         }; # End of Scoring filters
