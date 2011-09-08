@@ -426,7 +426,7 @@ $one_point_words = "pre.?teen|\bteen|\bsex|credit|amateur|horne?y".
     '|orgy|erotic|porn|fetish|whore|nympho|sucking|password|membership'.
     '|make.money|fast.cash|orgasm|incest|extreme\b|raunchy|panties|bang'.
     '|taboo|muff\b|(?:young|cute|school).?girl|nasty|torture'.
-    'suduc(?:e|tress)|cuckold|wicked|unlimited';
+    'suduc(?:e|tress)|cuckold|wicked|unlimited|masterbat';
 $two_point_words = "$drugs".
     '|fuck|sluts|puss(?:y|ies)|\bcum|(?:hidden|live|free|dorm|spy).?cam'.
     '|le[sz]b(?:ian|o)|\btits?\b|dick(?!.?berg)|blow.?job|cock|clit'.
@@ -1246,9 +1246,9 @@ sub filter_art {
             if ($state{spamsource}) {
                 if ($hdr{Newsgroups} =~ /\.sex\.|^alt\.fan\.utb\./) {
                     $score .= "!!!LongSexLine" if $hdr{__BODY__} =~ /^.{150}/m;
-                    $score .= "!!SexLines1" if $state{lines} > 100;
-                    $score .= "!!SexLines2" if $state{lines} > 175;
-                    $score .= "!!SexURL" if $state{body_has_url};
+                    $score .= "!!SexLines1" if $state{lines} > 50;
+                    $score .= "!!SexLines2" if $state{lines} > 100;
+                    $score .= "!!!SexURL" if $state{body_has_url};
                     $score .= "!SexNoRef" if not $hdr{References};
                 };
             };
@@ -1434,9 +1434,9 @@ sub filter_art {
                         $urlscore = 2;
                     } elsif ($state{urlratio} > 0.1 and  $state{lines} > 5) {
                         $urlscore = 1;
+                    }; # End of url ratio calculation
                     # Double the score for spamsources
                     $urlscore = $urlscore * 2 if $state{spamsource};
-                    }; # End of url ration calculation
                     # Convert the score integer to text format
                     if ($urlscore > 0) {
                         $score .= "!" x $urlscore . "UrlRat($state{urlratio})";
