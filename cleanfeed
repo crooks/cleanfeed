@@ -1243,13 +1243,14 @@ sub filter_art {
 
             # Score the huge volume of commercial sex spam currently posted
             # to these groups. (20110817)
-            if ($state{spamsource}
-                and $hdr{Newsgroups} =~ /\.sex\.|^alt\.fan\.utb\./) {
-                $score .= "!!!LongSexLine" if $hdr{__BODY__} =~ /^.{150}/m;
-                $score .= "!!SexLines1" if $state{lines} > 100;
-                $score .= "!!SexLines2" if $state{lines} > 175;
-                $score .= "!!SexURL" if $state{body_has_url};
-                $score .= "!SexNoRef" if not $hdr{References};
+            if ($state{spamsource}) {
+                if ($hdr{Newsgroups} =~ /\.sex\.|^alt\.fan\.utb\./) {
+                    $score .= "!!!LongSexLine" if $hdr{__BODY__} =~ /^.{150}/m;
+                    $score .= "!!SexLines1" if $state{lines} > 100;
+                    $score .= "!!SexLines2" if $state{lines} > 175;
+                    $score .= "!!SexURL" if $state{body_has_url};
+                    $score .= "!SexNoRef" if not $hdr{References};
+                };
             };
 
             # Score poor netiquette on Follow-up's
@@ -1422,19 +1423,25 @@ sub filter_art {
 
                 # Grant some slack to posts with no url's in them.
                 $score .= "**NoUrl" if $state{urlcount} == 0;
+                # Score on URL ratios
                 if ($state{lines} > 0 and $state{urlcount} > 1) {
+                    $urlscore = 0;
                     $state{urlratio} = int(($state{urlcount} /
                         $state{lines}) * 100) / 100;
-                    if ($state{urlratio} > 0.8 and  $state{lines} > 80) {
-                        $score .= "!!!!UrlRat($state{urlratio})";
-                    } elsif ($state{urlratio} > 0.5 and  $state{lines} > 40) {
-                        $score .= "!!!UrlRat($state{urlratio})";
+                    if ($state{urlratio} > 0.5 and  $state{lines} > 40) {
+                        $urlscore = 3;
                     } elsif ($state{urlratio} > 0.3 and  $state{lines} > 10) {
-                        $score .= "!!UrlRat($state{urlratio})";
+                        $urlscore = 2;
                     } elsif ($state{urlratio} > 0.1 and  $state{lines} > 5) {
-                        $score .= "!UrlRat($state{urlratio})";
+                        $urlscore = 1;
+                    # Double the score for spamsources
+                    $urlscore = $urlscore * 2 if $state{spamsource};
+                    }; # End of url ration calculation
+                    # Convert the score integer to text format
+                    if ($urlscore > 0) {
+                        $score .= "!" x $urlscore . "UrlRat($state{urlratio})";
                     };
-                };
+                }; # End of url ratio scoring
             }; # End of do_ratio_scoring
 
             # Grant some slack to adult groups posts, providing they don't
