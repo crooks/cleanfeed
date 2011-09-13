@@ -748,7 +748,7 @@ sub filter_art {
         $gr{'rg_'.$_.'_only'} = ($gr{'rg_'.$_} == $state{grpcnt});
     }
 
-    if ($hdr{'Content-Type'} =~ /charset=([a-zA-Z0-9.:()_-]+)/io) {
+    if ($hdr{'Content-Type'} =~ /charset="?([^";\s]+)/io) {
         $state{charset} = lc($1);
     };
 
@@ -1390,12 +1390,18 @@ sub filter_art {
                 $fuzzy = $hdr{__BODY__};
                 $state{urlcount} = $fuzzy =~ s/http:\/\/www\.\S+//g;       # Strip urls
                 $state{urlcount} += $fuzzy =~ s/$HTTP\S+//g;   # Strip urls
+                $state{nonasc} += $fuzzy =~ s/[\x80-\xFF]//g; # Strip non-ascii
                 $fuzzy =~ s/[\-=]{5,}//g;           # Strip horizontal rules
                 $fuzzy =~ s/[a-zA-Z]{20,}//g;       # Strip long char strings
                 $state{letters} = $fuzzy =~ y/a-zA-Z//;    # Count letters
                 $state{uppercase} = $fuzzy =~ y/A-Z//;     # Count upper
                 $state{symbols} = $fuzzy =~ y/!"#$%&'()*+,-:;=?@{|}~//; # Count syms
                 undef $fuzzy;
+                # Where non-ASCII chars are present, there should be a charset
+                # specified in the Content-Type.
+                if (not $state{charset} and $state{nonasc}) {
+                    $score .= "!!!NoCharset" if $state{nonasc} > 50;
+                };
                 if (not $state{charset} =~ /iso-2022|koi8-r/) {
                     if ($state{uppercase} > 50) {
                         $state{capratio} = int(($state{uppercase} /
