@@ -1,0 +1,16 @@
+Cleanfeed is a spam and abuse filter written specifically for Usenet. It
+incorporates a number of filter mechanisms that analyize each message and
+reject them if operator-defined thresholds are exceeded.
+
+To install Cleanfeed for the first time, there is a tarball available at
+http://www.mixmin.net/cleanfeed/cleanfeed.tar.gz.  This contains the main Perl
+file along with some configuration examples.
+
+After the initial install, later releases can be installed simply by
+overwriting the ~news/bin/filter/filter_innd.pl file with the cleanfeed file
+within the repository.  If leading edge isn't your thing, stable releases are
+produced at irregular intervals and can be downloaded from
+http://www.mixmin.net/cleanfeed/cleanfeed.
+
+Further details relating to installation and configuration can be found at
+http://www.mixmin.net/cleanfeed/
