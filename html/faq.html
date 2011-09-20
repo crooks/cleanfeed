@@ -59,7 +59,7 @@ sub local_filter_reject {
 The following code will reject articles over a given number of lines.
 <pre>
 sub local_filter_first {
-    if ($lines > 50) {
+    if ($state{lines} > 50) {
         return reject('Line limit exceeded', 'Too many lines');
     };
 };
