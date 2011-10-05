@@ -21,6 +21,7 @@
 <li><a href='#bad_word_body'>How do I score on bad words in the message body?</a></li>
 <li><a href='#xnewsreader'>Can a filter be done on X-Newsreader?</a></li>
 <li><a href='#linelimit'>Can we limit the number of lines in a posting?</a></li>
+<li><a href='#hashhost'>How can we preserve posters' privacy?</a></li>
 </ol>
 <hr>
 <h3><a name='bad_word_body'>How do I score on bad words in the message body?</a></h3>
@@ -36,7 +37,7 @@ sub local_filter_scoring {
 };
 </pre>
 <hr>
-<h3><a name='#xnewsreader'>Can a filter be done on X-Newsreader?</a></h3>
+<h3><a name='xnewsreader'>Can a filter be done on X-Newsreader?</a></h3>
 Yes, this example would reject any articles posted with an X-Newsreader
 header beginning with "Microsoft".
 <pre>
@@ -55,7 +56,7 @@ sub local_filter_reject {
 };
 </pre>
 <hr>
-<h3><a name='#linelimit'>Can we limit the number of lines in a posting?</a></h3>
+<h3><a name='linelimit'>Can we limit the number of lines in a posting?</a></h3>
 The following code will reject articles over a given number of lines.
 <pre>
 sub local_filter_first {
@@ -65,5 +66,31 @@ sub local_filter_first {
 };
 </pre>
 <hr>
+<h3><a name='hashhost'>How can we preserve posters' privacy?</a></h3>
+Usually headers such as NNTP-Posting-Host and X-Trace will reveal information
+about the originator's hostname or IP address.  Deleting these headers or
+configuring them to not display is the obvious solution but doing so prevents
+other Usenet users and providers from linking posts to a single source.  One
+alternative is to cryptographically secure this info with a one-way hash.<br>
+<br>
+The following code snippet will hash the NNTP-Posting-Host header and remove
+the X-Trace header. It should replace or be incorporated into the
+filter_nnrpd.pl file.
+<pre>
+use strict;
+use Digest::SHA1;
+our (%hdr, $modify_headers);
+
+sub filter_post {
+    my $digest = Digest::SHA1->new;
+    $digest->add($hdr{'NNTP-Posting-Host'});
+    $digest->add("salt"); # Change this string to your own secret
+    $hdr{'NNTP-Posting-Host'} = $digest->b64digest;
+
+    undef $hdr{'X-Trace'};
+    $modify_headers = 1;
+    return "";
+};
+</pre>
 </body>
 </html>
