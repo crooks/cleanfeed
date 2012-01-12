@@ -1357,8 +1357,13 @@ sub filter_art {
             }; # End of body_has_url
 
             if ($hdr{References}) {
-                $score .= "**Refs";
-                $score .= "*GoodRefs" if $hdr{References} =~ /^<[^>]+>$hws+</;
+                if ($hdr{References} =~ /^<[^>]+>$hws+</) {
+                    $score .= "***Refs";
+                } elsif ($hdr{References} =~ /^<[^>]+>$hws*$/) {
+                    $score .= "**Ref";
+                } else {
+                    $score .= "!!BadRef";
+                };
 
                 if ($state{lines} > 0) {
                     # How much of the post is quoted?
@@ -1374,7 +1379,7 @@ sub filter_art {
                         $score .= "!NoQuote";
                     };
                 };
-            };
+            }; # End of References conditional
 
             # Long signatures are poor netiquette but not spam, so only
             # give them low scores.
