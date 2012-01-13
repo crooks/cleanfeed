@@ -1357,9 +1357,9 @@ sub filter_art {
             }; # End of body_has_url
 
             if ($hdr{References}) {
-                if ($hdr{References} =~ /^<[^>]+>$hws+</) {
+                if ($hdr{References} =~ /^<[^>]+>\s*</) {
                     $score .= "***Refs";
-                } elsif ($hdr{References} =~ /^<[^>]+>$hws*$/) {
+                } elsif ($hdr{References} =~ /^<[^>]+>\s*$/) {
                     $score .= "**Ref";
                 } else {
                     $score .= "!!BadRef";
