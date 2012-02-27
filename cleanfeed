@@ -402,6 +402,7 @@ $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adul
 # ASCII Symbols, excluding space/tab.
 $SYMBOL = '[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]';
 $hws = '(?:[\t ])'; # Horizontal whitespace. (From Perl 5.10, this can be \h.)
+$messageid_re = messageidre();
 
 # Re-enable the following when we fix the false positives in the scoring section.
 #$site_desc = "$desc1|password";
@@ -774,6 +775,13 @@ sub filter_art {
             return reject('NewsAgent', 'Bot signature');
         }
     }
+
+    # This check should only trap articles in inn < 2.6. From that time,
+    # Message-ID validation to RFC5536 is integrated.
+    if ($hdr{'Message-ID'} !~ $messageid_re) {
+        return reject('Bad Message-ID', 'Invalid Header');
+    };
+
     return reject('NewsAgent (Path)')
         if $hdr{Path} =~ /\.(?:posted|mismatch)$/;
 
@@ -1476,7 +1484,7 @@ sub filter_art {
             };
 
             $state{scoreval} = ($score =~ tr/!//) - ($score =~ tr/*//);
-            return reject("Scoring filter ($state{scoreval})", "Scoring filter")
+            return reject("Scoring filter", "Scoring filter")
                 if $state{scoreval} > 7;
         }; # End of Scoring filters
 
@@ -2220,6 +2228,18 @@ sub read_file {
     }
     close FILE;
 }
+
+sub messageid_re {
+    my $mdtext = '[\x21-\x3d\x3f\x41-\x5a\x5e-\x7e]+';
+    my $nofoldliteral = '\[' . $mdtext . '\]';
+    my $idright = '(?:' . $mdtext . '|' . $nofoldliteral . ')';
+    my $idleft = $mdtext;
+    my $msgidcore = $idleft . '\@' . $idright;
+    my $msgid = '<' . $msgidcore . '>';
+    my $messageid = '^[\x20\x09]*' . $msgid . '[\x20\x09]*$';
+    my $messagidre = qr/$messageid/;
+    return $messageidre;
+};
 
 print $fullURL if 0; # lint food
 
