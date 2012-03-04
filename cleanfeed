@@ -264,8 +264,8 @@ sub get_config {
     );
 
     # Store the Cleanfeed development revision number
-    ($version) = q$Revision$ =~ /(\d+)/;
-    ($version_date) = q$Date$ =~ /(\d{4}(\-\d{2}){2})/;
+    #($version) = q$Revision$ =~ /(\d+)/;
+    #($version_date) = q$Date$ =~ /(\d{4}(\-\d{2}){2})/;
 
     ### List of group patterns that don't allow outside crossposts.
     ### Key is "friendly" name, value is the pattern.
@@ -599,7 +599,7 @@ sub filter_art {
     };
 
     # Reload the bad_* files every $bad_rate_reload articles accepted
-    if ($status{accepted} > 0
+    if ($status{accepted} > 0 and $config{bad_rate_reload} > 0
         and $status{accepted} % $config{bad_rate_reload} == 0
         and $status{accepted} > $status{bad_reloaded}) {
         slog('N', "Reloading bad files after $status{accepted} articles");
@@ -1776,8 +1776,8 @@ sub write_html_stats {
     . "<title>Cleanfeed Status</title>\n"
     . "</head>\n<body>\n\n"
     . "<p>\n";
-    print HTML "<b>Cleanfeed Version:</b> $version ($version_date)<br>\n"
-        if $version and $version_date;
+    #print HTML "<b>Cleanfeed Version:</b> $version ($version_date)<br>\n"
+    #    if $version and $version_date;
     print HTML "<b>Filter started:</b> " . scalar(localtime $Start_Time) . "<br>\n"
     . "<b>Report generated:</b> " . scalar(localtime) . "<br>\n"
     . 'Uptime: ' . ($now - $Start_Time) . " seconds\n"
