@@ -402,7 +402,7 @@ $desc1 = "hard.?core|teen|asian|extreme|live|outrageous|nasty|awesome|$free|adul
 # ASCII Symbols, excluding space/tab.
 $SYMBOL = '[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]';
 $hws = '(?:[\t ])'; # Horizontal whitespace. (From Perl 5.10, this can be \h.)
-$messageid_re = messageidre();
+$messageid_re = messageid_re();
 
 # Re-enable the following when we fix the false positives in the scoring section.
 #$site_desc = "$desc1|password";
@@ -2238,7 +2238,7 @@ sub messageid_re {
     my $msgidcore = $idleft . '\@' . $idright;
     my $msgid = '<' . $msgidcore . '>';
     my $messageid = '^[\x20\x09]*' . $msgid . '[\x20\x09]*$';
-    my $messagidre = qr/$messageid/;
+    my $messageidre = qr/$messageid/;
     return $messageidre;
 };
 
