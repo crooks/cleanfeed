@@ -205,7 +205,8 @@ sub get_config {
         '|^\w+\.bin|^microsoft\.|\.bbs\.|^alt\.bestjobsusa|^mozilla\.'.
         '|^gnus?\.|^alt\.pictures\.|^gmane\.|^fa\.|^stu\.|^corel\.|\.cvs\.'.
         '|\.talk|^lists\.|^microsoft\.|news\.lists\.filters|^perl\.'.
-        '|\.marketplace|\.ebay|\.forsale|^relcom\.hot-news|^szn\.news\.',
+        '|\.marketplace|\.ebay|\.forsale|^relcom\.hot-news|^szn\.news\.'.
+        '|^comp\.lang\.python',
 
     # These hosts create unlinkable Posting-Host headers, rendering them
     # useless for hashing purposes.  In these instances the NPH and PHR filter
