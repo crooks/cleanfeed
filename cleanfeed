@@ -1717,7 +1717,7 @@ sub filter_messageid {
     }
 
     if ($config{block_late_cancels}
-            and (($id =~ /^<cancel\.[a-z0-9]{4}?\.(.+)/
+            and (($id =~ /^<cancel\.[a-z0-9]{4}\.(.+)/
                     and $MIDhistory->check('<'.$1))
                 or ($id =~ /^<cancel\.(.+)/ and $MIDhistory->check('<'.$1)))) {
         $status{refused}++;
