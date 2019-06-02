@@ -950,14 +950,9 @@ sub filter_art {
                         # or image_allowed
                         # gr{binary} is true when distro matches bin_allowed
                     } else {
-                        if ($state{file_extension}) {
-                            return reject("Binary: misplaced $state{file_extension}")
-                            if not $gr{binary};
-                        } else {
-                            return reject("Binary: non-binary distribution")
-                            if not $gr{binary};
-                        }; # End of $file_extension check
-                    }; # End of extension()
+                        if (not $gr{binary}) {
+                            return reject("Binary: misplaced binary");
+                    }; # End of misplaced binary check
                     # If configured to reject all binary, we do it last so
                     # misplaced stuff is still highlighted.
                     return reject("Binary Payload")
@@ -1614,11 +1609,7 @@ sub is_binary {
     # =ybegin.
     if ($body =~ /(?:^|\n)=ybegin$hws+(.+)/o) {
         local $_ = $1;
-        if (/line=/ and /size=/) {
-	    # Further confirmation that this is a yEnc message and extract the
-	    # file extension.  Greedy is good in this instance.
-            if (/name=.*\.(\w{2,4})/) {
-                $state{file_extension} = $1;
+        if (/line=/ and /size=/ and /name=/) {
                 $state{cache_is_binary} = "yEnc Encoded";
                 return $state{cache_is_binary};
             };
