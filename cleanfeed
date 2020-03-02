@@ -952,6 +952,7 @@ sub filter_art {
                     } else {
                         if (not $gr{binary}) {
                             return reject("Binary: misplaced binary");
+                        };
                     }; # End of misplaced binary check
                     # If configured to reject all binary, we do it last so
                     # misplaced stuff is still highlighted.
@@ -1610,9 +1611,8 @@ sub is_binary {
     if ($body =~ /(?:^|\n)=ybegin$hws+(.+)/o) {
         local $_ = $1;
         if (/line=/ and /size=/ and /name=/) {
-                $state{cache_is_binary} = "yEnc Encoded";
-                return $state{cache_is_binary};
-            };
+            $state{cache_is_binary} = "yEnc Encoded";
+            return $state{cache_is_binary};
         };
     };
 
