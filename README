@@ -1,5 +1,5 @@
 Cleanfeed is a spam and abuse filter written specifically for Usenet. It
-incorporates a number of filter mechanisms that analyize each message and
+incorporates a number of filter mechanisms that analyze each message and
 reject them if operator-defined thresholds are exceeded.
 
 To install Cleanfeed for the first time, there is a tarball available at
